@@ -16,7 +16,7 @@ from setuptools import setup, find_packages
 from primo import VERSION
 
 
-NAME = "primo"
+NAME = "primo-optimizer"
 
 
 # All requirements for the package to work successfully
