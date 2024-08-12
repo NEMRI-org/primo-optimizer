@@ -33,7 +33,7 @@ project = "PRIMO"
 copyright = "2023-2026, PRIMO"
 author = (
     "The PRIMO team:\\\\ Dev Kakkad\\\\ Tyler Jaffe\\\\ Ruonan Li\\\\ Sangbum Lee\\\\"
-    "Radhkakrishna Tumabalam Gooty\\\\ Miguel Zamarripa\\\\ Yash Puranik\\\\"
+    "Radhkakrishna Tumbalam Gooty\\\\ Miguel Zamarripa\\\\ Yash Puranik\\\\"
     "Markus Drouven"
 )
 

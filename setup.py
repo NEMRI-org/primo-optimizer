@@ -10,6 +10,8 @@
 # reproduce, distribute copies to the public, prepare derivative works, and
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
+# Standard lib
+from pathlib import Path
 
 # Installed lib
 from setuptools import setup, find_packages
@@ -19,7 +21,8 @@ from primo import VERSION
 
 
 NAME = "primo-optimizer"
-
+CURRENT_DIRECTORY = Path(__file__).parent
+LONG_DESCRIPTION = (CURRENT_DIRECTORY / "README.md").read_text()
 
 # All requirements for the package to work successfully
 REQUIREMENTS = [
@@ -63,25 +66,42 @@ DEV_REQUIREMENTS = [
 TEST_REQUIREMENTS = ["pytest", "pytest-cov"]
 
 setup(
-    name=NAME,
-    version=VERSION,
-    description="PRIMO - The P&A Project Optimizer",
-    long_description=(
-        "PRIMO - The P&A Project Optimizer toolkit was produced under the "
-        " Methane Emissions Reduction Program (MERP) "
-        " and National Energy Technology Laboratory's (NETL) "
-        "National Emissions Reduction Initiative (NEMRI). "
-        "The major deliverable of this project will be an open-source, optimization-based, "
-        "downloadable and executable decision-support application, PRIMO, "
-        "that can be run by companies, technology providers, research organizations, "
-        "and regulators."
-    ),
-    long_description_content_type="text/plain",
-    url="https://edx.netl.doe.gov/nemri/",
     author="PRIMO team",
-    license="BSD",
-    maintainer="Miguel Zamarripa",
-    maintainer_email="Miguel.Zamarripa-Perez@netl.doe.gov",
+    author_email="primo@netl.doe.gov",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: End Users/Desktop",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: BSD License",
+        "Natural Language :: English",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: Unix",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+    ],
+    description="PRIMO - The P&A Project Optimizer",
+    entry_points={
+        "console_scripts": [
+            "stagedfright=stagedfright:main",
+        ]
+    },
+    extras_require={
+        "dev": DEV_REQUIREMENTS,
+        "test": TEST_REQUIREMENTS,
+    },
+    include_package_data=True,
+    install_requires=REQUIREMENTS,
     keywords=[
         "PRIMO",
         "MERP",
@@ -92,47 +112,32 @@ setup(
         "operations research",
         "well plugging",
     ],
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: End Users/Desktop",
-        "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: BSD License",
-        "Natural Language :: English",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: Unix",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Topic :: Scientific/Engineering :: Mathematics",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Programming Language :: Python :: 3 :: Only",
-    ],
-    platforms=[
-        "windows",
-        "linux",
-    ],
-    python_requires=">=3.8, <=4.0",
-    packages=find_packages(),
-    py_modules=["stagedfright"],
-    install_requires=REQUIREMENTS,
-    extras_require={
-        "dev": DEV_REQUIREMENTS,
-        "test": TEST_REQUIREMENTS,
-    },
-    include_package_data=True,
+    license="BSD",
+    license_files=("LICENSE.md",),
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
+    maintainer="PRIMO team",
+    maintainer_email="primo@netl.doe.gov",
+    name=NAME,
     package_data={
         # If any package contains these files, include them:
         "": [
             "*.xlsx",
         ]
     },
-    entry_points={
-        "console_scripts": [
-            "stagedfright=stagedfright:main",
-        ]
+    packages=find_packages(),
+    platforms=[
+        "windows",
+        "linux",
+    ],
+    project_urls={
+        "Documentation": "https://primo.readthedocs.io/en/latest/",
+        "Download": "https://github.com/NEMRI-org/primo-optimizer/releases",
+        "Homepage": "https://edx.netl.doe.gov/nemri/",
+        "Source": "https://github.com/NEMRI-org/primo-optimizer",
+        "Tracker": "https://github.com/NEMRI-org/primo-optimizer/issues",
     },
+    python_requires=">=3.8, <4.0",
+    py_modules=["stagedfright"],
+    version=VERSION,
 )
