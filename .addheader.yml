@@ -1,5 +1,5 @@
 # Usage: 
-# addheader -c addheader.yml
+# addheader -c .addheader.yml
 ---
 root: primo
 text: file_header.txt
