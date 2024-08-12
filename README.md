@@ -38,7 +38,7 @@ The above test, if executed successfully, confirms that primo package is now ins
 
 To use the utilities implemented in the PRIMO package that query the U.S. Census API and Bing Maps API, appropriate API keys must be obtained
 by signing up with the respective services. These keys must be configured in a .env file in the parent directory. For more details, please see:
-[API Keys](TBD)
+[API Keys](https://primo.readthedocs.io/en/latest/method/api_keys.html)
 
 Users can also employ other commercial solvers, for example Gurobi, to solve the optimization problem. 
 However, users are responsible for configuring and setting up these solvers themselves
