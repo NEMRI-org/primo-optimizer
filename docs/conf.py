@@ -33,7 +33,8 @@ project = "PRIMO"
 copyright = "2023-2026, PRIMO"
 author = (
     "The PRIMO team:\\\\ Dev Kakkad\\\\ Tyler Jaffe\\\\ Ruonan Li\\\\ Sangbum Lee\\\\"
-    " Miguel Zamarripa\\\\ Yash Puranik\\\\ Markus Drouven"
+    "Radhkakrishna Tumabalam Gooty\\\\ Miguel Zamarripa\\\\ Yash Puranik\\\\"
+    "Markus Drouven"
 )
 
 latex_elements = {"maketitle": "\\author{" + author + "}\\sphinxmaketitle"}
