@@ -1,8 +1,21 @@
+<!-- ![PRIMO logo](docs/_static/logo-print-hd.jpg) -->
+<img src="docs/_static/logo-print-hd.jpg" width="400px" alg="PRIMO logo"></img>
+
 # PRIMO - The P&A Project Optimizer Toolkit
 
 PRIMO - The P&A Project Optimizer Toolkit aims to provide multi-scale, simulation-based, open source
 computational tools and models to support the Methane Emissions Reduction Program (MERP) and the National
 Emissions Reduction Initiative (NEMRI).
+
+## Project Status
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/primo-optimizer.svg)](https://pypi.org/project/primo-optimizer/)
+[![Checks](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/checks.yml/badge.svg)](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/checks.yml)
+[![codecov](https://codecov.io/github/apd-ypuranik/primo-optimizer/graph/badge.svg?token=P91S7I13RV)](https://codecov.io/github/apd-ypuranik/primo-optimizer)
+[![Documentation Status](https://readthedocs.org/projects/primo/badge/?version=latest)](https://primo.readthedocs.io/en/latest/?badge=latest)
+[![Contributors](https://img.shields.io/github/contributors/NEMRI-org/primo-optimizer?style=plastic)](https://github.com/NEMRI-org/primo-optimizer/contributors)
+[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/NEMRI-org/primo-optimizer.svg?label=merged+PRs)](https://github.com/NEMRI-org/primo-optimizer/pulls?q=is:pr+is:merged)
+[![Issue stats](https://isitmaintained.com/badge/resolution/NEMRI-org/primo-optimizer.svg)](https://isitmaintained.com/project/NEMRI-org/primo-optimizer)
+[![Downloads](https://static.pepy.tech/badge/primo-optimizer)](https://pepy.tech/project/primo-optimizer)
 
 ## Getting Started
 
