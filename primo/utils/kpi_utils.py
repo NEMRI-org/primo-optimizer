@@ -130,7 +130,12 @@ def calculate_average(
     """
     _is_numeric_valid_column(group, column_name, estimation_method)
 
-    return np.nanmean(np.abs(group[column_name]))
+    # If all values in the column are NaN, a runtime warning is raised by np.nanmean
+    col = np.abs(group[column_name])
+    if pd.isna(col).all():
+        return np.NaN
+    else:
+        return np.nanmean(col)
 
 
 def calculate_number_of_owners(group: pd.DataFrame) -> int:
@@ -173,34 +178,48 @@ def process_data(merged_df: pd.DataFrame, centroids: dict) -> pd.DataFrame:
     """
     cluster_groups = merged_df.groupby("Project")
 
-    average_age = cluster_groups.apply(calculate_average, column_name="Age [Years]")
+    average_age = cluster_groups.apply(
+        calculate_average, column_name="Age [Years]", include_groups=False
+    )
 
     average_age_df = pd.DataFrame(
         {"Project": average_age.index, "Average Age [Years]": average_age.values}
     )
 
-    average_depth = cluster_groups.apply(calculate_average, column_name="Depth [ft]")
+    average_depth = cluster_groups.apply(
+        calculate_average, column_name="Depth [ft]", include_groups=False
+    )
     average_depth_df = pd.DataFrame(
         {"Project": average_depth.index, "Average Depth [ft]": average_depth.values}
     )
 
-    age_ranges = cluster_groups.apply(calculate_range, column_name="Age [Years]")
+    age_ranges = cluster_groups.apply(
+        calculate_range, column_name="Age [Years]", include_groups=False
+    )
     age_ranges_df = pd.DataFrame(
         {"Project": age_ranges.index, "Age Range [Years]": age_ranges.values}
     )
 
-    depth_ranges = cluster_groups.apply(calculate_range, column_name="Depth [ft]")
+    depth_ranges = cluster_groups.apply(
+        calculate_range, column_name="Depth [ft]", include_groups=False
+    )
     depth_ranges_df = pd.DataFrame(
         {"Project": depth_ranges.index, "Depth Range [ft]": depth_ranges.values}
     )
 
-    well_number = cluster_groups.apply(calculate_well_number)
+    well_number = cluster_groups.apply(calculate_well_number, include_groups=False)
     well_number_df = pd.DataFrame(
-        {"Project": well_number.index, "Average Well Score": well_number.values}
+        {
+            "Project": well_number.index,
+            "Average Well Score": well_number.values,
+        }
     )
 
     elevation_average = cluster_groups.apply(
-        calculate_average, column_name="Elevation Delta [m]", estimation_method="yes"
+        calculate_average,
+        column_name="Elevation Delta [m]",
+        estimation_method="yes",
+        include_groups=False,
     )
     elevation_average_df = pd.DataFrame(
         {
@@ -210,7 +229,7 @@ def process_data(merged_df: pd.DataFrame, centroids: dict) -> pd.DataFrame:
     )
 
     road_distance_average = cluster_groups.apply(
-        calculate_average, column_name="Distance to Road [miles]"
+        calculate_average, column_name="Distance to Road [miles]", include_groups=False
     )
     road_distance_average_df = pd.DataFrame(
         {
@@ -220,7 +239,9 @@ def process_data(merged_df: pd.DataFrame, centroids: dict) -> pd.DataFrame:
     )
 
     centroid_distance_average = cluster_groups.apply(
-        calculate_average, column_name="Distance to Centroid [miles]"
+        calculate_average,
+        column_name="Distance to Centroid [miles]",
+        include_groups=False,
     )
     centroid_distance_average_df = pd.DataFrame(
         {
@@ -229,13 +250,15 @@ def process_data(merged_df: pd.DataFrame, centroids: dict) -> pd.DataFrame:
         }
     )
 
-    number_of_owners = cluster_groups.apply(calculate_number_of_owners)
+    number_of_owners = cluster_groups.apply(
+        calculate_number_of_owners, include_groups=False
+    )
     number_of_owners_df = pd.DataFrame(
         {"Project": number_of_owners.index, "Operator Name": number_of_owners.values}
     )
 
     average_priority_score = cluster_groups.apply(
-        calculate_average, column_name="Priority Score [0-100]"
+        calculate_average, column_name="Priority Score [0-100]", include_groups=False
     )
     average_priority_score_df = pd.DataFrame(
         {

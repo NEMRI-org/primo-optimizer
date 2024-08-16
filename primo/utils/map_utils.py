@@ -28,13 +28,15 @@ from primo.utils.download_utils import download_file, unzip_file
 from primo.utils.raise_exception import raise_exception
 
 
-def add_shapefile_to_map(map: folium.Map, state_shapefile: gpd.GeoDataFrame) -> None:
+def add_shapefile_to_map(
+    map_obj: folium.Map, state_shapefile: gpd.GeoDataFrame
+) -> None:
     """
     Add a GeoDataFrame as a GeoJson layer to a folium map.
 
     Parameters
     ----------
-    map : folium.Map
+    map_obj : folium.Map
         Folium map object
 
     state_shapefile : gpd.GeoDataFrame
@@ -45,16 +47,18 @@ def add_shapefile_to_map(map: folium.Map, state_shapefile: gpd.GeoDataFrame) -> 
     None
     """
 
-    folium.GeoJson(state_shapefile).add_to(map)
+    folium.GeoJson(state_shapefile).add_to(map_obj)
 
 
-def add_county_names_to_map(map: folium.Map, state_shapefile: gpd.GeoDataFrame) -> None:
+def add_county_names_to_map(
+    map_obj: folium.Map, state_shapefile: gpd.GeoDataFrame
+) -> None:
     """
     Add county names as markers to a folium map.
 
     Parameters
     ----------
-    map : folium.Map
+    map_obj : folium.Map
         Folium map object
 
     state_shapefile : gpd.GeoDataFrame
@@ -71,22 +75,25 @@ def add_county_names_to_map(map: folium.Map, state_shapefile: gpd.GeoDataFrame) 
             county_name = county.NAME  # First case
         except AttributeError:
             county_name = county.COUNTY_NAM  # Second case
+        # Project county to a flat project before taking centroid
         centroid = [county.geometry.centroid.y, county.geometry.centroid.x]
         folium.map.Marker(
             location=centroid,
             icon=folium.DivIcon(
                 html=f'<div style="font-size: 11pt; color: black; text-align: center; font-weight: bold;">{county_name}</div>'
             ),
-        ).add_to(map)
+        ).add_to(map_obj)
 
 
-def common_visualization(map: folium.Map, state_shapefile: gpd.GeoDataFrame) -> None:
+def common_visualization(
+    map_obj: folium.Map, state_shapefile: gpd.GeoDataFrame
+) -> None:
     """
     Add common visualization elements to the map.
 
     Parameters
     ----------
-    map : folium.Map
+    map_obj : folium.Map
         Folium map object
 
     state_shapefile : gpd.GeoDataFrame
@@ -97,8 +104,8 @@ def common_visualization(map: folium.Map, state_shapefile: gpd.GeoDataFrame) -> 
     None
     """
 
-    add_shapefile_to_map(map, state_shapefile)
-    add_county_names_to_map(map, state_shapefile)
+    add_shapefile_to_map(map_obj, state_shapefile)
+    add_county_names_to_map(map_obj, state_shapefile)
 
 
 def download_and_unzip_shapefile(
@@ -162,6 +169,29 @@ def prepare_gdf(df: pd.DataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
+def get_mean_centroid(data_frame: gpd.GeoDataFrame) -> tuple[float, float]:
+    """
+    Returns the mean centroid of a Geopandas DataFrame
+
+    Parameters
+    ----------
+    data_frame: gpd.GeoDataFrame
+        GeoDataFrame
+
+    Returns
+    -------
+    tuple[float, float]
+        Returns the mean y and x coordinates of the centroid
+    """
+    if data_frame.crs is None or not data_frame.crs.is_projected:
+        # If a geographic CRS is used, the results from centroid are likely incorrect
+        # Hence convert to a projected CRS (We use cea here) before calculating centroid
+        centroid = data_frame.to_crs("+proj=cea").centroid.to_crs(data_frame.crs)
+    else:
+        centroid = data_frame.centroid
+    return [centroid.y.mean(), centroid.x.mean()]
+
+
 def create_map_with_legend(state_shapefile: gpd.GeoDataFrame) -> folium.Map:
     """
     Create a folium map centered around the region with a legend.
@@ -177,8 +207,9 @@ def create_map_with_legend(state_shapefile: gpd.GeoDataFrame) -> folium.Map:
         Folium map object
     """
 
-    map_center = [state_shapefile.centroid.y.mean(), state_shapefile.centroid.x.mean()]
-    map = folium.Map(location=map_center, zoom_start=8.2)
+    # map_center = [state_shapefile.centroid.y.mean(), state_shapefile.centroid.x.mean()]
+    map_center = get_mean_centroid(state_shapefile)
+    map_obj = folium.Map(location=map_center, zoom_start=8.2)
 
     gas_legend = '<i style="color:red">o - Gas Well</i>'
     oil_legend = '<i style="color:blue">x - Oil Well</i>'
@@ -195,12 +226,12 @@ def create_map_with_legend(state_shapefile: gpd.GeoDataFrame) -> folium.Map:
       </center>
     </div>
     """
-    map.get_root().html.add_child(folium.Element(legend_html))
-    return map
+    map_obj.get_root().html.add_child(folium.Element(legend_html))
+    return map_obj
 
 
 def add_well_markers_to_map(
-    gdf: gpd.GeoDataFrame, map: folium.Map, well_type_to_plot: str = None
+    gdf: gpd.GeoDataFrame, map_obj: folium.Map, well_type_to_plot: str = None
 ) -> None:
     """
     Add well markers to a folium map based on well type.
@@ -210,7 +241,7 @@ def add_well_markers_to_map(
     gdf : gpd.GeoDataFrame
         GeoDataFrame containing well data
 
-    map : folium.Map
+    map_obj : folium.Map
         Folium map object
 
     well_type_to_plot : str
@@ -267,7 +298,7 @@ def add_well_markers_to_map(
                 fill=True,
                 color="red",
             )
-            icon.add_to(map)
+            icon.add_to(map_obj)
         elif well_type == "Oil":
             icon_cross = BeautifyIcon(
                 icon="times",
@@ -280,7 +311,7 @@ def add_well_markers_to_map(
                 popup=popup_text,
                 icon=icon_cross,
             )
-            icon.add_to(map)
+            icon.add_to(map_obj)
         else:
             continue  # Skip points with other well types
 
@@ -326,10 +357,10 @@ def visualize_data(
     state_shapefile = gpd.read_file(os.path.join(extract_dir, shp_name))
     state_shapefile = state_shapefile.to_crs("EPSG:4269")
     gdf = prepare_gdf(df)
-    map = create_map_with_legend(state_shapefile)
-    common_visualization(map, state_shapefile)
-    add_well_markers_to_map(gdf, map, well_type)
-    return state_shapefile, gdf, map
+    map_obj = create_map_with_legend(state_shapefile)
+    common_visualization(map_obj, state_shapefile)
+    add_well_markers_to_map(gdf, map_obj, well_type)
+    return state_shapefile, gdf, map_obj
 
 
 def get_cluster_colors(num_cluster: int, cluster_list: list) -> Dict[int, str]:
@@ -376,7 +407,9 @@ def get_cluster_colors(num_cluster: int, cluster_list: list) -> Dict[int, str]:
 
 
 def add_cluster_markers_to_map(
-    full_data_points: gpd.GeoDataFrame, map: folium.Map, cluster_colors: Dict[int, str]
+    full_data_points: gpd.GeoDataFrame,
+    map_obj: folium.Map,
+    cluster_colors: Dict[int, str],
 ) -> None:
     """
     Add cluster markers to a folium map.
@@ -386,7 +419,7 @@ def add_cluster_markers_to_map(
     full_data_points : gpd.GeoDataFrame
         GeoDataFrame containing well data with clusters
 
-    map : folium.Map
+    map_obj : folium.Map
         Folium map object
 
     cluster_colors : Dict[int, str]
@@ -425,7 +458,7 @@ def add_cluster_markers_to_map(
             popup=popup_text,
             fill=True,
             color=color,
-        ).add_to(map)
+        ).add_to(map_obj)
 
 
 def visualize_data_with_clusters(
@@ -452,19 +485,19 @@ def visualize_data_with_clusters(
     geometry = gpd.points_from_xy(full_data["Longitude"], full_data["Latitude"])
     full_data_points = gpd.GeoDataFrame(full_data, geometry=geometry, crs="EPSG:4326")
 
-    map = folium.Map(
-        location=[state_shapefile.centroid.y.mean(), state_shapefile.centroid.x.mean()],
+    map_obj = folium.Map(
+        location=get_mean_centroid(state_shapefile),
         zoom_start=8.2,
     )
-    common_visualization(map, state_shapefile)
+    common_visualization(map_obj, state_shapefile)
     cluster_list = pd.unique(full_data["cluster"])
     cluster_colors = get_cluster_colors(num_cluster, cluster_list)
-    add_cluster_markers_to_map(full_data_points, map, cluster_colors)
-    return map
+    add_cluster_markers_to_map(full_data_points, map_obj, cluster_colors)
+    return map_obj
 
 
 def add_project_markers_to_map(
-    selected: pd.DataFrame, map: folium.Map, cluster_colors: Dict[str, str]
+    selected: pd.DataFrame, map_obj: folium.Map, cluster_colors: Dict[str, str]
 ) -> None:
     """
     Add project markers to a folium map.
@@ -473,7 +506,7 @@ def add_project_markers_to_map(
     ----------
     selected : pd.DataFrame
         DataFrame containing selected project data
-    map : folium.Map
+    map_obj : folium.Map
         Folium map object
     cluster_colors : Dict[str, str]
         Dictionary mapping projects to colors
@@ -505,7 +538,7 @@ def add_project_markers_to_map(
             popup=popup_text,
             fill=True,
             color=color,
-        ).add_to(map)
+        ).add_to(map_obj)
 
 
 def visualize_data_with_projects(
@@ -526,13 +559,13 @@ def visualize_data_with_projects(
     folium.Map
         Folium map object
     """
-    map = folium.Map(
-        location=[state_shapefile.centroid.y.mean(), state_shapefile.centroid.x.mean()],
+    map_obj = folium.Map(
+        location=get_mean_centroid(state_shapefile),
         zoom_start=7,
     )
-    common_visualization(map, state_shapefile)
+    common_visualization(map_obj, state_shapefile)
     cluster_list = pd.unique(selected["Project"])
     num_cluster = len(cluster_list)
     cluster_colors = get_cluster_colors(num_cluster, cluster_list)
-    add_project_markers_to_map(selected, map, cluster_colors)
-    return map
+    add_project_markers_to_map(selected, map_obj, cluster_colors)
+    return map_obj

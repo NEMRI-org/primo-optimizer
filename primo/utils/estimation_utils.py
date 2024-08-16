@@ -327,9 +327,9 @@ def get_record_completeness(
 
     # Constructing record completeness value
     df_filter_data = df.filter(items=criteria_columns)
-    # Ensure all empty entires become np.nan entries.
+    # Ensure all empty entires become pd.NA entries.
     df_filter_data = df_filter_data.replace(
-        to_replace=["NULL", pd.NaT, pd.NA], value=(np.nan)
+        to_replace=["NULL", pd.NaT, pd.NA], value=(pd.NA)
     )
 
     # Here we calculate the number of columns that
