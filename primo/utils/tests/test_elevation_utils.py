@@ -25,6 +25,7 @@ from primo.utils.elevation_utils import (
 )
 
 
+@pytest.mark.secrets
 def test_get_bing_maps_api_key():
     key = get_bing_maps_api_key()
     assert len(key) == 64
@@ -82,6 +83,7 @@ def test_haversine_distance(lat1, lon1, lat2, lon2, return_value, status):
         # Add more test cases as needed
     ],
 )
+@pytest.mark.secrets
 def test_get_route(start_coord, end_coord, status):
     key = get_bing_maps_api_key()
     if status:
@@ -110,6 +112,7 @@ def test_get_route(start_coord, end_coord, status):
         # Add more test cases as needed
     ],
 )
+@pytest.mark.secrets
 def test_get_nearest_road_point(lat, lon, return_tuple, status):
     if status:
         assert np.allclose(
@@ -137,6 +140,7 @@ def test_get_nearest_road_point(lat, lon, return_tuple, status):
         # Add more test cases as needed
     ],
 )
+@pytest.mark.secrets
 def test_accessibility(lat, lon, return_value, status):
     if status:
         assert np.isclose(

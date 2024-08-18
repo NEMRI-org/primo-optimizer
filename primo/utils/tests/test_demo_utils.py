@@ -209,6 +209,7 @@ STATE_CODE = 37
 STATE_CODE_FAKE = 60
 
 
+@pytest.mark.secrets
 def test_get_population_by_state():
     result_df = get_population_by_state(STATE_CODE)
     assert "Total Population" in result_df.columns

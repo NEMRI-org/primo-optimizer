@@ -81,6 +81,7 @@ def test_get_fips_code():
     assert get_fips_code(41, -76) == "420792166011027"
 
 
+@pytest.mark.secrets
 def test_generate_geo_identifiers():
     CENSUS_KEY = get_census_key()
     client = CensusClient(CENSUS_KEY)
