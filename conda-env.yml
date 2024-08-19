@@ -1,0 +1,10 @@
+name: primo
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pip
+  - scip
+  - pip:
+    - -r requirements-dev.txt
