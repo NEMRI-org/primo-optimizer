@@ -11,6 +11,7 @@ Emissions Reduction Initiative (NEMRI).
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/primo-optimizer.svg)](https://pypi.org/project/primo-optimizer/)
 [![Pypi](https://img.shields.io/pypi/v/primo-optimizer)](https://pypi.org/project/primo-optimizer/)
 [![Checks](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/checks.yml/badge.svg)](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/checks.yml)
+[![Demo](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/demo.yml/badge.svg)](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/demo.yml)
 [![codecov](https://codecov.io/gh/NEMRI-org/primo-optimizer/graph/badge.svg?token=2T6L5J8C3P)](https://codecov.io/gh/NEMRI-org/primo-optimizer)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Documentation Status](https://readthedocs.org/projects/primo/badge/?version=latest)](https://primo.readthedocs.io/en/latest/?badge=latest)
@@ -21,7 +22,7 @@ Emissions Reduction Initiative (NEMRI).
 
 ## Getting Started
 
-Our complete documentation is currently being built, but here is a summarized set of steps to get started using the framework.
+Our complete documentation is available on [readthedocs](https://primo.readthedocs.io/en/latest/), but here is a summarized set of steps to get started using the framework.
 
 While not required, we encourage the installation of [Anaconda](https://www.anaconda.com/products/individual#Downloads) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and using the `conda` command to create a separate python environment in which to install the PRIMO Toolkit.
 

@@ -1,0 +1,56 @@
+# This workflow will ensure the demo is running successfully and serves as an integration test
+
+name: Demo
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+    types:
+      - opened
+      # ready_for_review occurs when a draft PR is turned to non-draft
+      - ready_for_review
+      # synchronize occurs whenever commits are pushed to the PR branch
+      - synchronize
+
+jobs:
+  pytest:
+    name: Demo test (py${{ matrix.python-version }}/${{ matrix.os }}/${{ matrix.install-mode }})
+    runs-on: ${{ matrix.os-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.9'
+          - '3.10'
+          - '3.11'
+        os:
+          - linux
+          - win64
+        install-mode:
+          - dev
+        include:
+          - os: linux
+            os-version: ubuntu-latest
+          - os: win64
+            os-version: windows-2019
+          - install-mode: dev
+            pip-install-target: -r requirements-dev.txt
+
+    steps:
+      - uses: actions/checkout@v4
+        if: matrix.install-mode == 'dev'
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: primo
+          environment-file: conda-env.yml
+          python-version: ${{ matrix.python-version }}
+          auto-activate-base: false
+      - name: Set up package (install-mode=${{ matrix.install-mode }})
+        run: |
+          pip --no-cache-dir install ${{ matrix.pip-install-target }}
+      - name: Run example demo
+        shell: bash -el {0}
+        run: |
+          pytest -v -m "demo"
