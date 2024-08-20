@@ -78,7 +78,7 @@ def create_test_model():
 
 def test_is_pyomo_model_feasible():
     model = create_test_model()
-    solver = pyo.SolverFactory("glpk")
+    solver = pyo.SolverFactory("gurobi")
     solver.solve(model)
 
     assert is_pyomo_model_feasible(model, 1e-5)
