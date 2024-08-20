@@ -16,19 +16,7 @@ import numpy as np
 import pytest
 
 # User defined libs
-from primo.utils.elevation_utils import (
-    accessibility,
-    get_bing_maps_api_key,
-    get_nearest_road_point,
-    get_route,
-    haversine_distance,
-)
-
-
-@pytest.mark.secrets
-def test_get_bing_maps_api_key():
-    key = get_bing_maps_api_key()
-    assert len(key) == 64
+from primo.utils.elevation_utils import haversine_distance
 
 
 @pytest.mark.parametrize(
@@ -64,94 +52,6 @@ def test_haversine_distance(lat1, lon1, lat2, lon2, return_value, status):
         )
     else:
         assert np.isnan(haversine_distance(lat1, lon1, lat2, lon2))
-
-
-@pytest.mark.parametrize(
-    "start_coord, end_coord, status",
-    [  # Case 1: pass case
-        (
-            [40.589335, -79.92741],
-            [40.642804, -79.715295],
-            True,
-        ),
-        # Case 2: missing data
-        (
-            [np.nan, -79.92741],
-            [40.642804, -79.715295],
-            False,
-        ),
-        # Add more test cases as needed
-    ],
-)
-@pytest.mark.secrets
-def test_get_route(start_coord, end_coord, status):
-    key = get_bing_maps_api_key()
-    if status:
-        assert isinstance(get_route(key, start_coord, end_coord), dict)
-        assert "routePath" in get_route(key, start_coord, end_coord)
-    else:
-        assert get_route(key, start_coord, end_coord) is None
-
-
-@pytest.mark.parametrize(
-    "lat, lon, return_tuple, status",
-    [  # Case 1: pass case
-        (
-            40.589335,
-            -79.92741,
-            (40.589202, -79.927406),
-            True,
-        ),
-        # Case 2: missing data
-        (
-            np.nan,
-            -79.92741,
-            "Error",
-            False,
-        ),
-        # Add more test cases as needed
-    ],
-)
-@pytest.mark.secrets
-def test_get_nearest_road_point(lat, lon, return_tuple, status):
-    if status:
-        assert np.allclose(
-            get_nearest_road_point(lat, lon),
-            return_tuple,
-            rtol=1e-5,
-            atol=1e-8,
-        )
-    else:
-        with pytest.raises(ValueError):
-            get_nearest_road_point(lat, lon)
-
-
-@pytest.mark.parametrize(
-    "lat, lon, return_value, status",
-    [  # Case 1: pass case
-        (40.4309, -79.739699, 0.033497882662451864, True),
-        # Case 2: missing data
-        (
-            np.nan,
-            -79.92741,
-            "Error",
-            False,
-        ),
-        # Add more test cases as needed
-    ],
-)
-@pytest.mark.secrets
-def test_accessibility(lat, lon, return_value, status):
-    if status:
-        assert np.isclose(
-            accessibility(lat, lon),
-            return_value,
-            rtol=1e-5,
-            atol=1e-8,
-        )
-    else:
-        with pytest.raises(ValueError):
-            accessibility(lat, lon)
 
 
 # TODO: Need a small test raster file for testing the get_elevation

@@ -23,7 +23,6 @@ from primo.utils.demo_utils import (
     file_path_widget,
     file_upload_widget,
     generate_configurations,
-    get_population_by_state,
     get_well_depth,
     get_well_type,
     priority_by_value,
@@ -202,24 +201,6 @@ def test_sort_by_disadvantaged_community_impact():
     assert "Disadvantaged area %" not in result_df.columns
     assert "Disadvantaged pop %" not in result_df.columns
     assert result_df["Disadvantaged Community"].idxmax() == 0
-
-
-# Sample state code for testing. 37 stands for North Carolina
-STATE_CODE = 37
-STATE_CODE_FAKE = 60
-
-
-@pytest.mark.secrets
-def test_get_population_by_state():
-    result_df = get_population_by_state(STATE_CODE)
-    assert "Total Population" in result_df.columns
-    assert result_df["state"].dtypes == int
-    assert result_df["county"].dtypes == int
-    assert result_df["tract"].dtypes == int
-    assert result_df["Total Population"].dtypes == int
-
-    with pytest.raises(AssertionError):
-        get_population_by_state(STATE_CODE_FAKE)
 
 
 def test_file_path_widget():

@@ -18,12 +18,10 @@ import pytest
 from primo.utils.census_utils import (
     get_block,
     get_block_group,
-    get_census_key,
     get_county,
     get_fips_code,
     get_state,
     get_tract,
-    CensusClient,
 )
 
 
@@ -79,17 +77,3 @@ def test_get_block():
 
 def test_get_fips_code():
     assert get_fips_code(41, -76) == "420792166011027"
-
-
-@pytest.mark.secrets
-def test_generate_geo_identifiers():
-    CENSUS_KEY = get_census_key()
-    client = CensusClient(CENSUS_KEY)
-    generate_identifiers = client._generate_geo_identifiers
-    assert generate_identifiers("42") == ("state:42", "")
-    assert generate_identifiers("") == ("", "")
-    assert generate_identifiers("42079") == ("county:079", "state:42")
-    assert generate_identifiers("42079216601") == (
-        "tract:216601",
-        "state:42 county:079",
-    )
