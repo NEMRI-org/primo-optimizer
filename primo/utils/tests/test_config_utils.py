@@ -149,7 +149,7 @@ def test_is_valid(input_dict, reference_dict, result):
         ("invalid_config.json", (False, {})),
     ],
 )
-def test_read_config(patch, path, expected_result):
+def test_read_config(monkeypatch, path, expected_result):
     def mock_exists(p):
         return p == "valid_config.json"
 
@@ -166,9 +166,11 @@ def test_read_config(patch, path, expected_result):
 
         return MockFile()
 
-    patch.setattr(os.path, "exists", mock_exists)
-    patch.setattr("builtins.open", mock_open)
+    # Patch the os.path.exists and open functions using monkeypatch
+    monkeypatch.setattr(os.path, "exists", mock_exists)
+    monkeypatch.setattr("builtins.open", mock_open)
 
+    # Assert that the function output matches the expected result
     assert read_config(path) == expected_result
 
 

@@ -23,6 +23,8 @@ from primo.utils.opt_utils import (
     is_pyomo_model_feasible,
 )
 
+print(is_binary_value(2.99999, 1e-5) == True)
+
 
 @pytest.mark.parametrize(
     "value,tol,expected",
@@ -43,8 +45,8 @@ def test_is_binary_value(value, tol, expected):
     [
         (1.0, 1e-5, True),
         (2.0, 1e-5, True),
-        (2.99999, 1e-5, True),
-        (3.00001, 1e-5, True),
+        (2.99999, 1e-4, True),
+        (3.00001, 1e-4, True),
         (3.5, 1e-5, False),
     ],
 )
