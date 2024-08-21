@@ -12,18 +12,16 @@
 #################################################################################
 
 # Installed libs
-import pytest
 import pyomo.environ as pyo
+import pytest
 
 # User defined libs
 from primo.utils.opt_utils import (
+    in_bounds,
     is_binary_value,
     is_integer_value,
-    in_bounds,
     is_pyomo_model_feasible,
 )
-
-print(is_binary_value(2.99999, 1e-5) == True)
 
 
 @pytest.mark.parametrize(
@@ -68,6 +66,7 @@ def test_in_bounds(value, lower_bound, upper_bound, tol, expected):
     assert in_bounds(value, lower_bound, upper_bound, tol) == expected
 
 
+@pytest.fixture
 def create_test_model():
     model = pyo.ConcreteModel()
     model.x = pyo.Var(bounds=(0, 10))
@@ -78,9 +77,8 @@ def create_test_model():
     return model
 
 
-def test_is_pyomo_model_feasible():
-    model = create_test_model()
+def test_is_pyomo_model_feasible(create_test_model):
     solver = pyo.SolverFactory("gurobi")
-    solver.solve(model)
+    solver.solve(create_test_model)
 
-    assert is_pyomo_model_feasible(model, 1e-5)
+    assert is_pyomo_model_feasible(create_test_model, 1e-5)

@@ -19,13 +19,13 @@ import pytest
 
 # User defined lib
 from primo.utils.config_utils import (
+    _get_checkbox_params,
     copy_dict,
+    copy_values,
     is_valid,
     read_config,
-    update_defaults,
     read_defaults,
-    copy_values,
-    _get_checkbox_params,
+    update_defaults,
 )
 
 
