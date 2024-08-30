@@ -131,4 +131,4 @@ jobs:
           pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
       - name: Run isort
         run: |
-          isort --check .
+          isort --check primo
