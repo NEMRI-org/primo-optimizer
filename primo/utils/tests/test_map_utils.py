@@ -11,10 +11,10 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard lib
+# Standard libs
 import os
 
-# Installed lib
+# Installed libs
 import folium
 import geopandas as gpd
 import numpy as np
@@ -22,7 +22,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import Point
 
-# User-defined lib
+# User-defined libs
 from primo.utils.map_utils import (
     download_and_unzip_shapefile,
     get_cluster_colors,

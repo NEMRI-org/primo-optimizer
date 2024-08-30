@@ -14,8 +14,6 @@
 # Standard libs
 import logging
 
-# Installed libs
-
 LOGGER = logging.getLogger(__name__)
 
 

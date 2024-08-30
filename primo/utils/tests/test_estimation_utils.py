@@ -14,12 +14,11 @@
 # Installed libs
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal
 import pytest
+from pandas.testing import assert_frame_equal
 
-# User defined libs
-from primo.utils.estimation_utils import get_record_completeness, age_estimation
-
+# User-defined libs
+from primo.utils.estimation_utils import age_estimation, get_record_completeness
 
 # Sample data for testing
 WELL_DATA_SET_1 = [

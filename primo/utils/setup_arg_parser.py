@@ -17,8 +17,6 @@ import os
 import pathlib
 from typing import List, Union
 
-# Installed libs
-
 
 def parse_args(args_list: Union[None, List[str]]) -> argparse.Namespace:
     """

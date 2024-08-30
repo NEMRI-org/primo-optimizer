@@ -24,8 +24,8 @@ ignored for codecov analysis by suitably setting ignore paths in codecov.yml
 import numpy as np
 import pytest
 
-# User defined lib
-from primo.utils.census_utils import get_census_key, CensusClient
+# User-defined libs
+from primo.utils.census_utils import CensusClient, get_census_key
 from primo.utils.demo_utils import get_population_by_state
 from primo.utils.elevation_utils import (
     accessibility,

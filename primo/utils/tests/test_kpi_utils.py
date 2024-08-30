@@ -13,21 +13,20 @@
 
 # Standard lib
 
-# Installed lib
+# Installed libs
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal
 import pytest
+from pandas.testing import assert_frame_equal
 
-# User-defined lib
+# User-defined libs
 from primo.utils.kpi_utils import (
     calculate_average,
+    calculate_number_of_owners,
     calculate_range,
     calculate_well_number,
-    calculate_number_of_owners,
     process_data,
 )
-
 
 # Sample data for testing
 WELL_DATA_BASE_CASE = {

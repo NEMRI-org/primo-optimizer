@@ -11,4 +11,5 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 def test_import_main_package():
+    # User-defined libs
     import primo

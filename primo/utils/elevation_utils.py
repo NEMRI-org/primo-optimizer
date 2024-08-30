@@ -12,19 +12,19 @@
 #################################################################################
 
 # Standard libs
-from math import atan2, cos, radians, sin, sqrt
 import os
+from math import atan2, cos, radians, sin, sqrt
 from typing import Tuple
 
 # Installed libs
-from dotenv import load_dotenv
 import numpy as np
 import pandas as pd
-from pyproj import Proj, transform
 import rasterio
 import requests
+from dotenv import load_dotenv
+from pyproj import Proj, transform
 
-# User defined lib
+# User-defined libs
 from primo.utils import Start_coordinates
 
 

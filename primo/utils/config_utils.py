@@ -11,15 +11,15 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard lib
-import json
+# Standard libs
+# import json
 import os
 from typing import Any, Tuple
 
-# Installed lib
+# Installed libs
 import ipywidgets as widgets
 
-# User defined lib
+# User-defined libs
 from primo.utils.raise_exception import raise_exception
 
 

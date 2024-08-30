@@ -17,18 +17,18 @@ import logging
 from typing import Dict, Union
 
 # Installed libs
-from gurobipy import GRB
 import numpy as np
 import pyomo.environ as pyo
+from gurobipy import GRB
 from pyomo.opt import SolverFactory
 
-# User defined libs
+# User-defined libs
 from primo.data_parser.data_model import OptInputs
 from primo.opt_model import FEASIBILITY_TOLERANCE
 from primo.opt_model.base_model import BaseModel
-from primo.utils import get_solver, check_optimal_termination
-from primo.utils.raise_exception import raise_exception
+from primo.utils import check_optimal_termination, get_solver
 from primo.utils.opt_utils import is_pyomo_model_feasible
+from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)
 

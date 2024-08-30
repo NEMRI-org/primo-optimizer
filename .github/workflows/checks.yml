@@ -117,3 +117,18 @@ jobs:
       - name: Run Black to verify that committed code is formatted
         run: |
           black --check .
+
+  isort:
+    name: Run isort to verify that committed code has imports alphabetically sorted
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install (dev mode)
+        run: |
+          pip --no-cache-dir install --progress-bar off -r requirements-dev.txt
+      - name: Run isort
+        run: |
+          isort --check .

@@ -99,6 +99,14 @@ Homepage = "https://edx.netl.doe.gov/nemri/"
 Source = "https://github.com/NEMRI-org/primo-optimizer"
 Tracker = "https://github.com/NEMRI-org/primo-optimizer/issues"
 
+[tool.isort]
+import_heading_firstparty = "User-defined libs"
+import_heading_stdlib = "Standard libs"
+import_heading_thirdparty = "Installed libs"
+profile = "black"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+src_paths = ["primo"]
+
 [tool.setuptools]
 platforms = ["windows", "linux"]
 py-modules = ["stagedfright"]

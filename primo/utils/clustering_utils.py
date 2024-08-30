@@ -12,12 +12,12 @@
 #################################################################################
 # Standard lib
 
-# Installed lib
-from haversine import haversine_vector, Unit
+# Installed libs
 import numpy as np
 import pandas as pd
+from haversine import Unit, haversine_vector
 
-# User defined lib
+# User-defined libs
 from primo.utils.raise_exception import raise_exception
 
 

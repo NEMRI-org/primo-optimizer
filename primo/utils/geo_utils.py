@@ -14,14 +14,14 @@
 # Standard libs
 import logging
 from math import radians
-from typing import Any, List, Tuple, Set, Union
+from typing import Any, List, Set, Tuple, Union
 
 # Installed libs
 import folium
-from haversine import haversine, Unit
+from haversine import Unit, haversine
 from sklearn.neighbors import BallTree
 
-# User defined libs
+# User-defined libs
 from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)

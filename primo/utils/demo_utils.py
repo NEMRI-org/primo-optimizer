@@ -20,14 +20,14 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Dict, List, Union
 
 # Installed libs
-from ipyfilechooser import FileChooser
 import ipywidgets as widgets
 import numpy as np
 import pandas as pd
 import requests
+from ipyfilechooser import FileChooser
 from IPython.display import display
 
-# User defined libs
+# User-defined libs
 from primo.utils import CONVERSION_FACTOR
 from primo.utils.census_utils import get_census_key
 from primo.utils.geo_utils import get_nearest_neighbors

@@ -11,15 +11,14 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard lib
+# Standard libs
 import logging
 
-# Installed lib
-from pyomo.environ import SolverFactory
-from pyomo.contrib.appsi.solvers import Highs
-from pyomo.environ import check_optimal_termination as pyo_opt_term
+# Installed libs
 from pyomo.contrib.appsi.base import TerminationCondition
-
+from pyomo.contrib.appsi.solvers import Highs
+from pyomo.environ import SolverFactory
+from pyomo.environ import check_optimal_termination as pyo_opt_term
 
 LOGGER = logging.getLogger(__name__)
 

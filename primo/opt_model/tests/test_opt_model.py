@@ -18,12 +18,11 @@ import pandas as pd
 import pyomo.environ as pyo
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.data_parser.input_parser import InputParser
 from primo.opt_model.opt_model import OptModel
 from primo.utils.setup_arg_parser import parse_args
 from primo.utils.setup_logger import setup_logger
-
 
 # expected selection
 # 21, 6, 26,

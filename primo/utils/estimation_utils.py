@@ -20,8 +20,9 @@ import numpy as np
 import pandas as pd
 from sklearn.neighbors import BallTree
 
-# User defined libs
+# User-defined libs
 from primo.utils import EARTH_RADIUS
+from primo.utils.elevation_utils import get_elevation
 from primo.utils.geo_utils import (
     get_distance,
     is_in_bounds,
@@ -29,7 +30,6 @@ from primo.utils.geo_utils import (
     is_valid_long,
 )
 from primo.utils.kpi_utils import _is_numeric_valid_column
-from primo.utils.elevation_utils import get_elevation
 from primo.utils.raise_exception import raise_exception
 
 

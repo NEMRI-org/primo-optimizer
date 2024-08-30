@@ -11,10 +11,13 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
+# Standard libs
+import os
+
+# Installed libs
+import nbformat
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor
-import nbformat
-import os
 
 
 def process_notebook_with_config(

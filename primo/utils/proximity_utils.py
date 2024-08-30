@@ -18,7 +18,7 @@ from math import radians
 import pandas as pd
 from sklearn.neighbors import BallTree
 
-# User defined lib
+# User-defined libs
 from primo.utils import EARTH_RADIUS
 
 

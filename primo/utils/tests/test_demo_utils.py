@@ -10,7 +10,7 @@
 # reproduce, distribute copies to the public, prepare derivative works, and
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
-# Standard lib
+# Standard libs
 import os
 
 # Installed libs
@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.utils.demo_utils import (
     file_path_widget,
     file_upload_widget,

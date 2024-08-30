@@ -21,10 +21,10 @@ from primo.data_parser.default_data import (
     CENSUS_YEAR,
     CONVERSION_FACTOR,
     EARTH_RADIUS,
-    START_COORDINATES as Start_coordinates,
 )
-from primo.utils.solvers import get_solver, check_optimal_termination
+from primo.data_parser.default_data import START_COORDINATES as Start_coordinates
 from primo.utils.setup_logger import setup_logger
+from primo.utils.solvers import check_optimal_termination, get_solver
 
 LOGGER = logging.getLogger(__name__)
 

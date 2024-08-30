@@ -15,9 +15,8 @@
 import pandas as pd
 import pytest
 
-# User defined libs
-from primo.utils.proximity_utils import nearby_total_school_count, nearby_hospital_count
-
+# User-defined libs
+from primo.utils.proximity_utils import nearby_hospital_count, nearby_total_school_count
 
 # Sample data for testing
 WELL_DATA = [

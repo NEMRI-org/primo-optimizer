@@ -11,13 +11,13 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard lib
+# Standard libs
 import os
 
-# Installed lib
+# Installed libs
 import pytest
 
-# User defined lib
+# User-defined libs
 from primo.utils.config_utils import (
     _get_checkbox_params,
     copy_dict,

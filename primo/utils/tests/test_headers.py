@@ -30,13 +30,13 @@
 """
 Test that headers are on all files
 """
-# Standard lib
+# Standard libs
 import os
 from pathlib import Path
 
 # Installed libs
 import pytest
-from addheader.add import detect_files, FileFinder
+from addheader.add import FileFinder, detect_files
 
 yaml = pytest.importorskip("yaml", reason="pyyaml not available")
 _ = pytest.importorskip("addheader", reason="addheader not available")
@@ -45,6 +45,7 @@ _ = pytest.importorskip("addheader", reason="addheader not available")
 @pytest.fixture
 def package_root():
     """Determine package root."""
+    # User-defined libs
     import primo
 
     return Path(primo.__file__).parent

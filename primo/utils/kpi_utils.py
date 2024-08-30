@@ -13,12 +13,12 @@
 
 # Standard lib
 
-# Installed lib
+# Installed libs
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
-# User-defined lib
+# User-defined libs
 from primo.utils.raise_exception import raise_exception
 
 

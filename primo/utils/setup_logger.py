@@ -17,9 +17,7 @@ import os
 import pathlib
 import sys
 
-# Installed libs
-
-# User defined libs
+# User-defined libs
 from primo.utils.raise_exception import raise_exception
 
 LOGGER_FORMAT = "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s"

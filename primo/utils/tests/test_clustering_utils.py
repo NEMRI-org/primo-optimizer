@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.utils.clustering_utils import distance_matrix
 
 

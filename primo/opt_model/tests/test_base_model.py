@@ -18,7 +18,7 @@ import logging
 import pyomo.environ as pyo
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.opt_model.base_model import BaseModel
 
 LOGGER = logging.getLogger(__name__)

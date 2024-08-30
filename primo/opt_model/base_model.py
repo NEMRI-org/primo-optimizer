@@ -12,10 +12,10 @@
 #################################################################################
 
 # Standard libs
-from abc import ABC, abstractmethod
 import logging
 import os
 import pathlib
+from abc import ABC, abstractmethod
 from typing import Dict, Union
 
 # Installed libs
@@ -23,7 +23,7 @@ import pyomo
 import pyomo.environ as pyo
 from pyomo.contrib.iis import write_iis
 
-# User defined libs
+# User-defined libs
 from primo.utils import get_solver
 
 LOGGER = logging.getLogger(__name__)

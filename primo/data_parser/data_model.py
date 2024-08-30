@@ -11,14 +11,14 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard lib
 from __future__ import annotations
-from dataclasses import dataclass
+
+# Standard libs
 import logging
+from dataclasses import dataclass
 from typing import Dict, Union
 
-
-# User defined lib
+# User-defined libs
 from primo.utils.geo_utils import get_distance
 from primo.utils.raise_exception import raise_exception
 

@@ -14,7 +14,7 @@
 # Installed libs
 import pytest
 
-# User defined lib
+# User-defined libs
 from primo.utils.census_utils import (
     get_block,
     get_block_group,

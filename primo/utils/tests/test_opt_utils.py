@@ -15,7 +15,7 @@
 import pyomo.environ as pyo
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.utils.opt_utils import (
     in_bounds,
     is_binary_value,

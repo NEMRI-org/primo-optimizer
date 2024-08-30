@@ -11,19 +11,17 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-
-# Standard library imports
+# Standard libs
 import os
 from typing import Dict, Tuple
 
-# Installed library imports
-from folium.plugins import BeautifyIcon
+# Installed libs
 import folium
 import geopandas as gpd
 import pandas as pd
+from folium.plugins import BeautifyIcon
 
-
-# User-defined imports
+# User-defined libs
 from primo.utils.download_utils import download_file, unzip_file
 from primo.utils.raise_exception import raise_exception
 

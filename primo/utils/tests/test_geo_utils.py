@@ -14,7 +14,7 @@
 # Installed libs
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.utils.geo_utils import get_distance, is_in_bounds
 
 

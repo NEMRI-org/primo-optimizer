@@ -11,13 +11,13 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard lib
+# Standard libs
 import os
 
-# Installed lib
-from nbconvert.preprocessors import ExecutePreprocessor
+# Installed libs
 import nbformat
 import pytest
+from nbconvert.preprocessors import ExecutePreprocessor
 
 
 @pytest.mark.demo

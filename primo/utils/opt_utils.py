@@ -16,8 +16,8 @@ import logging
 from typing import Union
 
 # Installed libs
-import pyomo.environ as pyo
 import numpy as np
+import pyomo.environ as pyo
 
 LOGGER = logging.getLogger(__name__)
 

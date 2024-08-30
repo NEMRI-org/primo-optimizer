@@ -15,7 +15,7 @@
 import numpy as np
 import pytest
 
-# User defined libs
+# User-defined libs
 from primo.utils.elevation_utils import haversine_distance
 
 

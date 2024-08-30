@@ -15,18 +15,18 @@
 This file contains utilities to query and use census data.
 """
 
-# Standard lib
+# Standard libs
 import logging
 import os
 from typing import List, Tuple, Union
 
-# Installed lib
+# Installed libs
 import censusgeocode as cg
-from dotenv import load_dotenv
 import pandas as pd
 import requests
+from dotenv import load_dotenv
 
-# User defined lib
+# User-defined libs
 from primo.utils import CENSUS_YEAR
 from primo.utils.geo_utils import is_acceptable, is_valid_lat, is_valid_long
 from primo.utils.raise_exception import raise_exception
