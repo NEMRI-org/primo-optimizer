@@ -14,6 +14,7 @@ Emissions Reduction Initiative (NEMRI).
 [![Demo](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/demo.yml/badge.svg)](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/demo.yml)
 [![codecov](https://codecov.io/gh/NEMRI-org/primo-optimizer/graph/badge.svg?token=2T6L5J8C3P)](https://codecov.io/gh/NEMRI-org/primo-optimizer)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![Documentation Status](https://readthedocs.org/projects/primo/badge/?version=latest)](https://primo.readthedocs.io/en/latest/?badge=latest)
 [![Contributors](https://img.shields.io/github/contributors/NEMRI-org/primo-optimizer?style=plastic)](https://github.com/NEMRI-org/primo-optimizer/contributors)
 [![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/NEMRI-org/primo-optimizer.svg?label=merged+PRs)](https://github.com/NEMRI-org/primo-optimizer/pulls?q=is:pr+is:merged)
