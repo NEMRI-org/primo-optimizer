@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+authors = [
+    {name = "PRIMO team", email = "primo@netl.doe.gov"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+description = "PRIMO - The P&A Project Optimizer"
+dependencies = [
+    "appengine-python-standard",
+    "censusgeocode",
+    "folium",
+    "geopandas",
+    "gurobipy",
+    "highspy",
+    "haversine",
+    "ipyfilechooser",
+    "ipyleaflet",
+    "ipywidgets",
+    "kneed",
+    "matplotlib",
+    "notebook",
+    "numpy<=1.28",
+    "openpyxl",
+    "pandas",
+    "pyarrow",
+    "pyomo",
+    "pyscipopt",
+    "python-dotenv",
+    "scikit-learn",
+    "rasterio",
+    "xlsxwriter",
+]
+dynamic = ["version"]
+keywords = [
+    "PRIMO",
+    "MERP",
+    "NEMRI",
+    "methane emissions",
+    "optimization",
+    "process modeling",
+    "operations research",
+    "well plugging",
+]
+license = {file = "LICENSE.md"}
+maintainers = [
+    {name = "PRIMO team", email = "primo@netl.doe.gov"}
+]
+name = "primo-optimizer"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.9, <4.0"
+
+[project.optional-dependencies]
+dev = [
+    "addheader",
+    "black",
+    "isort",
+    "myst-parser",
+    "nbsphinx",
+    "pre-commit",
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+test = [
+    "pytest", 
+    "pytest-cov"
+]
+
+[project.scripts]
+stagedfright = "stagedfright:main"
+
+[project.urls]
+Documentation = "https://primo.readthedocs.io/en/latest/"
+Download = "https://github.com/NEMRI-org/primo-optimizer/releases"
+Homepage = "https://edx.netl.doe.gov/nemri/"
+Source = "https://github.com/NEMRI-org/primo-optimizer"
+Tracker = "https://github.com/NEMRI-org/primo-optimizer/issues"
+
+[tool.setuptools]
+platforms = ["windows", "linux"]
+py-modules = ["stagedfright"]
+
+[tool.setuptools.dynamic]
+version = {attr = "primo.VERSION"}
+
+[tool.setuptools.packages.find]
+#where = [".", ".stagedfright"]
+include = ["primo*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.xlsx"]
