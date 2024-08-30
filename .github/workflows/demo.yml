@@ -47,6 +47,9 @@ jobs:
           environment-file: conda-env.yml
           python-version: ${{ matrix.python-version }}
           auto-activate-base: false
+      - name: Upgrade pip
+        run: |
+          pip --no-cache-dir install --upgrade pip
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install ${{ matrix.pip-install-target }}
