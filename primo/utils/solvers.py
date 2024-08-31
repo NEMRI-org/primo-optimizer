@@ -43,7 +43,8 @@ def get_solver(
         Choice of solver
 
     stream_output : bool, default = True
-        Display log output from the solver
+        Display log output from the solver. This is necessary for HiGHS
+        which does not accept the pyomo tee keyword
 
     mip_gap : float, default = 0.01
         Duality gap for convergence/termination of MIP solve
@@ -66,7 +67,7 @@ def get_solver(
     ------
     ValueError
         If an unrecognized solver is provided as an input.
-        Supported solvers include highs, gurobi, scip, and glpk
+        Supported solvers include glpk, gurobi, gurobi_persistent, highs and scip
     """
 
     if not kwargs:
@@ -87,18 +88,14 @@ def get_solver(
 
         return sol_obj
 
-    elif solver == "gurobi":
-        sol_obj = SolverFactory("gurobi", solver_io="python")
+    elif solver in ("gurobi", "gurobi_persistent"):
+        sol_obj = SolverFactory(solver, solver_io="python")
         sol_obj.options["MIPGap"] = mip_gap
         sol_obj.options["TimeLimit"] = time_limit
-        sol_obj.options["OutputFlag"] = int(stream_output)
         sol_obj.options.update(solver_options)
 
         return sol_obj
 
-    # For SCIP and GLPK, it is not clear if there is an option to
-    # control the stream output with an option. The user needs to do it
-    # with `tee` argument when they call the `solve` method.
     elif solver == "scip":
         sol_obj = SolverFactory("scip")
         sol_obj.options["limits/gap"] = mip_gap
@@ -142,7 +139,7 @@ def check_optimal_termination(results, solver):
         Supported solvers include highs, gurobi, scip, and glpk
     """
 
-    if solver in ["gurobi", "scip", "glpk"]:
+    if solver in ["glpk", "gurobi", "gurobi_persistent", "scip"]:
         # This works for Gurobi, SCIP, and GLPK, but not for HiGHS
         return pyo_opt_term(results)
 

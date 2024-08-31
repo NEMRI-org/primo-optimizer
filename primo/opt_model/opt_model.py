@@ -529,35 +529,36 @@ class OptModel(BaseModel):
             options = copy.deepcopy(solver_params)
 
         # Retain stdout logs by default
-        stream_solver = options.pop("stream_solver", True)
+        stream_output = options.get("stream_output", True)
 
         # Remove temporary files by default
         keepfiles = options.pop("keepfiles", False)
 
+        solver_obj = get_solver(**options)
+
         solver = options.pop("solver")
-
         if solver == "gurobi_persistent":
-            solver_io = options.pop("solver_io", None)
-            opt = SolverFactory(solver, solver_io=solver_io)
 
+            solver_obj.set_instance(self.model)
             callback = False
             for key, val in options.items():
                 if key == "LazyConstraints" and val == 1:
                     callback = True
-                opt.options[key] = val
+                solver_obj.options[key] = val
 
             if callback:
                 self.model.cons = pyo.ConstraintList()
-                opt.set_instance(self.model)
-                opt.set_callback(distance_callback)
-            results = opt.solve(self.model, keepfiles=keepfiles, tee=stream_solver)
+                solver_obj.set_callback(distance_callback)
 
+        if solver == "highs":
+            # Highs does not like the keepfiles and tee keywords
+            results = solver_obj.solve(self.model)
         else:
+            results = solver_obj.solve(
+                self.model, keepfiles=keepfiles, tee=stream_output
+            )
 
-            solver = get_solver(**solver_params)
-            results = solver.solve(self.model)
-
-        if check_optimal_termination(results, solver_params.get("solver")):
+        if check_optimal_termination(results, solver):
             return True
 
         # If solution is not proven optimal, let's check for feasibility
