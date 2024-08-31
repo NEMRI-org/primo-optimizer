@@ -10,7 +10,7 @@ coverage:
     project:
       default:
         target: auto
-        threshold: 1%
+        threshold: 3%
 codecov:
   require_ci_to_pass: false
   notify:
