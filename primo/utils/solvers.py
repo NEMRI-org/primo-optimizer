@@ -70,7 +70,7 @@ def get_solver(
         Supported solvers include glpk, gurobi, gurobi_persistent, highs and scip
     """
 
-    if not kwargs:
+    if kwargs:
         LOGGER.warning(
             f"get_solver method received unknown arguments {kwargs}. "
             "These will be ignored"
