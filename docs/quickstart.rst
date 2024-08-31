@@ -22,7 +22,7 @@ Step 1: Download the source code from GitHub
     `Downloading code from GitHub <https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives#downloading-source-code-archives-from-the-repository-view>`_
 
 
-* Save the zip in a preferred location and extract the contents. In example below, the code is stored at "C:\\codes\\primo-main"   
+* Save the zip in a preferred location and extract the contents. In example below, the code is stored at "C:\\codes\\primo-optimizer"
 
 .. figure:: _static/location.png
     :width: 800
@@ -46,38 +46,45 @@ Step 3: Install PRIMO and required dependencies
 
     Opening Anaconda prompt from Start Menu on Windows
 
-* Navigate to the directory where PRIMO source code is extracted. 
-* Create and activate a new environment as follows:: 
-    
-    conda create --name primo python
-    conda activate primo 
+* Navigate to the directory where PRIMO source code is extracted. The path to this directory can be copy pasted from Windows Explorer.
+
+.. figure:: _static/path.png
+    :width: 800
+    :align: center
+
+    Obtaining the path where PRIMO source code is downloaded from Windows Explorer
+
+* Change active directory in Anaconda prompt with the following command. Please replace the <path> below with the location of the directory copied in the previous step. ::
+
+    cd "<path>"
+
+.. figure:: _static/cd.png
+    :width: 800
+    :align: center
+
+    Changing active directory
+
+* Create a new "primo" environment with all dependencies installed as follows::
+
+    conda env create -f conda-env.yml
 
 .. figure:: _static/environment.png
     :width: 800
     :align: center
 
-    Creating a new 'primo' environment 
+    Creating a new 'primo' environment
 
-* Install all dependencies with::
- 
-    pip install -r requirements.txt 
-   
-.. figure:: _static/install.png
+* Activate the newly created "primo" environment as follows. Note that the command prompt says `(primo)` on the left instead of `(base)` once the environment is successfully activated::
+
+    conda activate primo
+
+.. figure:: _static/activate.png
     :width: 800
     :align: center
 
-    Installing PRIMO
+    Activating the new 'primo' environment
 
-* Install the free and open-source solver `SCIP <https://scipopt.org/>`_ using the command below. 
-  Note that PRIMO can also utilize other free or commercial optimization solvers if you have access to other solvers already. ::
-
-    conda install -c conda-forge -y scip=9.1.0
-
-.. figure:: _static/scip_install.png
-    :width: 800
-    :align: center
-
-    Installing SCIP
+* Note that the the free and open-source solver `SCIP <https://scipopt.org/>`_ will also get installed with the above step. PRIMO can also utilize other free or commercial optimization solvers if you have access to other solvers already.
 
 
 Step 4: Run Examples in Jupyter Notebook 
@@ -100,7 +107,7 @@ Step 4: Run Examples in Jupyter Notebook
 
     Jupyter Notebook Window in Browser
 
-* Navigate to "primo/demo" folder and open "PRIMO - Example.ipynb" by clicking on it.
+* Navigate to "primo/demo" folder and open "PRIMO - Example_1.ipynb" by clicking on it.
 
 .. figure:: _static/example.png
     :width: 800
@@ -117,8 +124,7 @@ Step 4: Run Examples in Jupyter Notebook
     Run all cells in the Jupyter Notebook
 
 
-* The Notebook takes a few minutes to execute. On successful execution, a new file "Primo_projects.xlsx" will be generated in the "primo\\demo\\case_study_input"
-  folder. PRIMO is now successfully installed and configured on your machine.
+* The Notebook takes a few minutes to execute. On successful execution, a new file "PRIMO_Example_1_projects_results.xlsx" will be generated in the "primo\\demo\\PRIMO_Example_1_output" folder. PRIMO is now successfully installed and configured on your machine.
 
 .. figure:: _static/results.png
     :width: 800

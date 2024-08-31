@@ -84,43 +84,35 @@ Upon successful addition, users should see two remotes listed---origin and upstr
 
 Step 2: Create the Python Environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In the Anaconda command prompt, follow these steps to create and activate a new conda environment. 
-You can replace "*primo*" with the preferred environment name, if desired: ::
+In the Anaconda command prompt, follow these steps to create and activate a new conda environment. Please skip to the next step if 
+you are a developer contributing actively to the PRIMO codebase ::
     
-    conda create --name primo python=3.12
+    conda env create -f conda-env.yml
+    conda activate primo
+
+For users who are contributing to the development of PRIMO, create a new environment with developer dependencies as follows ::
+
+    conda env create -f conda-env-dev.yml
     conda activate primo
 
 If the user handles protected data and contributes to PRIMO development, it is advisable to maintain separate environments for each task.
-
-For all users, please see :ref:`Finish the Installation <finish>` for the final step.
 
 .. note::
     After creating the conda environment, each time the user opens a new terminal window and wants to use PRIMO, 
     they should activate the environment using: ``conda activate primo``. This ensures that the user is working within the correct environment setup for PRIMO.
 
-
 .. _finish:
 
 Step 3: Finish the Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For users who do not contribute to the development of PRIMO, install all dependencies by running: ::
-
-    pip install -r requirements.txt
-
-For developers, install development-only dependencies using: ::
-
-    pip install -r requirements-dev.txt
-
-Additionally, for developers, set up pre-commit checks that will automatically run when using ``git commit``::
+Developers should set up pre-commit checks that will automatically run when using ``git commit``::
     
     pre-commit install
 
 These steps ensure that all necessary dependencies are installed and pre-commit checks are configured for development tasks in PRIMO.
 
 Since PRIMO identifies P&A projects by solving an optimization problem, it requires a suitable Mixed Integer Linear Programming (MILP) solver. 
-For users interested in using the free solver SCIP to solve PRIMO's optimization problems, please run: ::
-    
-    conda install -c conda-forge scip=9.1.0
+The environment created in Step 2 already includes the free solver SCIP to solve PRIMO's optimization problems.
 
 Users can also employ other commercial solvers, for example Gurobi, to solve the optimization problem. 
 However, users are responsible for configuring and setting up these solvers themselves.

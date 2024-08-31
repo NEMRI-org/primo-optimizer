@@ -27,31 +27,28 @@ Our complete documentation is available on [readthedocs](https://primo.readthedo
 
 While not required, we encourage the installation of [Anaconda](https://www.anaconda.com/products/individual#Downloads) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and using the `conda` command to create a separate python environment in which to install the PRIMO Toolkit.
 
-Use conda to create a new "primo-env" (could be any name you like) environment then activate that environment:
+Regular uses can use conda to create a new "primo" environment.
 ```bash
-conda create --name primo-env python
-conda activate primo-env
+conda env create -f conda-env.yml
 ```
 
-Install all dependencies with:
-```
-pip install -r requirements.txt
-```
-For developers, install dependencies with:
-```
-pip install -r requirements-dev.txt
+This creates a new conda environment with the name "primo" that comes installed with all required dependencies and the free solver SCIP to solve PRIMO's optimization problems.
+
+Developers can create a new "primo" environment by executing:
+```bash
+conda env create -f conda-env-dev.yml
 ```
 
-For users interested in using the free solver SCIP to solve PRIMO's optimization problems, please run:
-```
-conda install -c conda-forge -y scip=9.1.0
+Activate the new environment with:
+```bash
+conda activate primo
 ```
 
 To test the installation of the primo package, execute:
 ```
 pytest primo\utils\tests\test_imports.py
 ```
-The above test, if executed successfully, confirms that primo package is now installed and available in the "primo-env" package that was just created. 
+The above test, if executed successfully, confirms that primo package is now installed and available in the "primo" package that was just created.
 
 To use the utilities implemented in the PRIMO package that query the U.S. Census API and Bing Maps API, appropriate API keys must be obtained
 by signing up with the respective services. These keys must be configured in a .env file in the parent directory. For more details, please see:

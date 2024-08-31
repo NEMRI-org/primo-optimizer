@@ -130,7 +130,7 @@
     "Well Data": "Example_1_input\\Input_example.xlsx",
     "School Data": "Example_1_input\\Schools_example.csv",
     "Hospital Data": "Example_1_input\\Hospitals_example.csv",
-    "Output file": "PRIMO_Example_1_projects_results.xlsx",
+    "Output file": "Example_1_output\\PRIMO_Example_1_projects_results.xlsx",
     "program_constraints": {
         "Owner Well Count Constraint": {
             "default": 1,

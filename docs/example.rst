@@ -3,7 +3,7 @@ Examples
 
 PRIMO currently has the following Jupyter Notebook demo available:
 
-`PRIMO Example <https://github.com/NEMRI-org/primo-optimizer/blob/main/primo/demo/PRIMO%20-%20Example_1.ipynb>`_
+`PRIMO - Example_1 <https://github.com/NEMRI-org/primo-optimizer/blob/main/primo/demo/PRIMO%20-%20Example_1.ipynb>`_
 
 More demos are forthcoming. In order to run the example and check the results, users need to:
 

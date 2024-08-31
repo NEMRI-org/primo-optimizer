@@ -7,4 +7,4 @@ dependencies:
   - pip
   - scip >=9.1.0
   - pip:
-    - -r requirements.txt
+    - -r requirements-dev.txt
