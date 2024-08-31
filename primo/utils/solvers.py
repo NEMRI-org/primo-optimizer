@@ -82,7 +82,7 @@ def get_solver(
         sol_obj.config.mip_gap = mip_gap
         sol_obj.config.time_limit = time_limit
 
-        for k, v in solver_options:
+        for k, v in solver_options.items():
             if hasattr(sol_obj.config, k):
                 setattr(sol_obj.config, k, v)
 

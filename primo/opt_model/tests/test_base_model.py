@@ -107,14 +107,21 @@ def test_base_model_build():
     assert isinstance(model.model.obj, pyo.Objective)
 
 
-# TODO: Need to add integration tests for scip and glpk
 # Integration testing for solving a model using BaseModel class
-def test_solve_linear_model_highs():
+@pytest.mark.parametrize(
+    "solver",
+    [
+        "highs",
+        "glpk",
+        "gurobi",
+    ],
+)
+def test_solve_linear_model(solver):
 
     model = LinearOptModel("linear_model")
     model.build_model()
 
-    solver_params = {"solver": "highs"}
+    solver_params = {"solver": solver}
     status = model.solve_model(solver_params)
     # Checking to see if the model was solved
     assert status

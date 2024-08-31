@@ -22,67 +22,68 @@ import pytest
 from primo.data_parser.input_parser import InputParser
 from primo.opt_model.opt_model import OptModel
 from primo.utils.setup_arg_parser import parse_args
-from primo.utils.setup_logger import setup_logger
-
-# expected selection
-# 21, 6, 26,
-expected_selection = [21, 6, 26]
-# expected to not be selected
-expected_not_be_selected = [23]
 
 
-# Settings for sample
-OIL_BUDGET = 20000000
-VERBOSE_OUTPUT = 0
-MAX_WELLS_PER_OWNER = 2
-DAC_PERCENT = 50
-DAC_WEIGHT = 80
-PROJECT_BUDGET = 1000000
+@pytest.fixture
+def opt_model_inputs():
+    # Settings for sample
+    oil_budget = 20000000
+    verbose_output = 0
+    max_wells_per_owner = 2
+    dac_percent = 50
+    dac_weight = 80
+    project_budget = 1000000
 
-# Reading in sample data
-screening_file = os.path.join("primo", "opt_model", "tests", "opt_toy_model.csv")
-well_gdf = pd.read_csv(screening_file)
+    # Reading in sample data
+    screening_file = os.path.join("primo", "opt_model", "tests", "opt_toy_model.csv")
+    well_gdf = pd.read_csv(screening_file)
 
-# Introducing sample mobilization cost scheme
-mobilization_costs = {0: 0, 1: 12000, 2: 21000, 3: 28000, 4: 35000}
-for n_wells in range(5, len(well_gdf)):
-    mobilization_costs[n_wells] = n_wells * 8400
+    # Introducing sample mobilization cost scheme
+    mobilization_costs = {0: 0, 1: 12000, 2: 21000, 3: 28000, 4: 35000}
+    for n_wells in range(5, len(well_gdf)):
+        mobilization_costs[n_wells] = n_wells * 8400
 
-# Set up logger and sample arguments for opt model testing
-args = parse_args(
-    [
-        "-f",
-        screening_file,
-        "-b",
-        str(OIL_BUDGET),
-        "-v",
-        str(VERBOSE_OUTPUT),
-        "-d",
-        str(DAC_WEIGHT),
-        "-owc",
-        str(MAX_WELLS_PER_OWNER),
-        "-df",
-        str(DAC_PERCENT),
-    ]
-)
-parser = InputParser(args)
-opt_input = parser.parse_data(mobilization_costs)
+    # Set up logger and sample arguments for opt model testing
+    args = parse_args(
+        [
+            "-f",
+            screening_file,
+            "-b",
+            str(oil_budget),
+            "-v",
+            str(verbose_output),
+            "-d",
+            str(dac_weight),
+            "-owc",
+            str(max_wells_per_owner),
+            "-df",
+            str(dac_percent),
+        ]
+    )
+    parser = InputParser(args)
+    opt_input = parser.parse_data(mobilization_costs)
+    # expected selection
+    expected_selection = [21, 6, 26]
+    # expected to not be selected
+    expected_non_selection = [23]
+
+    return (
+        well_gdf,
+        opt_input,
+        dac_percent,
+        project_budget,
+        expected_selection,
+        expected_non_selection,
+    )
 
 
-@pytest.mark.parametrize(
-    "opt_inputs,dac_percent_input,project_budget_input ",
-    [
-        (opt_input, DAC_PERCENT, PROJECT_BUDGET)
-        # Add more test cases as needed
-    ],
-)
 # Integration testing for building the optimization model
-def test_build_opt_model(opt_inputs, dac_percent_input, project_budget_input):
+def test_build_opt_model(opt_model_inputs):
+
+    _, opt_inputs, dac_percent, project_budget, _, _ = opt_model_inputs
 
     model = OptModel("PRIMO Model for Wells", opt_inputs)
-    model.build_model(
-        dac_budget_fraction=dac_percent_input, project_max_spend=project_budget_input
-    )
+    model.build_model(dac_budget_fraction=dac_percent, project_max_spend=project_budget)
 
     # Checking that each of the model components got built.
     assert isinstance(model.model.s_w, pyo.Set)
@@ -102,23 +103,25 @@ def test_build_opt_model(opt_inputs, dac_percent_input, project_budget_input):
     assert isinstance(model.model.obj, pyo.Objective)
 
 
-@pytest.mark.parametrize(
-    "opt_inputs,dac_percent_input, well_data_set,selected, not_selected",
-    [
-        (opt_input, DAC_PERCENT, well_gdf, expected_selection, expected_not_be_selected)
-        # Add more test cases as needed
-    ],
-)
-
 # Integration testing for solving the optimization model
-def test_solve_opt_model(
-    opt_inputs, dac_percent_input, well_data_set, selected, not_selected
-):
+@pytest.mark.parametrize(
+    "solver,lazy_constraints",
+    [("highs", 0), ("scip", 0), ("gurobi", 0), ("gurobi_persistent", 1)],
+)
+def test_solve_opt_model(opt_model_inputs, solver, lazy_constraints):
 
+    (
+        well_data_set,
+        opt_inputs,
+        dac_percent,
+        project_budget,
+        selected,
+        not_selected,
+    ) = opt_model_inputs
     model = OptModel("PRIMO Model for Wells", opt_inputs)
-    model.build_model(dac_budget_fraction=dac_percent_input)
+    model.build_model(dac_budget_fraction=dac_percent, project_max_spend=project_budget)
 
-    status = model.solve_model({"solver": "highs"})
+    status = model.solve_model({"solver": solver, "LazyConstraints": lazy_constraints})
     selected_wells = model.get_results()
     well_data_set["selected"] = well_data_set.apply(
         lambda row: "1" if row["Well ID"] in selected_wells else "0", axis=1
