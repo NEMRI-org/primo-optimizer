@@ -15,8 +15,8 @@
 import logging
 
 # Installed libs
-from pyomo.common.config import ConfigValue, NonNegativeFloat, Bool
 import pytest
+from pyomo.common.config import Bool, ConfigValue, NonNegativeFloat
 
 # User-defined libs
 from primo.data_parser.metric_data import (

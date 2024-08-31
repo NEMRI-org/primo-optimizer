@@ -18,7 +18,7 @@ from typing import Union
 # Installed libs
 import numpy as np
 import pandas as pd
-from pyomo.common.config import ConfigValue, Bool
+from pyomo.common.config import Bool, ConfigValue
 
 # User-defined libs
 from primo.data_parser.default_data import SUPP_EFF_METRICS, SUPP_IMPACT_METRICS
