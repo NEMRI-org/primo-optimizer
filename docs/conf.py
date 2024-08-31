@@ -17,6 +17,7 @@
 
 # -- Path setup --------------------------------------------------------------
 
+# Standard libs
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -25,6 +26,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join("..", "primo")))
+# User-defined libs
 from primo import RELEASE, VERSION
 
 # -- Project information -----------------------------------------------------
@@ -100,7 +102,7 @@ html_logo = "_static/logo-print-hd.jpg"
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
 #
-html_favicon = "_static/favicon.ico"
+html_favicon = "_static/PRIMO_favicon_300x300.svg"
 
 # Options for LaTeX build
 # change default engine (pdflatex) to correctly display Unicode characters in source
