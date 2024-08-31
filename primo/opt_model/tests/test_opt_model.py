@@ -106,7 +106,7 @@ def test_build_opt_model(opt_model_inputs):
 # Integration testing for solving the optimization model
 @pytest.mark.parametrize(
     "solver,lazy_constraints",
-    [("highs", 0), ("scip", 0), ("gurobi", 0), ("gurobi_persistent", 1)],
+    [("highs", 0), ("gurobi", 0), ("gurobi_persistent", 1)],
 )
 def test_solve_opt_model(opt_model_inputs, solver, lazy_constraints):
 

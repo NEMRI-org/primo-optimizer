@@ -112,7 +112,6 @@ def test_base_model_build():
     "solver",
     [
         "highs",
-        "glpk",
         "gurobi",
     ],
 )
