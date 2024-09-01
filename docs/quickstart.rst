@@ -144,6 +144,8 @@ These API Keys can be utilized by providing them in a .env file. A .env file is 
     BING_API_KEY="My Bing maps key"
     CENSUS_KEY="My census key"
 
+For more details, please see `API Keys <https://primo.readthedocs.io/en/latest/method/api_keys.html>`_.
+
 
 .. figure:: _static/env_file.png
     :width: 800
