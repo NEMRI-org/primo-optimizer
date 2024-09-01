@@ -9,4 +9,5 @@ Methods
     api_keys
     priority_score_calculation
     clustering
+    elevation
     efficiency_score_calculation

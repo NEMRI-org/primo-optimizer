@@ -54,6 +54,9 @@ To use the utilities implemented in the PRIMO package that query the U.S. Census
 by signing up with the respective services. These keys must be configured in a .env file in the parent directory. For more details, please see:
 [API Keys](https://primo.readthedocs.io/en/latest/method/api_keys.html)
 
+Additionally, use of [elevation based utilities](https://primo.readthedocs.io/en/latest/Utilities/elevation_utils.html) requires the user to provide a GeoTIFF file that provides elevation data across the region of interest. Users can download this data from [USGS Science Data Catalog](https://data.usgs.gov/datacatalog/data/USGS:35f9c4d4-b113-4c8d-8691-47c428c29a5b). For more details, please see:
+[Elevation Data]((https://primo.readthedocs.io/en/latest/method/elevation.html))
+
 Users can also employ other commercial solvers, for example Gurobi, to solve the optimization problem. 
 However, users are responsible for configuring and setting up these solvers themselves
 
