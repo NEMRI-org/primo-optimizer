@@ -11,10 +11,16 @@ if "%SPHINXAPIDOC%" == "" (
     set SPHINXAPIDOC=sphinx-apidoc
 )
 
+if "%SPHINXOPTS%" == "" (
+    set SPHINXOPTS=-W
+)
+
 set SOURCEDIR=.
 set BUILDDIR=_build
 
 if "%1" == "" goto help
+
+if "%1" == "spell" goto spell
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (
@@ -28,13 +34,16 @@ if errorlevel 9009 (
 	echo.http://sphinx-doc.org/
 	exit /b 1
 )
-REM TODO: Revisit %SPHINXAPIDOC% and get it working adequately with readthedocs
-REM %SPHINXAPIDOC%  -f -M -H WaterTAP -d 3 -o apidoc ../watertap "../*tests*"
+
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
 goto end
 
 :help
 %SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
+goto end
+
+:spell
+%SPHINXBUILD% -b spelling %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
 goto end
 
 :end

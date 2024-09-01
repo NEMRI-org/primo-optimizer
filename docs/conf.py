@@ -47,13 +47,13 @@ release = RELEASE
 version = VERSION
 # -- General configuration ---------------------------------------------------
 
-
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
     "myst_parser",
     "nbsphinx",  # Jupyter notebooks as docs
+    "sphinxcontrib.spelling",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.autosummary",
@@ -135,3 +135,9 @@ myst_dmath_double_inline = True
 panels_add_bootstrap_css = False
 numfig = True
 numfig_secnum_depth = 1
+
+
+# Settings for spell check provided by "sphinxcontrib.spelling"
+spelling_verbose = True
+spelling_warning = True
+spelling_word_list_filename = os.path.join("..", ".github", "wordlist.txt")

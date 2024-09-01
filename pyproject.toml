@@ -77,10 +77,12 @@ dev = [
     "addheader",
     "black",
     "isort",
+    "linkify-it-py",
     "myst-parser",
     "nbsphinx",
     "pre-commit",
     "sphinx",
+    "sphinxcontrib-spelling",
     "sphinx-rtd-theme",
 ]
 
