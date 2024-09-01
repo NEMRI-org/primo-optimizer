@@ -81,6 +81,7 @@ dev = [
     "myst-parser",
     "nbsphinx",
     "pre-commit",
+    "pylint",
     "sphinx",
     "sphinxcontrib-spelling",
     "sphinx-rtd-theme",

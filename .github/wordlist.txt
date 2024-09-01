@@ -1,5 +1,7 @@
 Bing
 Bool
+bool
+df
 DataFrame
 GeoDataFrame
 Geopandas
