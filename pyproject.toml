@@ -31,6 +31,7 @@ description = "PRIMO - The P&A Project Optimizer"
 dependencies = [
     "appengine-python-standard",
     "censusgeocode",
+    "fast_autocomplete[levenshtein]",
     "folium",
     "geopandas",
     "gurobipy",

@@ -5,13 +5,15 @@ sensitive data formats and features being handled.
 For more information, see the README.md file in this directory.
 """
 
+# Standard libs
 import ast
 import numbers
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
+# Installed libs
 import pytest
-from stagedfright import StagedFile, AllowFile, PyContent
+from stagedfright import AllowFile, PyContent, StagedFile
 
 
 def test_allowfile_matches_if_present(staged: StagedFile, allowfile: AllowFile):
@@ -42,6 +44,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "primo/utils/kpi_utils.py": 7,
     "primo/utils/map_utils.py": 40,
     "primo/utils/opt_utils.py": 5,
+    "primo/utils/override_utils.py": 8,
     "primo/utils/proximity_to_sensitive_receptors.py": 4,
     "primo/utils/proximity_utils.py": 5,
     "primo/utils/setup_arg_parser.py": 9,
