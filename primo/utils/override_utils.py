@@ -13,128 +13,17 @@
 
 # Standard libs
 import logging
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 # Installed libs
-import ipywidgets as widgets
 import pandas as pd
-from fast_autocomplete import AutoComplete
 from haversine import Unit, haversine_vector
-from IPython.display import display
 
 # User-defined libs
 from primo.data_parser.data_model import OptInputs
-from primo.utils.raise_exception import raise_exception
+from primo.utils.config_utils import OverrideWidget
 
 LOGGER = logging.getLogger(__name__)
-
-
-# pylint: disable = attribute-defined-outside-init
-class OverrideWidget:
-    """
-    Class for displaying an autofill widget in Jupyter Notebook that allows the user select
-    wells that they would like to add to or remove from the optimal solution
-
-    Parameters
-    ----------
-
-    well_df : pd.DataFrame
-        Data frame of all wells
-
-    Attributes
-    ----------
-
-    widget : widgets.Combobox
-
-        A text widget with autofill feature for selecting wells for `well_list`
-
-    button : widgets.Button
-        A button to confirm and add the selected well to `well_list`
-
-    well_list : list
-        A list containing the API well number of wells that the user would like to add to
-        or remove from the result of the optimization problem
-
-    """
-
-    def __init__(self, well_df: pd.DataFrame, button_description: str):
-        well_dict = {str(well_id): {} for well_id in well_df["API Well Number"]}
-
-        words = well_dict
-        self.autocomplete = AutoComplete(words=words)
-        self.widget = widgets.Combobox(
-            value="",
-            placeholder="Select well",
-            description="Well",
-            disabled=False,
-        )
-        self.widget.observe(self._on_change, names="value")
-
-        layout = widgets.Layout(width="auto", height="auto")
-
-        self.button_add = widgets.Button(description=button_description, layout=layout)
-        self.button_add.on_click(self._on_button_clicked_add)
-        self.button_remove = widgets.Button(description="Undo", layout=layout)
-        self.button_remove.on_click(self._on_button_clicked_remove)
-        self.well_list = []
-
-    def _on_change(self, data) -> None:
-        """
-        Dynamically update the well option in the drop down list of the widget
-        based on the information user has already typed in
-        """
-
-        self.text = data["new"]
-
-        values = self.autocomplete.search(self.text, max_cost=3, size=3)
-
-        # convert nested list to flat list
-        values = list(sorted(set(str(item) for sublist in values for item in sublist)))
-
-        self.widget.options = values
-
-    def _on_button_clicked_add(self, _) -> None:
-        """
-        Add the selected well to the well_list and print the corresponding confirmation
-        message in the Jupyter Notebook
-        """
-
-        if self.text in self.well_list:
-            raise_exception(
-                f"Well {self.text} has already been added to the override list",
-                ValueError,
-            )
-        else:
-            self.well_list.append(self.text)
-            LOGGER.info(f"Well {self.text} has been added to the override list.")
-
-    def _on_button_clicked_remove(self, _) -> None:
-        """
-        Remove a selected well from the well_list and display the corresponding
-        confirmation message in the Jupyter Notebook
-        """
-
-        if self.text not in self.well_list:
-            raise_exception(
-                f"Well {self.text} is not in the list",
-                ValueError,
-            )
-        else:
-            self.well_list.remove(self.text)
-            LOGGER.info(f"Well {self.text} has been removed from the list.")
-
-    def display(self) -> widgets.HBox:
-        """
-        Display the widget and button in the Jupyter Notebook
-        """
-        buttons = widgets.HBox([self.button_add, self.button_remove])
-        display(self.widget, buttons)
-
-    def return_value(self) -> List:
-        """
-        Return the list of selected wells
-        """
-        return self.well_list
 
 
 def user_input(well_df_add: pd.DataFrame, well_df_remove: pd.DataFrame):
@@ -233,6 +122,8 @@ class Recalculate:
         self.max_wells_per_owner = opt_inputs.max_wells_per_owner
         self.max_distance = opt_inputs.distance_threshold
         self.dac_weight = dac_weight
+        self.violate_cost = 0
+        self.violate_dac = 0
 
         for well_id in self.well_add_list:
             well_id = int(well_id)

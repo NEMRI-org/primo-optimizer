@@ -90,7 +90,9 @@ dev = [
 
 test = [
     "pytest", 
-    "pytest-cov"
+    "pytest-cov",
+    "pytest-ipywidgets[notebook]",
+    "pytest-playwright"
 ]
 
 [project.scripts]

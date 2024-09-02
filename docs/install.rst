@@ -95,6 +95,12 @@ For users who are contributing to the development of PRIMO, create a new environ
     conda env create -f conda-env-dev.yml
     conda activate primo
 
+Additionally, developers should complete the installation of the [playwright](https://playwright.dev/python/docs/intro) which is required
+for running tests.
+```bash
+playwright install
+```
+
 If the user handles protected data and contributes to PRIMO development, it is advisable to maintain separate environments for each task.
 
 .. note::
