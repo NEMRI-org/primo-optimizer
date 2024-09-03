@@ -9,6 +9,7 @@ Geopandas
 Gurobi
 HBox
 IntSlider
+Iterable
 Jupyter
 Mcf
 Namespace
