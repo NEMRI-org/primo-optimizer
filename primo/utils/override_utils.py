@@ -107,7 +107,9 @@ class Recalculate:
         Adds a well in the considerations for plugging
         """
         if well_id in self.wells_added:
-            LOGGER.warning(f"Well: {well_id} was already included in plugging list")
+            msg = f"Well: {well_id} was already included in plugging list"
+            LOGGER.warning(msg)
+            print(msg)
             return
 
         if well_id in self.wells_removed:
@@ -153,7 +155,7 @@ class Recalculate:
             campaign_cost = self.opt_inputs.mobilization_cost[n_wells]
             total_cost += campaign_cost
 
-        return self.opt_inputs.budget - total_cost
+        return total_cost - self.opt_inputs.budget
 
     def assess_dac(self) -> float:
         """
@@ -164,8 +166,8 @@ class Recalculate:
         opt_inputs = self.opt_inputs
         if self.dac_weight is None:
             # When the user does not select DAC as a priority factor,
-            # all wells are assumed to not be located in a disadvantaged community.
-            return opt_inputs.dac_budget_fraction
+            # this constraint becomes meaninggless
+            return 0
 
         disadvantaged_wells = 0
         col_name = f"DAC Score [0-{int(self.dac_weight)}]"
@@ -263,7 +265,7 @@ class Recalculate:
         List of Well API numbers that can be added in the project
         """
         additions = []
-        if self.assess_feasibility is False:
+        if self.assess_feasibility() is False:
             # The
             return additions
 
@@ -275,6 +277,8 @@ class Recalculate:
             ~candidates["API Well Number"].isin(self._plugged_list["API Well Number"])
         ]
 
+        # Remove candidates in removal list
+        candidates = candidates[~candidates["API Well Number"].isin(self.wells_removed)]
         # Stick to those projects that already exist
         existing_projects = set(self._plugged_list["Project"])
         candidates = candidates[candidates["Project"].isin(existing_projects)]

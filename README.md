@@ -44,7 +44,7 @@ Activate the new environment with:
 conda activate primo
 ```
 
-Additionally, developers should complete the installation of the [playwright](https://playwright.dev/python/docs/intro) which is required
+Additionally, developers should complete the installation of the [playwright](https://playwright.dev/python/docs/intro) package which is required
 for running tests.
 ```bash
 playwright install

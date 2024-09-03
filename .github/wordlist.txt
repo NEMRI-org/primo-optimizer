@@ -28,6 +28,7 @@ conda
 config
 csv
 customizable
+datasets
 df
 env
 geopoint

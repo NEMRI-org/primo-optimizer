@@ -611,10 +611,14 @@ class SelectWidget:
         if self._text == "":
             raise_exception("Nothing selected, cannot add to list", ValueError)
         if self._text in self.selected_list:
-            LOGGER.info(f"Choice: {self._text} already included in list of selections")
+            msg = f"Choice: {self._text} already included in list of selections"
+            LOGGER.info(msg)
+            print(msg)
         else:
             self.selected_list.append(self._text)
-            LOGGER.info(f"Choice {self._text} has been added to the list of selections")
+            msg = f"Choice {self._text} has been added to the list of selections"
+            LOGGER.info(msg)
+            print(msg)
 
     def _remove(self, _) -> None:
         """
@@ -630,7 +634,9 @@ class SelectWidget:
             )
         else:
             self.selected_list.remove(self._text)
-            LOGGER.info(f"Choice {self._text} has been removed from the list.")
+            msg = f"Choice {self._text} has been removed from the list."
+            LOGGER.info(msg)
+            print(msg)
 
     def display(self):
         """
