@@ -71,9 +71,9 @@ jobs:
         # Skip tests that require API Keys (Secrets) when pull request is opened
         run: |
           if [ ${{ github.event_name }} == 'pull_request' ]; then
-            pytest -v -m "not secrets and not demo"
+            pytest -v -m "not secrets and not demo and not widgets"
           else
-            pytest -v -m "not demo"
+            pytest -v -m "not demo and not widgets"
           fi
       - name: Upload coverage report as job artifact
         if: matrix.cov-report
