@@ -15,11 +15,11 @@
 import json
 import logging
 import os
+import typing
 from typing import Any, List, Tuple
 
 # Installed libs
 import ipywidgets as widgets
-import pandas as pd
 from fast_autocomplete import AutoComplete
 from IPython.display import display
 
@@ -526,109 +526,121 @@ class UserPriorities:
         return self.priorities_, self.sub_priorities_
 
 
-class OverrideWidget:
+class SelectWidget:
     """
-    Class for displaying an autofill widget in Jupyter Notebook that allows the user select
-    wells that they would like to add to or remove from the optimal solution
+    Class for displaying an autofill widget in Jupyter Notebook to select multiple choices from a
+    list of choices provided. The widget comes configured with an "Undo" button that clears all
+    selections
 
     Parameters
     ----------
+    choices: typing.Iterable[str]
+        Full collection of choices
 
-    well_df : pd.DataFrame
-        Data frame of all wells
+    button_description: str
+        The description to be displayed on the widget
+
+    type_description: str
+        The type of object to be selected, displayed on the widget
 
     Attributes
     ----------
 
-    widget : widgets.Combobox
-
-        A text widget with autofill feature for selecting wells for `well_list`
-
     button : widgets.Button
-        A button to confirm and add the selected well to `well_list`
+        A button to confirm and add the selected option to the list of choices
 
-    well_list : list
-        A list containing the API well number of wells that the user would like to add to
-        or remove from the result of the optimization problem
+    selected_list : List[str]
+        A list containing all options selected by a user
 
+    widget : widgets.Combobox
+        A text widget with autofill feature for selecting options from a list
     """
 
-    def __init__(self, well_df: pd.DataFrame, button_description: str):
-        well_dict = {str(well_id): {} for well_id in well_df["API Well Number"]}
+    def __init__(
+        self,
+        choices: typing.Iterable[str],
+        button_description: str,
+        type_description: str,
+    ):
+        # AutoComplete box requires a dictionary
+        words_dict = {word: {} for word in choices}
 
-        words = well_dict
-        self.autocomplete = AutoComplete(words=words)
+        self._autocomplete = AutoComplete(words=words_dict)
+        # Initialize text
+        self._text = ""
         self.widget = widgets.Combobox(
             value="",
-            placeholder="Select well",
-            description="Well",
+            placeholder=f"Select {type_description}",
+            description=type_description,
             disabled=False,
         )
+
         self.widget.observe(self._on_change, names="value")
 
         layout = widgets.Layout(width="auto", height="auto")
 
+        # Add button
         self.button_add = widgets.Button(description=button_description, layout=layout)
-        self.button_add.on_click(self._on_button_clicked_add)
+        self.button_add.on_click(self._add)
+
+        # Remove button
         self.button_remove = widgets.Button(description="Undo", layout=layout)
-        self.button_remove.on_click(self._on_button_clicked_remove)
-        self.well_list = []
-        self.text = ""
+        self.button_remove.on_click(self._remove)
+        self.selected_list = []
 
     def _on_change(self, data) -> None:
         """
-        Dynamically update the well option in the drop down list of the widget
-        based on the information user has already typed in
+        Dynamically update the list of choices available in the drop down widget
+        based on what is already selected
         """
 
-        self.text = data["new"]
+        self._text = data["new"]
 
-        values = self.autocomplete.search(self.text, max_cost=3, size=3)
+        values = self._autocomplete.search(self._text, max_cost=3, size=3)
 
         # convert nested list to flat list
         values = list(sorted(set(str(item) for sublist in values for item in sublist)))
 
         self.widget.options = values
 
-    def _on_button_clicked_add(self, _) -> None:
+    def _add(self, _) -> None:
         """
-        Add the selected well to the well_list and print the corresponding confirmation
-        message in the Jupyter Notebook
+        Adds a selected choice and prints confirmation message in Jupyter notebook
         """
 
-        if self.text in self.well_list:
+        if self._text == "":
+            raise_exception("Nothing selected, cannot add to list", ValueError)
+        if self._text in self.selected_list:
+            LOGGER.info(f"Choice: {self._text} already included in list of selections")
+        else:
+            self.selected_list.append(self._text)
+            LOGGER.info(f"Choice {self._text} has been added to the list of selections")
+
+    def _remove(self, _) -> None:
+        """
+        Remove a selected choice and prints confirmation message in Jupyter Notebook
+        """
+
+        if self._text == "":
+            raise_exception("Nothing selected, cannot remove from list", ValueError)
+        if self._text not in self.selected_list:
             raise_exception(
-                f"Well {self.text} has already been added to the override list",
+                f"Choice {self._text} is not in the list",
                 ValueError,
             )
         else:
-            self.well_list.append(self.text)
-            LOGGER.info(f"Well {self.text} has been added to the override list.")
+            self.selected_list.remove(self._text)
+            LOGGER.info(f"Choice {self._text} has been removed from the list.")
 
-    def _on_button_clicked_remove(self, _) -> None:
-        """
-        Remove a selected well from the well_list and display the corresponding
-        confirmation message in the Jupyter Notebook
-        """
-
-        if self.text not in self.well_list:
-            raise_exception(
-                f"Well {self.text} is not in the list",
-                ValueError,
-            )
-        else:
-            self.well_list.remove(self.text)
-            LOGGER.info(f"Well {self.text} has been removed from the list.")
-
-    def display(self) -> widgets.HBox:
+    def display(self):
         """
         Display the widget and button in the Jupyter Notebook
         """
         buttons = widgets.HBox([self.button_add, self.button_remove])
         display(self.widget, buttons)
 
-    def return_value(self) -> List:
+    def return_selections(self) -> List[str]:
         """
-        Return the list of selected wells
+        Return the list of selections made by a user
         """
-        return self.well_list
+        return self.selected_list

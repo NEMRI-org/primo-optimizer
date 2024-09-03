@@ -15,10 +15,12 @@
 import os
 
 # Installed libs
+import playwright
 import pytest
 
 # User-defined libs
 from primo.utils.config_utils import (
+    SelectWidget,
     _get_checkbox_params,
     copy_dict,
     copy_values,
@@ -248,3 +250,34 @@ def test_copy_values(input_dict, output_dict, key, expected_result):
 )
 def test_get_checkbox_params(param_dict, expected_result):
     assert _get_checkbox_params(param_dict) == expected_result
+
+
+@pytest.mark.widgets
+def test_select_widget(solara_test, page_session: playwright.sync_api.Page):
+    choices = ["Apple", "Banana", "Mango"]
+    button_description = "Select fruit"
+    type_description = "Fruit"
+    widget_class = SelectWidget(choices, button_description, type_description)
+    widget_class.display()
+
+    # Assert list is empty initially
+    assert not widget_class.selected_list
+
+    # Add Apple to form
+    page_session.get_by_label("Fruit").fill("Apple")
+    select_button = page_session.locator("text=Select fruit")
+    select_button.click()
+
+    assert widget_class.selected_list == ["Apple"]
+
+    # Add Banana to form
+    page_session.get_by_label("Fruit").fill("Banana")
+    select_button.click()
+    assert widget_class.selected_list == ["Apple", "Banana"]
+
+    # Unselect recent selection
+    undo_button = page_session.locator("text=Undo")
+    undo_button.click()
+    assert widget_class.selected_list == ["Apple"]
+
+    # TODO: Add more tests
