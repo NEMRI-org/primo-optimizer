@@ -27,7 +27,7 @@ Our complete documentation is available on [readthedocs](https://primo.readthedo
 
 While not required, we encourage the installation of [Anaconda](https://www.anaconda.com/products/individual#Downloads) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and using the `conda` command to create a separate python environment in which to install the PRIMO Toolkit.
 
-Regular uses can use conda to create a new "primo" environment.
+Regular users can use conda to create a new "primo" environment.
 ```bash
 conda env create -f conda-env.yml
 ```

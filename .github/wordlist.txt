@@ -47,7 +47,7 @@ scikit
 shapefile
 shapefiles
 sublicense
-txt 
+txt
 uncheck
 unchecking
 waypoints

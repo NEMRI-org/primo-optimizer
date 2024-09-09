@@ -1,7 +1,7 @@
 Elevation Data
 ==============
 
-PRIMO proposes the use of elevation as one of the factors that indicate the ease of plugging a well. A large elevation difference between
+PRIMO proposes the use of elevation as one of the factors that indicates the ease of plugging a well. A large elevation difference between
 the well head and the nearest road point might indicate difficulties in accessing the well.
 
 PRIMO makes available several `elevation-based utilities <https://primo.readthedocs.io/en/latest/Utilities/elevation_utils.html>`_ to aid the 

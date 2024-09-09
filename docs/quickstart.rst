@@ -46,7 +46,7 @@ Step 3: Install PRIMO and required dependencies
 
     Opening Anaconda prompt from Start Menu on Windows
 
-* Navigate to the directory where PRIMO source code is extracted. The path to this directory can be copy pasted from Windows Explorer.
+* Navigate to the directory where PRIMO source code is extracted. The path to this directory can be copy-pasted from Windows Explorer.
 
 .. figure:: _static/path.png
     :width: 800
