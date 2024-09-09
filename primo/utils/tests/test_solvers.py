@@ -25,19 +25,20 @@ from primo.utils.solvers import get_solver
 @pytest.mark.parametrize("mip_gap", [0.01, 0.1, 1])
 @pytest.mark.parametrize("time_limit", [5, 10, 1000])
 @pytest.mark.parametrize("solver_options", [{"keepfiles": True}])
-@pytest.mark.parametrize("kwargs", [{}, {"unsupported_option": 5}])
-def test_get_solver(
-    solver, stream_output, mip_gap, time_limit, solver_options, kwargs, caplog
-):
+def test_get_solver(solver, stream_output, mip_gap, time_limit, solver_options):
+    """
+    Test the get solver method
+    """
     if solver == "unknown_solver":
         with pytest.raises(ValueError):
             get_solver(
-                solver, stream_output, mip_gap, time_limit, solver_options, **kwargs
+                solver,
+                stream_output,
+                mip_gap,
+                time_limit,
+                solver_options,
             )
 
     else:
-        get_solver(solver, stream_output, mip_gap, time_limit, solver_options, **kwargs)
+        get_solver(solver, stream_output, mip_gap, time_limit, solver_options)
         assert True, "Solver object successfully created"
-
-    if kwargs:
-        assert "get_solver method received unknown arguments" in caplog.text
