@@ -12,6 +12,7 @@
 #################################################################################
 # Standard libs
 import copy
+import inspect
 import itertools
 import logging
 from typing import Dict, Union
@@ -20,7 +21,6 @@ from typing import Dict, Union
 import numpy as np
 import pyomo.environ as pyo
 from gurobipy import GRB
-from pyomo.opt import SolverFactory
 
 # User-defined libs
 from primo.data_parser.data_model import OptInputs
@@ -534,20 +534,29 @@ class OptModel(BaseModel):
         # Remove temporary files by default
         keepfiles = options.pop("keepfiles", False)
 
-        solver_obj = get_solver(**options)
+        # callback options
+        callback = options.pop("LazyConstraints", 0)
 
-        solver = options.pop("solver")
+        # Get arguments for solver object
+        get_solver_args = {}
+        parameters = inspect.signature(get_solver).parameters
+        for parameter_name, parameter in parameters.items():
+            default_val = parameter.default
+            get_solver_args[parameter_name] = options.pop(parameter_name, default_val)
+
+        get_solver_args["solver_options"] = options
+
+        solver_obj = get_solver(**get_solver_args)
+
+        solver = get_solver_args.get("solver")
         if solver == "gurobi_persistent":
 
             solver_obj.set_instance(self.model)
             callback = False
-            for key, val in options.items():
-                if key == "LazyConstraints" and val == 1:
-                    callback = True
-                solver_obj.options[key] = val
 
             if callback:
                 self.model.cons = pyo.ConstraintList()
+                solver_obj.options["LazyConstraints"] = 1
                 solver_obj.set_callback(distance_callback)
 
         if solver == "highs":

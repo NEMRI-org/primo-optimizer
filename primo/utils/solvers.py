@@ -24,12 +24,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_solver(
-    solver="highs",
+    solver="scip",
     stream_output=True,
     mip_gap=0.01,
     time_limit=10000,
     solver_options={},
-    **kwargs,
 ):
     """
     Returns a solver object. A few open-source solvers can be installed using conda.
@@ -39,7 +38,7 @@ def get_solver(
 
     Parameters
     ----------
-    solver : str, default = "highs"
+    solver : str, default = "scip"
         Choice of solver
 
     stream_output : bool, default = True
@@ -55,9 +54,6 @@ def get_solver(
     solver_options : dict, default = {}
         Additional solver options
 
-    **kwargs : dict
-        Extra keyword arguments that are ignored
-
     Returns
     -------
     sol_obj :
@@ -69,13 +65,6 @@ def get_solver(
         If an unrecognized solver is provided as an input.
         Supported solvers include glpk, gurobi, gurobi_persistent, highs and scip
     """
-
-    if kwargs:
-        LOGGER.warning(
-            f"get_solver method received unknown arguments {kwargs}. "
-            "These will be ignored"
-        )
-
     if solver == "highs":
         sol_obj = Highs()
         sol_obj.config.stream_solver = stream_output
@@ -88,7 +77,7 @@ def get_solver(
 
         return sol_obj
 
-    elif solver in ("gurobi", "gurobi_persistent"):
+    if solver in ("gurobi", "gurobi_persistent"):
         sol_obj = SolverFactory(solver, solver_io="python")
         sol_obj.options["MIPGap"] = mip_gap
         sol_obj.options["TimeLimit"] = time_limit
@@ -96,7 +85,7 @@ def get_solver(
 
         return sol_obj
 
-    elif solver == "scip":
+    if solver == "scip":
         sol_obj = SolverFactory("scip")
         sol_obj.options["limits/gap"] = mip_gap
         sol_obj.options["limits/time"] = time_limit
@@ -104,7 +93,7 @@ def get_solver(
 
         return sol_obj
 
-    elif solver == "glpk":
+    if solver == "glpk":
         sol_obj = SolverFactory("glpk")
         sol_obj.options["tmlim"] = time_limit
         sol_obj.options["mipgap"] = mip_gap
@@ -112,8 +101,7 @@ def get_solver(
 
         return sol_obj
 
-    else:
-        raise ValueError(f"Solver {solver} is not recognized!")
+    raise ValueError(f"Solver {solver} is not recognized!")
 
 
 def check_optimal_termination(results, solver):
@@ -143,12 +131,11 @@ def check_optimal_termination(results, solver):
         # This works for Gurobi, SCIP, and GLPK, but not for HiGHS
         return pyo_opt_term(results)
 
-    elif solver == "highs":
+    if solver == "highs":
         # This part works for HiGHS
         if results.termination_condition == TerminationCondition.optimal:
             return True
 
         return False
 
-    else:
-        raise ValueError(f"Solver {solver} is not recognized")
+    raise ValueError(f"Solver {solver} is not recognized")
