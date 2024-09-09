@@ -23,6 +23,7 @@ conda
 config
 csv
 customizable
+datasets
 env
 geopoint
 geospatial
@@ -38,7 +39,7 @@ scikit
 shapefile
 shapefiles
 sublicense
-txt 
+txt
 uncheck
 unchecking
 waypoints

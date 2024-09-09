@@ -63,7 +63,7 @@ def get_solver(
     ------
     ValueError
         If an unrecognized solver is provided as an input.
-        Supported solvers include glpk, gurobi, gurobi_persistent, highs and scip
+        Supported solvers include glpk, gurobi, gurobi_persistent, highs, and scip
     """
     if solver == "highs":
         sol_obj = Highs()
