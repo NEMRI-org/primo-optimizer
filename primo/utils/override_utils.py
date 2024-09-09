@@ -28,7 +28,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Recalculate:
     """
-    Class for assess whether whether the overridden P&A projects adhere to the constraints
+    Class for assessing whether the overridden P&A projects adhere to the constraints
     defined in the optimization problem
 
     Parameters
@@ -38,10 +38,10 @@ class Recalculate:
         A DataFrame containing wells selected based on solving the optimization problem
         and/or by manual selections and overrides
 
-    wells_added : list
+    wells_added : List[str]
         A list of wells that the user wishes to add to the P&A projects
 
-    wells_removed : list
+    wells_removed : List[str]
         A list of wells that the user wishes to remove from the P&A projects
 
     well_df : pd.DataFrame
@@ -262,11 +262,13 @@ class Recalculate:
 
         Returns:
         --------
-        List of Well API numbers that can be added in the project
+        List of well API numbers that can be added in the project
         """
         additions = []
         if self.assess_feasibility() is False:
-            # The
+            # The current well selections already lead to infeasibility (presumably
+            # due to budget being exceeded)
+            # There is no room to add more wells for backfilling
             return additions
 
         # Sort by descending order
