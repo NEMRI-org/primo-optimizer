@@ -4,7 +4,7 @@ You can run PRIMO with [Binder](https://mybinder.org): a public cloud service th
 
 ## Quickstart
 
-You can launch the Binder environment by clicking on the following badge: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/apd-ypuranik/primo-optimizer/HEAD)
+You can launch the Binder environment by clicking on the following badge: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/apd-ypuranik/primo-optimizer/binder)
 
 ## Key Notes
 
