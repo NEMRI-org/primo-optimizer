@@ -1,12 +1,14 @@
 #################################################################################
-# PRIMO - The P&A Project Optimizer was produced under the Methane Emissions Reduction Program (MERP)
-# and National Energy Technology Laboratory's (NETL) National Emissions Reduction Initiative (NEMRI).
+# PRIMO - The P&A Project Optimizer was produced under the Methane Emissions
+# Reduction Program (MERP) and National Energy Technology Laboratory's (NETL)
+# National Emissions Reduction Initiative (NEMRI).
 #
-# NOTICE. This Software was developed under funding from the U.S. Government and the U.S.
-# Government consequently retains certain rights. As such, the U.S. Government has been granted for
-# itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in
-# the Software to reproduce, distribute copies to the public, prepare derivative works, and perform
-# publicly and display publicly, and to permit others to do so.
+# NOTICE. This Software was developed under funding from the U.S. Government
+# and the U.S. Government consequently retains certain rights. As such, the
+# U.S. Government has been granted for itself and others acting on its behalf
+# a paid-up, nonexclusive, irrevocable, worldwide license in the Software to
+# reproduce, distribute copies to the public, prepare derivative works, and
+# perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
 # Configuration file for the Sphinx documentation builder.
@@ -34,9 +36,9 @@ from primo import RELEASE, VERSION
 project = "PRIMO"
 copyright = "2023-2026, PRIMO"
 author = (
-    "The PRIMO team:\\\\ Dev Kakkad\\\\ Tyler Jaffe\\\\ Ruonan Li\\\\ Sangbum Lee\\\\"
+    "The PRIMO team:\\\\ Dev Kakkad\\\\ Tyler Jaffe\\\\ Ruonan Li\\\\ William Strahl\\\\"
     "Radhkakrishna Tumbalam Gooty\\\\ Miguel Zamarripa\\\\ Yash Puranik\\\\"
-    "Markus Drouven"
+    "Sangbum Lee\\\\Markus Drouven"
 )
 
 latex_elements = {"maketitle": "\\author{" + author + "}\\sphinxmaketitle"}
