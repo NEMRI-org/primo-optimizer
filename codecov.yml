@@ -17,11 +17,6 @@ codecov:
     wait_for_ci: false
     after_n_builds: 1
 ignore:
-  # Ignore test that requires set up of 
-  # the conda environment and is not included
-  # in the coverage report collected in the standard way
-  - "primo/demo/tests/test_demo.py"
-  - "primo/opt_model/tests/test_model_options.py"
   # Ignore tests that rely on secrets which are 
   # not passed to incoming PRs to avoid false 
   # alarm on reduced coverage

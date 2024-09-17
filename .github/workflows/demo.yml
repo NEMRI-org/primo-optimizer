@@ -37,7 +37,10 @@ jobs:
             os-version: windows-2019
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
-
+          - install-mode: dev
+            python-version: '3.9'
+            os: linux
+            cov-report: true
     steps:
       - uses: actions/checkout@v4
         if: matrix.install-mode == 'dev'
@@ -53,7 +56,38 @@ jobs:
       - name: Set up package (install-mode=${{ matrix.install-mode }})
         run: |
           pip --no-cache-dir install ${{ matrix.pip-install-target }}
-      - name: Run example demo
+      - name: Add pytest options to enable coverage report
+        if: matrix.cov-report
+        run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml:scip.xml" >> $GITHUB_ENV
+      - name: Run tests that rely on SCIP solver
         shell: bash -el {0}
         run: |
           pytest -v -m "scip"
+      - name: Upload coverage report as job artifact
+        if: matrix.cov-report
+        uses: actions/upload-artifact@v4
+        with:
+          name: scip-coverage-report
+          path: scip.xml
+          if-no-files-found: error
+
+  upload-codecov:
+    name: Upload coverage to Codecov
+    needs: [pytest]
+    runs-on: ubuntu-latest
+    steps:
+      # the checkout step is needed to have access to codecov.yml
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: scip-coverage-report
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          verbose: true
+          # NOTE: secrets are not available for pull_request workflows
+          # However, as of 2024-02-10, Codecov is still allowing tokenless upload from PRs
+          # but does require token for other workflows e.g. merge to `main`
+          # see https://github.com/codecov/codecov-action/issues/1274#issuecomment-1934437359
+          token: ${{ secrets.CODECOV_TOKEN }}
