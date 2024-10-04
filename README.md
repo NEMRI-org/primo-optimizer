@@ -74,7 +74,7 @@ You can run PRIMO with [Binder](https://mybinder.org): a public cloud service th
 
 ### Quickstart
 
-You can launch the Binder environment by clicking on the following badge: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/NEMRI-org/primo-optimizer/binder_integration?labpath=primo%2Fdemo%2F)
+You can launch the Binder environment by clicking on the following badge: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/NEMRI-org/primo-optimizer/main?labpath=primo%2Fdemo%2F)
 
 ### Key Notes
 
