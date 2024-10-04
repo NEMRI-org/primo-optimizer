@@ -4,7 +4,7 @@
 name: Binder
 on:
   push:
-    branches: ["main", "binder_integration"]
+    branches: ["main"]
       
 jobs:
     create-mybinder-cache:
