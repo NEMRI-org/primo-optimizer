@@ -197,6 +197,11 @@ def test_well_data(caplog, get_column_names):
         "and get_removed_wells_with_reason properties."
     ) in caplog.text
 
+    new_column = np.ones(len(wd.data))
+    badly_sized_column = np.ones(len(wd.data) - 1)
+    with pytest.raises(AttributeError):
+        wd.add_new_column_ordered("ones", "col_of_ones", badly_sized_column)
+
 
 def test_no_warnings(caplog, get_column_names):
     """
@@ -443,18 +448,6 @@ def test_compute_priority_scores(
     caplog, get_column_names
 ):  # pylint: disable=too-many-statements
     filename, col_names = get_column_names
-
-    wd = WellData(
-        data=filename,
-        column_names=col_names,
-        fill_age=99,
-        fill_depth=999,
-        fill_life_gas_production=1.5,
-        fill_life_oil_production=1.5,
-        threshold_gas_production=2,
-        threshold_oil_production=2,
-    )
-
     im_metrics = ImpactMetrics()
     im_metrics.set_weight(
         primary_metrics={
@@ -485,8 +478,19 @@ def test_compute_priority_scores(
             },
         },
     )
+    wd = WellData(
+        data=filename,
+        column_names=col_names,
+        fill_age=99,
+        fill_depth=999,
+        fill_life_gas_production=1.5,
+        fill_life_oil_production=1.5,
+        threshold_gas_production=2,
+        threshold_oil_production=2,
+        impact_metrics=im_metrics,
+    )
 
-    wd.compute_priority_scores(impact_metrics=im_metrics)
+    wd.compute_priority_scores()
 
     # Check warning messages
     assert f"Found empty cells in column {col_names.leak}" in caplog.text
@@ -592,12 +596,17 @@ def test_compute_priority_scores(
     )
 
     # Test errors thrown by the method
-    wd_df = pd.read_csv(filename, usecols=col_names.values())
+    # with efficiency refactoring, the priority score is added as an attribute to the well column name object
+    wd_df = pd.read_csv(
+        filename, usecols=[col for col in col_names.values() if "Priority" not in col]
+    )
 
     # Set a non-numeric value
     wd_df[col_names.hospitals] = wd_df[col_names.hospitals].astype("object")
     wd_df.loc[250, col_names.hospitals] = "NULL"
-    wd = WellData(data=wd_df, column_names=col_names)
+    # we now add the priority score column to the object when we compute
+    col_names.priority_score = None
+
     with pytest.raises(
         ValueError,
         match=(
@@ -607,15 +616,19 @@ def test_compute_priority_scores(
             f"contains non-numeric values in rows \\[250\\]."
         ),
     ):
-        wd.compute_priority_scores(im_metrics)
+        wd = WellData(data=wd_df, column_names=col_names, impact_metrics=im_metrics)
+        wd.compute_priority_scores()
 
     # Error raised when the data for an unsupported metric is missing
     im_metrics.register_new_metric("my_metric", 5, "My Custom Metric")
     im_metrics.dac_impact.weight = 0
     im_metrics.fed_dac.weight = 0
 
-    wd_df = pd.read_csv(filename, usecols=col_names.values())
-    wd = WellData(data=wd_df, column_names=col_names)
+    wd_df = pd.read_csv(
+        filename, usecols=[col for col in col_names.values() if "Priority" not in col]
+    )
+    # have to reset the column added by computing the priority score
+    col_names.priority_score = None
     with pytest.raises(
         ValueError,
         match=(
@@ -623,4 +636,5 @@ def test_compute_priority_scores(
             "is not provided."
         ),
     ):
-        wd.compute_priority_scores(im_metrics)
+        wd = WellData(data=wd_df, column_names=col_names, impact_metrics=im_metrics)
+        wd.compute_priority_scores()

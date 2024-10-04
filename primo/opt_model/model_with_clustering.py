@@ -31,6 +31,9 @@ from pyomo.environ import (
     maximize,
 )
 
+# User-defined libs
+from primo.opt_model.result_parser import Campaign
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -469,8 +472,22 @@ class PluggingCampaignModel(ConcreteModel):
             mutable=True,
             doc="Total budget available [Million USD]",
         )
+        scaling_factor, budget_sufficient = self.budget_slack_variable_scaling()
+        self.slack_var_scaling = Param(
+            initialize=scaling_factor,
+            mutable=True,
+            within=NonNegativeReals,
+            doc="Budget slack variable coefficient in the objective function",
+        )
+
         # Define essential variables and constraints for each cluster
         self.cluster = ClusterBlock(self.set_clusters, rule=build_cluster_model)
+
+        # Define slack variable for unutilized budget
+        self.budget_slack_var = Var(
+            within=NonNegativeReals,
+            doc="Slack variable for the unutilized amount of total budget",
+        )
 
         # Add total budget constraint
         self.total_budget_constraint = Constraint(
@@ -479,6 +496,16 @@ class PluggingCampaignModel(ConcreteModel):
                 <= self.total_budget
             ),
             doc="Total cost of plugging must be within the total budget",
+        )
+
+        # Add a constraint to calculate the unutilized amount of budget
+        self.budget_constraint_slack = Constraint(
+            expr=(
+                self.total_budget
+                - sum(self.cluster[c].plugging_cost for c in self.set_clusters)
+                <= self.budget_slack_var
+            ),
+            doc="Calculate the unutilized amount of budget",
         )
 
         # Add optional constraints:
@@ -494,6 +521,12 @@ class PluggingCampaignModel(ConcreteModel):
 
         if model_inputs.config.max_wells_per_owner is not None:
             self.add_owner_well_count()
+
+        if model_inputs.config.min_budget_usage is not None:
+            if budget_sufficient is False:
+                self.add_min_budget_usage()
+        else:
+            self.slack_var_scaling = 0
 
         # Append the objective function
         self.append_objective()
@@ -530,17 +563,64 @@ class PluggingCampaignModel(ConcreteModel):
                 <= max_owc
             )
 
+    def add_min_budget_usage(self):
+        """
+        Implements a constraint to ensure at least 50% of the
+        budget is used when the budget is sufficient to
+        plug all wells.
+        """
+        min_percent = self.model_inputs.config.min_budget_usage / 100
+        self.min_budget_usage_con = Constraint(
+            expr=(
+                sum(self.cluster[c].plugging_cost for c in self.set_clusters)
+                >= min_percent * self.total_budget
+            ),
+            doc="Enforces a minimum budget usage",
+        )
+
     def append_objective(self):
-        """ "
+        """
         Appends objective function to the model
         """
         self.total_priority_score = Objective(
             expr=(
                 sum(self.cluster[c].cluster_priority_score for c in self.set_clusters)
+                - self.slack_var_scaling * self.budget_slack_var
             ),
             sense=maximize,
-            doc="Total Priority score",
+            doc="Total Priority score minus scaled slack variable for unutilized budget",
         )
+
+    def budget_slack_variable_scaling(self):
+        """
+        Check whether the budget is sufficient to plug all wells and
+        calculate the scaling factor for the budget slack variable based on the
+        corresponding scenario.
+
+        """
+        # estimate the maximum number of wells can be plugged with the budget.
+        unit_cost = max(self.model_inputs.get_mobilization_cost.values()) / max(
+            self.model_inputs.get_mobilization_cost
+        )
+        max_well_num = self.model_inputs.get_total_budget / unit_cost
+
+        # calculate the scaling factor for the budget slack variable if the
+        # budget is not sufficient to plug all wells
+        if max_well_num < len(self.model_inputs.config.well_data):
+            scaling_budget_slack = (
+                max_well_num
+                * max(self.model_inputs.config.well_data["Priority Score [0-100]"])
+            ) / self.model_inputs.get_total_budget
+            budget_sufficient = False
+        # calculate the scaling factor for the budget slack variable if the
+        # budget is sufficient to plug all wells
+        else:
+            scaling_budget_slack = (
+                len(self.model_inputs.config.well_data)
+                * max(self.model_inputs.config.well_data["Priority Score [0-100]"])
+            ) / self.model_inputs.get_total_budget
+            budget_sufficient = True
+        return scaling_budget_slack, budget_sufficient
 
     def get_optimal_campaign(self):
         """
@@ -563,11 +643,8 @@ class PluggingCampaignModel(ConcreteModel):
                     # Well w is chosen, so store it in the dict
                     optimal_campaign[c].append(w)
 
-        # Well data
-        # TODO: Uncomment when result_parser.py is completed
-        # wd = self.model_inputs.config.well_data
-        # return OptimalCampaign(wd, optimal_campaign, plugging_cost)
-        return (optimal_campaign, plugging_cost)
+        wd = self.model_inputs.config.well_data
+        return Campaign(wd, optimal_campaign, plugging_cost)
 
     def get_solution_pool(self, solver):
         """
@@ -610,10 +687,10 @@ class PluggingCampaignModel(ConcreteModel):
                         # Well w is chosen, so store it in the dict
                         optimal_campaign[c].append(w)
 
-            # TODO: Uncomment the following lines after result_parser is merged
-            # solution_pool[i + 1] = OptimalCampaign(
-            #     wd=wd, clusters_dict=optimal_campaign, plugging_cost=plugging_cost
-            # )
-            solution_pool[i + 1] = (optimal_campaign, plugging_cost)
+            solution_pool[i + 1] = Campaign(
+                wd=self.model_inputs.config.well_data,
+                clusters_dict=optimal_campaign,
+                plugging_cost=plugging_cost,
+            )
 
         return solution_pool

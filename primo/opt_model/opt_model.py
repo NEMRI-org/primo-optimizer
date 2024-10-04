@@ -27,7 +27,7 @@ from primo.data_parser.data_model import OptInputs
 from primo.opt_model import FEASIBILITY_TOLERANCE
 from primo.opt_model.base_model import BaseModel
 from primo.utils import check_optimal_termination, get_solver
-from primo.utils.opt_utils import is_pyomo_model_feasible
+from primo.utils.opt_utils import budget_slack_variable_scaling, is_pyomo_model_feasible
 from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)
@@ -138,6 +138,16 @@ class OptModel(BaseModel):
             within=pyo.Reals,
         )
 
+        scaling_factor, self.budget_sufficient = budget_slack_variable_scaling(
+            model_inputs, objective_weights
+        )
+        model.p_B_sl = pyo.Param(
+            doc="Budget slack variable coefficient in the objective function",
+            initialize=scaling_factor,
+            mutable=False,
+            within=pyo.PositiveReals,
+        )
+
         LOGGER.info("Finished initializing parameters")
 
     def _add_variables(self):
@@ -155,6 +165,7 @@ class OptModel(BaseModel):
                 campaign_set.append((campaign_id, n_well))
 
         model.v_q = pyo.Var(campaign_set, within=pyo.Binary)
+        model.v_B_slack = pyo.Var(within=pyo.NonNegativeReals)
         LOGGER.info("Finished adding variables")
 
     def _add_constraints(
@@ -419,6 +430,71 @@ class OptModel(BaseModel):
                 doc="Define limit on max project spend",
             )
             LOGGER.info("Added max project spend constraint")
+
+        def budget_constraint_slack(model):
+            """
+            Implements a constraint that calculates the unutilized
+            amount of the available budget.
+
+
+            Parameters
+            ----------
+            model : pyo.ConcreteModel
+                The optimization model.
+
+            Returns
+            -------
+            pyo.Constraint
+            """
+            return (
+                model.p_B
+                - sum(
+                    model.v_q[cluster, n_well] * model.p_c[n_well]
+                    for (cluster, n_well) in model.v_q.index_set()
+                )
+                <= model.v_B_slack
+            )
+
+        model.con_budget_slack = pyo.Constraint(
+            rule=budget_constraint_slack,
+            doc="Calculate the unutilized amount of budget",
+        )
+        LOGGER.info("Added a constraint to calculate the unutilized amount of budget")
+
+        if self.budget_sufficient is False:
+
+            def min_budget_usage(model):
+                """
+                Implements a constraint to ensure at least 50% of the
+                budget is used when the budget is sufficient to
+                plug all wells.
+
+                Parameters
+                ----------
+                model : pyo.ConcreteModel
+                    The optimization model.
+
+                Returns
+                -------
+                pyo.Constraint
+                """
+                return (
+                    sum(
+                        model.v_q[cluster, n_well] * model.p_c[n_well]
+                        for (cluster, n_well) in model.v_q.index_set()
+                    )
+                    >= 0.5 * model.p_B
+                )
+
+            model.con_min_budget = pyo.Constraint(
+                rule=min_budget_usage,
+                doc="Enforces a minimum budget usage of 50%",
+            )
+
+        LOGGER.info(
+            "Added a constraint to ensure that at least 50 percent of the budget is used when the total budget is sufficient to plug all wells."
+        )
+
         LOGGER.info("Finished adding constraints")
 
     def _set_objective(self):
@@ -441,7 +517,10 @@ class OptModel(BaseModel):
             pyo.Expression :
                 The expression representing the objective function.
             """
-            return sum(model.v_y[w] * model.p_v[w] for w in model.s_w)
+            return (
+                sum(model.v_y[w] * model.p_v[w] for w in model.s_w)
+                - model.p_B_sl * model.v_B_slack
+            )
 
         model.obj = pyo.Objective(rule=obj, sense=pyo.maximize)
 

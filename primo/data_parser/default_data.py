@@ -297,33 +297,47 @@ SUPP_IMPACT_METRICS = {
     ),
 }
 
+# note the names of these metrics must be identical to
+# a property of the Optimal Project class for the
+# efficiency calculation
 SUPP_EFF_METRICS = {
     "num_wells": _SupportedContent(
-        name="num_wells",
-        full_name="Number of Wells",
+        name="num_wells", full_name="Number of Wells", required_data="well_id"
     ),
     "num_unique_owners": _SupportedContent(
         name="num_unique_owners",
         full_name="Number of Unique Owners",
+        required_data="operator_name",
+        has_inverse_priority=True,
     ),
-    "dist_centroid": _SupportedContent(
-        name="dist_centroid",
-        full_name="Distance to Centroid [miles]",
-    ),
-    "elevation_delta": _SupportedContent(
-        name="elevation_delta",
+    "avg_elevation_delta": _SupportedContent(
+        name="avg_elevation_delta",
         full_name="Average Elevation Delta [m]",
+        required_data="elevation_delta",
+        has_inverse_priority=True,
+        fill_missing_value={"domain": NonNegativeFloat, "default": 0},
     ),
     "age_range": _SupportedContent(
         name="age_range",
         full_name="Age Range [Years]",
+        required_data="age",
+        has_inverse_priority=True,
     ),
     "depth_range": _SupportedContent(
         name="depth_range",
         full_name="Depth Range [ft]",
+        required_data="depth",
+        has_inverse_priority=True,
     ),
     "record_completeness": _SupportedContent(
         name="record_completeness",
         full_name="Record Completeness",
+    ),
+    "avg_dist_to_road": _SupportedContent(
+        name="avg_dist_to_road",
+        full_name="Distance to Road [miles]",
+        required_data="dist_to_road",
+        has_inverse_priority=True,
+        fill_missing_value={"domain": NonNegativeFloat, "default": 0},
     ),
 }

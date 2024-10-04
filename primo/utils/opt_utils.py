@@ -13,7 +13,7 @@
 
 # Standard libs
 import logging
-from typing import Union
+from typing import Dict, Tuple, Union
 
 # Installed libs
 import numpy as np
@@ -165,3 +165,49 @@ def is_pyomo_model_feasible(model: pyo.ConcreteModel, tol: float) -> bool:
             return False
 
     return True
+
+
+# TODO: delete this function after the demo notebook has been fully updated
+def budget_slack_variable_scaling(
+    model_inputs: object, objective_weights: Dict[str, float]
+) -> Tuple:
+    """
+    Check whether the budget is sufficient to plug all wells and
+    calculate the scaling factor for the budget slack variable based on the
+    corresponding scenario.
+
+    Parameters
+    ----------
+    model_inputs : OptInputs
+        The full inputs to the optimization model.
+    objective_weights : Dict[str,float]
+        A dictionary mapping well IDs to their corresponding priority scores
+
+    Returns
+    -------
+    Tuple
+        A tuple containing: the scaling factor for the budget slack variable;
+        a boolean indicating whether the budget is sufficient to plug all wells (True) or not (False).
+
+    """
+    # estimate the maximum number of wells can be plugged with the budget.
+    unit_cost = max(model_inputs.mobilization_cost.values()) / max(
+        model_inputs.mobilization_cost, key=model_inputs.mobilization_cost.get
+    )
+    max_well_num = model_inputs.budget / unit_cost
+
+    # calculate the scaling factor for the budget slack variable if the
+    # budget is not sufficient to plug all wells
+    if max_well_num < len(objective_weights):
+        scaling_budget_slack = (
+            max_well_num * max(objective_weights.values())
+        ) / model_inputs.budget
+        budget_sufficient = False
+    # calculate the scaling factor for the budget slack variable if the
+    # budget is sufficient to plug all wells
+    else:
+        scaling_budget_slack = (
+            len(objective_weights) * max(objective_weights.values())
+        ) / model_inputs.budget
+        budget_sufficient = True
+    return scaling_budget_slack, budget_sufficient

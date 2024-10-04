@@ -47,7 +47,7 @@ jobs:
           - os: linux
             os-version: ubuntu-latest
           - os: win64
-            os-version: windows-2019
+            os-version: windows-latest
           - install-mode: dev
             pip-install-target: -r requirements-dev.txt
           - install-mode: dev
@@ -106,7 +106,7 @@ jobs:
 
   black:
     name: Run Black to verify that committed code is formatted
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -121,7 +121,7 @@ jobs:
 
   isort:
     name: Run isort to verify that committed code has imports alphabetically sorted
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

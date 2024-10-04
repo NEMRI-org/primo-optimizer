@@ -75,6 +75,10 @@ class WellDataColumnNames:  # pylint: disable=too-many-instance-attributes
     # Columns for well_integrity metric
     well_integrity: Optional[str] = None
 
+    # Columns for efficiency metrics
+    elevation_delta: Optional[str] = None
+    dist_to_road: Optional[str] = None
+
     # Additional user-specific columns
     additional_columns: InitVar[dict] = {}
 
@@ -136,6 +140,7 @@ class WellDataColumnNames:  # pylint: disable=too-many-instance-attributes
         im_wt = impact_metrics
 
         for obj in im_wt:
+            # the centroid can only be computed after optimization
             if not hasattr(obj, "_required_data"):
                 # This is not a supported metric, so continue
                 LOGGER.warning(

@@ -81,8 +81,7 @@ def calculate_range(group: pd.DataFrame, column_name: str) -> float:
     """
 
     _is_numeric_valid_column(group, column_name)
-    age_range = group[column_name].max() - group[column_name].min()
-    return age_range
+    return group[column_name].max() - group[column_name].min()
 
 
 def calculate_well_number(group: pd.DataFrame) -> int:

@@ -51,6 +51,8 @@ Optimization Model Notation
           - The relative weight assigned to each priority (sum to 100)
         * - :math:`\textcolor{brown}{mc^i}`
           - The mobilization cost for a project assuming the number of wells is :math:`\textcolor{blue}{i}`
+        * - :math:`\textcolor{brown}{VS}`
+          - The scaling factor for the slack variable :math:`\textcolor{red}{SLB}` associated with the minimum budget constraint
 
 
 .. list-table:: **Binary Variables**
@@ -67,6 +69,16 @@ Optimization Model Notation
           - If 1, :math:`\textcolor{blue}i` wells selected for plugging in project :math:`\textcolor{blue}k`
 
 
+.. list-table:: **Continuous Variables**
+        :widths: 25 75
+        :header-rows: 1
+
+        * - Symbol
+          - Description
+        * - :math:`\textcolor{red}{SLB}`
+          - The slack variable representing the difference between the total budget and the actual budget used
+
+
 .. _mathematical_program_formulation:
 
 Optimization Model Formulation
@@ -74,6 +86,8 @@ Optimization Model Formulation
 
 The objective function maximizes utility derived through the P&A projects. The utility is computed
 through a weighted sum of all the priorities under consideration weighted with their relative importance.
+The slack variable :math:`\textcolor{red}{SLB}` is implemented to impose a penalty when the well-plugging budget
+is not fully utilized, thereby encouraging the maximum use of the allocated budget.
 
 Please note that all priorities :math:`\textcolor{brown}{v^p_w}` are assigned a score for each well
 between 0---100. Additionally, the relative weights :math:`\textcolor{brown}{m^p}` specified for each priority
@@ -86,7 +100,7 @@ in the objective must sum to 100.
 .. math::
   :label: eq:obj 
 
-  \max \sum_{k \in K} \sum_{w \in W} \sum_{p \in P} \textcolor{brown}{m^p} \times \textcolor{brown}{v^p_w} \times \textcolor{red}{x_{wk}}
+  \max \sum_{k \in K} \sum_{w \in W} \sum_{p \in P} \textcolor{brown}{m^p} \times \textcolor{brown}{v^p_w} \times \textcolor{red}{x_{wk}} - \textcolor{brown}{VS} \times \textcolor{red}{SLB}
 
 Note that the objective :eq:`eq:obj` ensures maximum utility from plugging projects, but does not ensure that all projects have a 
 maximum utility. In other words, there could be a large variance in the utility of the projects suggested due to the objective above, with some large projects mixed with some very
@@ -167,3 +181,14 @@ The constraint described by equation :eq:`eq:sym2` ensures that the largest proj
       :label: eq:sym2 
 
       \sum_{w \in W} \textcolor{red}{x_{wk}} \geq \sum_{w \in W} \textcolor{red}{x_{w(k+1)}} \quad \forall k \in K - \{K_{max}\}
+
+
+**Budget usage**
+
+The constraint defined by equation :eq:`eq:minb` ensures that the remaining excess budget is accurately calculated.
+
+.. math::
+        :label: eq:minb
+
+        B - (\sum_{w \in W} \sum_{k \in K}  \textcolor{brown}{PL} \times \textcolor{red}{x_{wk}}  +
+        \sum_{k \in K} \sum_{i=1}^{C_{max}} \textcolor{brown}{mc^i} \times \textcolor{red}{N_k^i}) \leq \textcolor{red}{SLB}

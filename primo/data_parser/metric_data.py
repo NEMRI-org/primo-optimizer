@@ -92,6 +92,8 @@ class Metric:  # pylint: disable=too-many-instance-attributes
         self.data_col_name = None
         # Name of the column that contains the priority score
         self._score_col_name = None
+        # Name of the project attribute that contains the efficiency score
+        self._score_attribute = None
 
         # Value to fill with, if the data needed for the analysis of this metric
         # is not provided.
@@ -176,6 +178,16 @@ class Metric:  # pylint: disable=too-many-instance-attributes
             self.data_col_name + f" Score [0-{self.effective_weight}]"
         )
         return self._score_col_name
+
+    @property
+    def score_attribute(self):
+        """
+        Getter for attribute 'score_col_attribute' this is for attributes on the project class
+        """
+        if self._score_attribute is not None or self.data_col_name is None:
+            return self._score_attribute
+        self._score_attribute = self.name + f"_eff_score_0_{self.effective_weight}"
+        return self._score_attribute
 
     @property
     def fill_missing_value(self):
@@ -282,7 +294,29 @@ class SubMetric(Metric):
 class SetOfMetrics:
     """Container for storing metrics and submetrics"""
 
-    def __init__(self):
+    def __init__(
+        self, supported_metrics: Optional[Dict[str, _SupportedContent]] = None
+    ):
+        if supported_metrics is not None:
+            for val in supported_metrics.values():
+                if not val.is_submetric:
+                    self.register_new_metric(
+                        name=val.name,
+                        full_name=val.full_name,
+                    )
+
+                else:
+                    self.register_new_submetric(
+                        name=val.name,
+                        parent_metric=getattr(self, val.parent_metric),
+                        full_name=val.full_name,
+                    )
+                metric = getattr(self, val.name)
+                metric._required_data = val.required_data
+                metric.has_inverse_priority = val.has_inverse_priority
+                if val.fill_missing_value is not None:
+                    metric._configure_fill_missing_value(**val.fill_missing_value)
+
         return
 
     def __iter__(self):
@@ -658,46 +692,17 @@ class ImpactMetrics(SetOfMetrics):
     """Set of supported impact metrics"""
 
     def __init__(
-        self, impact_metrics: Optional[Dict[str, _SupportedContent]] = None
+        self,
+        impact_metrics: Optional[Dict[str, _SupportedContent]] = SUPP_IMPACT_METRICS,
     ) -> None:
-        super().__init__()
-
-        if impact_metrics is None:
-            impact_metrics = SUPP_IMPACT_METRICS
-
-        for val in impact_metrics.values():
-            if not val.is_submetric:
-                self.register_new_metric(
-                    name=val.name,
-                    full_name=val.full_name,
-                )
-
-            else:
-                self.register_new_submetric(
-                    name=val.name,
-                    parent_metric=getattr(self, val.parent_metric),
-                    full_name=val.full_name,
-                )
-
-            metric = getattr(self, val.name)
-            metric._required_data = val.required_data
-            metric.has_inverse_priority = val.has_inverse_priority
-            if val.fill_missing_value is not None:
-                metric._configure_fill_missing_value(**val.fill_missing_value)
+        super().__init__(impact_metrics)
 
 
 class EfficiencyMetrics(SetOfMetrics):
     """Set of supported efficiency metrics"""
 
     def __init__(
-        self, efficiency_metrics: Optional[Dict[str, _SupportedContent]] = None
+        self,
+        efficiency_metrics: Optional[Dict[str, _SupportedContent]] = SUPP_EFF_METRICS,
     ) -> None:
-        super().__init__()
-        if efficiency_metrics is None:
-            efficiency_metrics = SUPP_EFF_METRICS
-
-        for val in efficiency_metrics.values():
-            self.register_new_metric(
-                name=val.name,
-                full_name=val.full_name,
-            )
+        super().__init__(efficiency_metrics)

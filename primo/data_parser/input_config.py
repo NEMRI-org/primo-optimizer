@@ -12,9 +12,17 @@
 #################################################################################
 
 # Installed libs
-from pyomo.common.config import Bool, ConfigDict, ConfigValue, In, NonNegativeFloat
+from pyomo.common.config import (
+    Bool,
+    ConfigDict,
+    ConfigValue,
+    In,
+    IsInstance,
+    NonNegativeFloat,
+)
 
 # User-defined libs
+from primo.data_parser.metric_data import EfficiencyMetrics, ImpactMetrics
 from primo.utils.domain_validators import InRange
 
 
@@ -167,4 +175,21 @@ def data_config() -> ConfigDict:
             doc="Threshold depth [in ft] for classifying a well as shallow or deep",
         ),
     )
+    config.declare(
+        "impact_metrics",
+        ConfigValue(
+            default=None,
+            domain=IsInstance(ImpactMetrics),
+            doc="Impact metrics for well priority ranking",
+        ),
+    )
+    config.declare(
+        "efficiency_metrics",
+        ConfigValue(
+            default=None,
+            domain=IsInstance(EfficiencyMetrics),
+            doc="Efficiency metrics for computing project efficiencies",
+        ),
+    )
+
     return config

@@ -27,16 +27,11 @@ jobs:
           - '3.11'
         os:
           - linux
-          - win64
         install-mode:
           - dev
         include:
           - os: linux
             os-version: ubuntu-latest
-          - os: win64
-            os-version: windows-2019
-          - install-mode: dev
-            pip-install-target: -r requirements-dev.txt
           - install-mode: dev
             python-version: '3.9'
             os: linux
@@ -47,15 +42,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: primo
-          environment-file: conda-env.yml
+          environment-file: conda-env-dev.yml
           python-version: ${{ matrix.python-version }}
           auto-activate-base: false
-      - name: Upgrade pip
-        run: |
-          pip --no-cache-dir install --upgrade pip
-      - name: Set up package (install-mode=${{ matrix.install-mode }})
-        run: |
-          pip --no-cache-dir install ${{ matrix.pip-install-target }}
       - name: Add pytest options to enable coverage report
         if: matrix.cov-report
         run: echo PYTEST_ADDOPTS="$PYTEST_ADDOPTS --cov --cov-report=xml:scip.xml" >> $GITHUB_ENV

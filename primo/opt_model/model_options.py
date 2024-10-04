@@ -144,6 +144,14 @@ def model_config() -> ConfigDict:
             doc="If True, some constraints will be added as lazy constraints",
         ),
     )
+    config.declare(
+        "min_budget_usage",
+        ConfigValue(
+            default=None,
+            domain=InRange(0, 100),
+            doc="The minimum percent of the budget usage when the budget is insufficient for plugging all wells",
+        ),
+    )
 
     config.declare(
         "max_distance_to_road",

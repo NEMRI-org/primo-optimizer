@@ -24,7 +24,7 @@ import pandas as pd
 from pyomo.common.config import Bool, document_kwargs_from_configdict
 
 # User-defined libs
-from primo.data_parser import ImpactMetrics
+from primo.data_parser import EfficiencyMetrics, ImpactMetrics, Metric, SetOfMetrics
 from primo.data_parser.default_data import CONVERSION_FACTOR
 from primo.data_parser.input_config import data_config
 from primo.data_parser.well_data_columns import WellDataColumnNames
@@ -33,6 +33,8 @@ from primo.utils.raise_exception import raise_exception
 LOGGER = logging.getLogger(__name__)
 
 CONFIG = data_config()
+
+OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
 
 
 class WellData:
@@ -72,7 +74,6 @@ class WellData:
             A WellDataColumnNames object containing the names of various columns
         """
         # Import columns whose column names have been provided.
-        LOGGER.info("Reading the well data from the input file.")
         if isinstance(data, pd.DataFrame):
             self.data = data
             # Check if the columns are present in the data
@@ -80,6 +81,7 @@ class WellData:
                 assert col in self.data.columns
 
         elif isinstance(data, str):
+            LOGGER.info("Reading the well data from the input file.")
             extension = pathlib.Path(data).suffix
             if extension in [".xlsx", ".xls"]:
                 self.data = pd.read_excel(
@@ -105,6 +107,7 @@ class WellData:
             # Updating the `index` to keep it consistent with
             # the row numbers in file
             self.data.index += 2
+            LOGGER.info("Finished reading the well data.")
 
         else:
             raise_exception("Unknown variable type for input data", TypeError)
@@ -118,7 +121,6 @@ class WellData:
         # Store number of wells in the input data
         num_wells_input = self.data.shape[0]
 
-        LOGGER.info("Finished reading the well data.")
         if not self.config.preliminary_data_check:
             return
 
@@ -140,6 +142,10 @@ class WellData:
         )
         if num_wells_processed < num_wells_input:
             LOGGER.warning(msg)
+
+        self.set_impact_and_efficiency_metrics(
+            self.config.impact_metrics, self.config.efficiency_metrics
+        )
 
     def __contains__(self, val: str):
         """Checks if a column is available in the well data"""
@@ -478,6 +484,34 @@ class WellData:
 
         self.data[col_name] = 0
         self.data.loc[rows, col_name] = 1
+
+    def add_new_column_ordered(
+        self,
+        column_var_name: str,
+        column_header_name: str,
+        values: Union[np.array, pd.DataFrame, list],
+    ):
+        """
+        Adds a single column to the WellData and other related data structures
+        The column must be in the correct order corresponding to the existing data
+
+        Parameters
+        ----------
+        col_name : list(str)
+            List of 2 strings: the column variable name, the column header for the data
+        values : np.array, pd.DataFrame, list
+            The values for the column
+        """
+
+        self._col_names.register_new_columns({column_var_name: column_header_name})
+
+        if len(values) != len(self.data):
+            raise_exception(
+                "The length of the added column must match the length of the current data.",
+                AttributeError,
+            )
+
+        self.data[column_header_name] = values
 
     def add_new_columns(self):
         """
@@ -828,61 +862,36 @@ class WellData:
         # Append Tract ID/GEOID, population density, Total population, land area,
         # federal DAC score to the DataFrame
 
-    def compute_priority_scores(self, impact_metrics: ImpactMetrics):
+    def _set_metric(self, metrics: SetOfMetrics):
         """
-        Computes scores for all metrics/submetrics (supported and custom metrics) and
-        the total priority score. This method must be called after processing the
-        data for custom metrics (if any).
-
-        Parameters
-        ----------
-        impact_metrics : ImpactMetrics
-            Object containing impact metrics and their weights
+        Validates and processes data for a set of metrics
         """
-        # Check the validity of impact metrics before calculating priority score
-        im_mt = impact_metrics
-        im_mt.check_validity()
+        # validate metric
+        metrics.check_validity()
+        # check columns
+        self._col_names.check_columns_available(metrics)
+        # process columns
+        self._process_data(metrics)
 
-        # Check if all the required columns for supported metrics are specified
-        # If yes, register the name of the column containing the data in the
-        # data_col_name attribute
-        # TODO: Combine the check_columns_available method with this method.
-        # TODO: Check fill data consistency for ann_gas_production and
-        # ann_oil_production. See _categorize_gas_oil_wells method for details.
-        self._col_names.check_columns_available(im_mt)
-
-        for metric in im_mt:
+    def _process_data(self, metrics: SetOfMetrics):
+        """
+        Process the data
+        """
+        for metric in metrics:
             if metric.weight == 0 or hasattr(metric, "submetrics"):
                 # Metric/submetric is not chosen, or
                 # This is a parent metric, so no data assessment is required
                 continue
 
-            LOGGER.info(
-                f"Computing scores for metric/submetric {metric.name}/{metric.full_name}."
-            )
-
-            if metric.name == "fed_dac":
-                self._append_fed_dac_data()
+            if (
+                metric.name == "fed_dac"
+                or metric.name == "well_count"
+                or metric.name == "num_wells"
+                or metric.name == "num_unique_owners"
+            ):
+                # these have their own processing functions (or none at all)
                 continue
 
-            if metric.name == "well_count":
-                operator_name = self._col_names.operator_name
-                weight = im_mt.well_count.effective_weight
-                metric.data_col_name = "Owner Well-Count"
-                self.data[metric.data_col_name] = self.data.groupby(operator_name)[
-                    operator_name
-                ].transform("size")
-                self.data[metric.score_col_name] = round(
-                    weight
-                    * self.data[metric.data_col_name].apply(
-                        lambda x: math.e ** ((1 - x) / 10)
-                    ),
-                    4,
-                )
-                continue
-
-            # For all other metrics/submetrics with a nonzero weight.
-            # Step 1: Ensure that the data for this metric is provided.
             if metric.data_col_name is None:
                 # This will not happen for supported metrics, because this check
                 # is performed before in col_names.check_columns_available()
@@ -894,7 +903,7 @@ class WellData:
                 )
                 raise_exception(msg, ValueError)
 
-            # Step 2: Fill incomplete data
+            # check incomplete data
             self.fill_incomplete_data(
                 col_name=metric.data_col_name,
                 value=metric.fill_missing_value,
@@ -914,6 +923,86 @@ class WellData:
                     f"contains non-numeric values in rows {non_numeric_rows}."
                 )
                 raise_exception(msg, ValueError)
+
+    def _process_dac_data(self):
+        """
+        processes the dac data
+        """
+        self._append_fed_dac_data()
+        return
+
+    def _compute_well_count_score(self):
+        """
+        process well count data
+        """
+        metrics = self.config.impact_metrics
+        metric = [obj for obj in metrics if obj.name == "well_count"][0]
+
+        operator_name = self._col_names.operator_name
+        weight = metrics.well_count.effective_weight
+        metric.data_col_name = OWNER_WELL_COLUMN_NAME
+        self.data[metric.data_col_name] = self.data.groupby(operator_name)[
+            operator_name
+        ].transform("size")
+        self.data[metric.score_col_name] = round(
+            weight
+            * self.data[metric.data_col_name].apply(lambda x: math.e ** ((1 - x) / 10)),
+            4,
+        )
+
+    def set_impact_and_efficiency_metrics(
+        self,
+        impact_metrics: Optional[ImpactMetrics] = None,
+        efficiency_metrics: Optional[EfficiencyMetrics] = None,
+    ):
+        """
+        Validates and processes data for the impact and efficiency metrics.
+
+        Parameters
+        ----------
+        impact_metrics : ImpactMetrics
+            impact metrics object to be used for prioritization
+        efficiency_metrics : EfficiencyMetrics
+            efficiency metrics object to be used for efficiency score computation
+        """
+        if impact_metrics is not None:
+            self.config.impact_metrics = impact_metrics
+            self._set_metric(self.config.impact_metrics)
+        if efficiency_metrics is not None:
+            self.config.efficiency_metrics = efficiency_metrics
+            self._set_metric(self.config.efficiency_metrics)
+
+    def compute_priority_scores(self):
+        """
+        Computes scores for all metrics/submetrics (supported and custom metrics) and
+        the total priority score. This method must be called after processing the
+        data for custom metrics (if any).
+
+        """
+        # Check if all the required columns for supported metrics are specified
+        # If yes, register the name of the column containing the data in the
+        # data_col_name attribute
+        # TODO: Combine the check_columns_available method with this method.
+        # TODO: Check fill data consistency for ann_gas_production and
+        # ann_oil_production. See _categorize_gas_oil_wells method for details.
+
+        for metric in self.config.impact_metrics:
+            if metric.weight == 0 or hasattr(metric, "submetrics"):
+                # Metric/submetric is not chosen, or
+                # This is a parent metric, so no data assessment is required
+                continue
+
+            LOGGER.info(
+                f"Computing scores for metric/submetric {metric.name}/{metric.full_name}."
+            )
+
+            if metric.name == "fed_dac":
+                self._process_dac_data()
+                continue
+
+            if metric.name == "well_count":
+                self._compute_well_count_score()
+                continue
 
             # Step 5: Compute the priority score
             max_value = self.data[metric.data_col_name].max()
@@ -943,9 +1032,11 @@ class WellData:
                 ) * metric.effective_weight
 
         LOGGER.info("Computing the total priority score.")
-        self.data["Priority Score [0-100]"] = self.data[
-            self.get_priority_score_columns
-        ].sum(axis=1)
+        self.add_new_column_ordered(
+            "priority_score",
+            "Priority Score [0-100]",
+            self.data[self.get_priority_score_columns].sum(axis=1),
+        )
 
         self.check_data_in_range("Priority Score [0-100]", 0.0, 100.0)
         LOGGER.info("Completed the calculation of priority scores.")
