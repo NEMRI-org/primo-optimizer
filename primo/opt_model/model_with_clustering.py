@@ -212,7 +212,7 @@ def build_cluster_model(model_block, cluster):
 
     model_block.eff_pop_den = Var(within=NonNegativeReals, doc="")
 
-    model_block.eff_max_dist = Var(
+    model_block.eff_dist_range = Var(
         within=NonNegativeReals, doc=""
     )  # change to dist_range
 
@@ -228,7 +228,7 @@ def build_cluster_model(model_block, cluster):
     max_depth_range = params.config.max_depth_range
     max_rec_comp = params.config.record_completeness
     max_pop_den = params.config.max_population_density
-    max_well_dist = params.config.max_well_distance
+    max_dist_range = params.config.max_well_distance
     max_num_proj = params.config.max_num_project
 
     eff_metrics = wd.efficiency_metrics
@@ -268,7 +268,7 @@ def build_cluster_model(model_block, cluster):
                 * model_block.pairwise_depth_range[w1, w2]
                 / max_depth_range
             )
-            + (w_well_dist * model_block.pairwise_dist[w1, w2] / max_well_dist)
+            + (w_well_dist * model_block.pairwise_dist[w1, w2] / max_dist_range)
         )
 
     @model_block.Constraint(
@@ -298,8 +298,6 @@ def build_cluster_model(model_block, cluster):
     #         * (model_block.select_well[w1])
     #         / max_unique_owners
     #     )
-
-    ## TODO: Add constraint for max number of projects
 
     @model_block.Constraint(
         model_block.set_wells, doc="Unique Owner constraint for all wells"

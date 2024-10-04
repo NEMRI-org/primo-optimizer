@@ -167,7 +167,7 @@ def prepare_gdf(df: pd.DataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
-def get_mean_centroid(data_frame: gpd.GeoDataFrame) -> tuple[float, float]:
+def get_mean_centroid(data_frame: gpd.GeoDataFrame) -> Tuple[float, float]:
     """
     Returns the mean centroid of a Geopandas DataFrame
 
@@ -257,11 +257,10 @@ def add_well_markers_to_map(
     if well_type_to_plot not in ("Oil", "Gas") and well_type_to_plot is not None:
         raise_exception(f"Unknown well type: {well_type_to_plot}", ValueError)
 
-    well_type_column_index = gdf.columns.get_loc("Well Type") + 1
     age_column_index = gdf.columns.get_loc("Age [Years]") + 1
-    depth_column_index = gdf.columns.get_loc("Depth [ft]") + 1
+    depth_column_index = gdf.columns.get_loc("Total Depth [ft]") + 1
     try:
-        well_id_index = gdf.columns.get_loc("API Well Number") + 1
+        well_id_index = gdf.columns.get_loc("Well Identifier") + 1
     except KeyError:
         well_id_index = gdf.columns.get_loc("API") + 1
 
@@ -276,19 +275,14 @@ def add_well_markers_to_map(
         well_id = row[well_id_index]
         age = row[age_column_index]
         depth = row[depth_column_index]
-        well_type = row[well_type_column_index]
-
-        if well_type_to_plot is not None and well_type != well_type_to_plot:
-            # Skip the well type as it is not required to be plotted
-            continue
 
         if total_score_index is not None:
             total_score = round(row[total_score_index], 2)
-            popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}<br>Well Type: {well_type}<br>Impact score: {total_score}"
+            popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}<br>Well Type: {well_type_to_plot}<br>Impact score: {total_score}"
         else:
-            popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}<br>Well Type: {well_type}"
+            popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}<br>Well Type: {well_type_to_plot}"
 
-        if well_type == "Gas":
+        if well_type_to_plot == "Gas":
             icon = folium.CircleMarker(
                 location=[row.geometry.y, row.geometry.x],
                 radius=5,
@@ -297,7 +291,7 @@ def add_well_markers_to_map(
                 color="red",
             )
             icon.add_to(map_obj)
-        elif well_type == "Oil":
+        elif well_type_to_plot == "Oil":
             icon_cross = BeautifyIcon(
                 icon="times",
                 inner_icon_style="color:blue;font-size:18px;",  # Adjust size here
@@ -415,13 +409,13 @@ def add_cluster_markers_to_map(
     Parameters
     ----------
     full_data_points : gpd.GeoDataFrame
-        GeoDataFrame containing well data with clusters
+        GeoDataFrame containing well data with clusters.
 
     map_obj : folium.Map
-        Folium map object
+        Folium map object.
 
     cluster_colors : Dict[int, str]
-        Dictionary mapping clusters to colors
+        Dictionary mapping clusters to colors.
 
     Returns
     -------
@@ -429,13 +423,15 @@ def add_cluster_markers_to_map(
     """
 
     age_index = full_data_points.columns.get_loc("Age [Years]") + 1
-    depth_index = full_data_points.columns.get_loc("Depth [ft]") + 1
+    depth_index = full_data_points.columns.get_loc("Total Depth [ft]") + 1
     try:
-        well_id_index = full_data_points.columns.get_loc("API Well Number") + 1
+        well_id_index = full_data_points.columns.get_loc("Well Identifier") + 1
     except KeyError:
         well_id_index = full_data_points.columns.get_loc("API") + 1
+
     for row in full_data_points.itertuples():
-        if pd.isna(row.cluster):
+        cluster = getattr(row, "Clusters", None)  # Use 'Clusters' instead of 'cluster'
+        if pd.isna(cluster):
             continue
         latitude = row.geometry.y
         longitude = row.geometry.x
@@ -443,11 +439,11 @@ def add_cluster_markers_to_map(
         depth = row[depth_index]
         well_id = row[well_id_index]
         popup_text = (
-            f"Project: {row.cluster}<br>Well ID: {well_id}<br>Latitude: {latitude}"
+            f"Project: {cluster}<br>Well ID: {well_id}<br>Latitude: {latitude}"
             f"<br>Longitude: {longitude}<br>Depth: {depth}<br>Age: {age}"
         )
         color = cluster_colors.get(
-            row.cluster, "gray"
+            cluster, "gray"
         )  # Use 'gray' if cluster not in color scheme
 
         folium.CircleMarker(
@@ -488,7 +484,7 @@ def visualize_data_with_clusters(
         zoom_start=8.2,
     )
     common_visualization(map_obj, state_shapefile)
-    cluster_list = pd.unique(full_data["cluster"])
+    cluster_list = pd.unique(full_data["Clusters"])
     cluster_colors = get_cluster_colors(num_cluster, cluster_list)
     add_cluster_markers_to_map(full_data_points, map_obj, cluster_colors)
     return map_obj
