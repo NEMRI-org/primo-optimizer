@@ -639,9 +639,18 @@ class WellData:
                     oil_wells.add(r)
                 elif self.data.loc[r, wt_col_name].lower() in "gas":
                     gas_wells.add(r)
+                elif self.data.loc[r, wt_col_name].lower() in "both":
+                    row = self.data.iloc[r]
+                    oil_prod = row[wcn.ann_oil_production]
+                    gas_prod = row[wcn.ann_gas_production]
+
+                    if oil_prod * CONVERSION_FACTOR > gas_prod:
+                        oil_wells.add(r)
+                    else:
+                        gas_wells.add(r)
                 else:
                     msg = (
-                        f"Well-type must be either oil or gas. Received "
+                        f"Well-type must be either oil or gas or both. Received "
                         f"{self.data.loc[r, wt_col_name]} in row {r}."
                     )
                     raise_exception(msg, ValueError)
