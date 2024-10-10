@@ -1,0 +1,19 @@
+# This workflow will ensure a new image is created and cached on mybinder.org every
+# time a PR is merged to ensure the newest image is cached and ready to go on Binder
+
+name: Binder
+on:
+  push:
+    branches: ["main"]
+      
+jobs:
+    create-mybinder-cache:
+        runs-on: ubuntu-latest
+        steps:
+            - name: cache build on mybinder.org
+              uses: jupyterhub/repo2docker-action@master
+              with:
+                NO_PUSH: true
+                # This builds the container on mybinder.org 
+                # with the branch that was pushed on.
+                MYBINDERORG_TAG: ${{ github.event.ref }} 

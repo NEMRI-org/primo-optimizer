@@ -13,6 +13,7 @@
 
 # Standard libs
 import logging
+from types import SimpleNamespace
 from typing import Callable, Dict, Optional
 
 # Installed libs
@@ -405,6 +406,19 @@ class SetOfMetrics:
             for key, val in self.get_primary_metrics.items()
             if hasattr(val, "submetrics")
         }
+
+    @property
+    def get_weights(self) -> SimpleNamespace:
+        """
+        Returns effective weights of all submetrics and primary metrics
+        which do not have submetrics
+        """
+        weights = {
+            key: val.effective_weight
+            for key, val in self.__dict__.items()
+            if not hasattr(val, "submetrics")
+        }
+        return SimpleNamespace(**weights)
 
     @property
     def _get_all_metrics_extended(self):

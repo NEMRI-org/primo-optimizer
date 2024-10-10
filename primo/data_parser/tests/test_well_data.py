@@ -340,6 +340,41 @@ def test_age_depth_estimation(caplog, get_column_names):
     assert "Estimating the depth of a well if it is missing." in caplog.text
 
 
+def test_both_production_type(
+    get_column_names,
+):
+    filename, col_names = get_column_names
+    # Add well types to the input data
+    wd_df = pd.read_csv(filename, usecols=col_names.values())
+    # Removing 100 wells with incomplete data
+    wd_df = wd_df.drop(index=list(range(100))).reset_index()
+    assert wd_df.shape[0] == 200
+
+    # Initialize columns
+    col_names.well_type = "Well Type"
+    wd_df[col_names.well_type] = "OIL"
+    # wd_df[col_names.ann_gas_production] = 10000000000
+
+    for i in range(0, 100, 2):
+        # Test if categorization is successful when well type
+        # is both
+        wd_df.loc[i, col_names.well_type] = "both"
+
+    for i in range(1, 100, 2):
+        # Test if categorization is successful when well type
+        # is both
+        wd_df.loc[i, col_names.well_type] = "oil"
+    # Construct the WellData object
+    wd = WellData(data=wd_df, column_names=col_names)
+
+    gas_oil_wells = wd.get_gas_oil_wells
+    assert isinstance(gas_oil_wells["oil"], WellData)
+    assert gas_oil_wells["oil"].data.shape[0] == 179
+    assert isinstance(gas_oil_wells["gas"], WellData)
+    assert gas_oil_wells["gas"].data.shape[0] == 21
+    assert len(gas_oil_wells) == 2
+
+
 def test_well_partitioning(
     tmp_path, get_column_names
 ):  # pylint: disable=too-many-statements
@@ -428,7 +463,9 @@ def test_well_partitioning(
     wd_df.loc[0, col_names.well_type] = "Foo"
     with pytest.raises(
         ValueError,
-        match=("Well-type must be either oil or gas. Received " "Foo in row 0."),
+        match=(
+            "Well-type must be either oil or gas or both. Received " "Foo in row 0."
+        ),
     ):
         wd = WellData(data=wd_df, column_names=col_names)
 
@@ -596,7 +633,8 @@ def test_compute_priority_scores(
     )
 
     # Test errors thrown by the method
-    # with efficiency refactoring, the priority score is added as an attribute to the well column name object
+    # with efficiency refactoring, the priority score is
+    # added as an attribute to the well column name object
     wd_df = pd.read_csv(
         filename, usecols=[col for col in col_names.values() if "Priority" not in col]
     )

@@ -13,7 +13,6 @@
 
 # Standard libs
 import logging
-from itertools import combinations
 
 # Installed libs
 from pyomo.common.config import (
@@ -30,9 +29,15 @@ from pyomo.environ import SolverFactory
 
 # User-defined libs
 from primo.data_parser import WellData
+from primo.opt_model.efficiency import compute_efficieny_scaling_factors
 from primo.opt_model.model_with_clustering import PluggingCampaignModel
-from primo.utils import check_optimal_termination, get_solver
-from primo.utils.clustering_utils import distance_matrix, perform_clustering
+from primo.utils import get_solver
+from primo.utils.clustering_utils import (
+    get_admissible_well_pairs,
+    get_pairwise_metrics,
+    get_wells_in_dac,
+    perform_clustering,
+)
 from primo.utils.domain_validators import InRange, validate_mobilization_cost
 from primo.utils.raise_exception import raise_exception
 
@@ -48,21 +53,8 @@ def model_config() -> ConfigDict:
     # of the inputs of the optimization model.
     # ConfigValue automatically performs domain validation.
     config = ConfigDict()
-    config.declare(
-        "objective_type",
-        ConfigValue(
-            default="Impact",
-            domain=In(["Impact", "Efficiency", "Combined"]),
-            doc="Objective Type",
-        ),
-    )
-    config.declare(
-        "objective_weight_impact",
-        ConfigValue(
-            domain=InRange(0, 100),
-            doc="Weight of Impact in Objective Function",
-        ),
-    )
+
+    # Essential inputs for the optimization model
     config.declare(
         "well_data",
         ConfigValue(
@@ -84,6 +76,42 @@ def model_config() -> ConfigDict:
             doc="Cost of plugging wells [in USD]",
         ),
     )
+
+    # Model type and model nature options
+    config.declare(
+        "objective_type",
+        ConfigValue(
+            default="Priority",
+            domain=In(["Priority", "NumWells"]),
+            doc="Objective Type",
+        ),
+    )
+    config.declare(
+        "objective_weight_impact",
+        ConfigValue(
+            default=100,
+            domain=InRange(0, 100),
+            doc="Weight associated with Impact in the objective function",
+        ),
+    )
+    config.declare(
+        "num_wells_model_type",
+        ConfigValue(
+            default="multicommodity",
+            domain=In(["multicommodity", "incremental"]),
+            doc="Choice of formulation for modeling number of wells",
+        ),
+    )
+    config.declare(
+        "lazy_constraints",
+        ConfigValue(
+            default=False,
+            domain=Bool,
+            doc="If True, some constraints will be added as lazy constraints",
+        ),
+    )
+
+    # Parameters for optional constraints
     config.declare(
         "perc_wells_in_dac",
         ConfigValue(
@@ -92,9 +120,9 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "threshold_distance",
+        "max_dist_range",
         ConfigValue(
-            default=10.0,
+            default=3.0,
             domain=NonNegativeFloat,
             doc="Maximum distance [in miles] allowed between wells",
         ),
@@ -114,34 +142,27 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "max_size_project",
+        "max_num_wells",
         ConfigValue(
             domain=NonNegativeInt,
             doc="Maximum number of wells admissible per project",
         ),
     )
     config.declare(
-        "num_wells_model_type",
+        "max_num_projects",
         ConfigValue(
-            default="multicommodity",
-            domain=In(["multicommodity", "incremental"]),
-            doc="Choice of formulation for modeling number of wells",
+            domain=NonNegativeInt,
+            doc="Maximum number of projects admissible in a campaign",
         ),
     )
     config.declare(
-        "model_nature",
+        "min_budget_usage",
         ConfigValue(
-            default="linear",
-            domain=In(["linear", "quadratic", "aggregated_linear"]),
-            doc="Nature of the optimization model: MILP or MIQCQP",
-        ),
-    )
-    config.declare(
-        "lazy_constraints",
-        ConfigValue(
-            default=False,
-            domain=Bool,
-            doc="If True, some constraints will be added as lazy constraints",
+            domain=InRange(0, 100),
+            doc=(
+                "Minimum percent of the budget that needs to be used "
+                "for plugging all wells"
+            ),
         ),
     )
     config.declare(
@@ -153,74 +174,53 @@ def model_config() -> ConfigDict:
         ),
     )
 
+    # Parameters for computing efficiency metrics
     config.declare(
-        "max_distance_to_road",
+        "max_dist_to_road",
         ConfigValue(
             domain=NonNegativeFloat,
-            doc="Maximum Distance to road of wells selected in the project",
+            doc="Maximum distance to road allowed for selected wells",
         ),
     )
-
     config.declare(
         "max_elevation_delta",
         ConfigValue(
             domain=float,
-            doc="Maximum Elevation delta from closest road point of wells selected in the project",
+            doc=(
+                "Maximum elevation delta from the closest road "
+                "point allowed for selected wells"
+            ),
         ),
     )
-
     config.declare(
-        "max_number_of_unique_owners",
+        "max_num_unique_owners",
         ConfigValue(
             domain=NonNegativeInt,
-            doc="Maximum Number of unique owners in the selected project",
+            doc="Maximum number of unique owners allowed in a project",
         ),
     )
-
     config.declare(
         "max_age_range",
         ConfigValue(
             domain=NonNegativeFloat,
-            doc="Maximum Age range of wells in the project",
+            doc="Maximum age range allowed in a project",
         ),
     )
-
     config.declare(
         "max_depth_range",
         ConfigValue(
             domain=NonNegativeFloat,
-            doc="Maximum Depth range of wells in the project",
-        ),
-    )
-
-    config.declare(
-        "record_completeness",
-        ConfigValue(
-            domain=InRange(0, 100),
-            doc="Record completeness of wells in well data",
-        ),
-    )
-    config.declare(
-        "max_well_distance",
-        ConfigValue(
-            domain=NonNegativeFloat,
-            doc="Maximum Pairwise distance of wells in well data",
+            doc="Maximum depth range allowed in a project",
         ),
     )
     config.declare(
         "max_population_density",
         ConfigValue(
             domain=NonNegativeFloat,
-            doc="population density of wells in well data",
+            doc="Maximum population density allowed to have near a well",
         ),
     )
-    config.declare(
-        "max_num_project",
-        ConfigValue(
-            domain=NonNegativeInt,
-            doc="Maximum number of projects",
-        ),
-    )
+
     return config
 
 
@@ -251,7 +251,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             raise_exception(msg, ValueError)
 
         # Raise an error if priority scores are not calculated.
-        if "Priority Score [0-100]" not in wd:
+        if not hasattr(wd.column_names, "priority_score"):
             msg = (
                 "Unable to find priority scores in the WellData object. Compute the scores "
                 "using the compute_priority_scores method."
@@ -259,26 +259,39 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             raise_exception(msg, ValueError)
 
         # Construct campaign candidates
-        # Step 1: Perform clustering, Should distance_threshold be a user argument?
-        perform_clustering(wd, distance_threshold=10.0)
-        self.get_eff_scaling_factors()
+        LOGGER.info(
+            f"Constructing clusters where the distance between wells "
+            f"is less than {self.config.max_dist_range} miles. Pass "
+            f"max_dist_range argument to change this value."
+        )
+        # Clustering returns a dictionary where
+        # keys => cluster number, values => list of wells in the cluster
+        self.campaign_candidates = perform_clustering(
+            wd, distance_threshold=self.config.max_dist_range
+        )
 
-        # Step 2: Identify list of wells belonging to each cluster
-        # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}
-        col_names = wd.col_names
-        set_clusters = set(wd[col_names.cluster])
-        self.campaign_candidates = {
-            cluster: list(wd.data[wd[col_names.cluster] == cluster].index)
-            for cluster in set_clusters
-        }
+        # Obtain well pairs that cannot be a part of the project
+        # get_pairwise_metrics returns an object with three attributes:
+        # distance, age, and depth; which contain pairwise distances, age range,
+        # and depth range, respectively.
+        self.pairwise_metrics = get_pairwise_metrics(wd, self.campaign_candidates)
+        well_pairs = get_admissible_well_pairs(
+            pairwise_metrics=self.pairwise_metrics,
+            max_distance=self.config.max_dist_range,
+            max_age_range=self.config.max_age_range,
+            max_depth_range=self.config.max_depth_range,
+        )
 
-        # Step 3: Construct pairwise-metrics between wells in each cluster.
-        # Structure: {cluster: {(index_1, index_2): distance_12, ...}...}
-        self.pairwise_distance = self._pairwise_matrix(metric="distance")
-        self.pairwise_age_difference = self._pairwise_matrix(metric="age")
-        self.pairwise_depth_difference = self._pairwise_matrix(metric="depth")
+        # well_pairs_keep and well_pairs_remove are dictionaries, where
+        # keys => cluster number, values => list(Tuples(well pairs))
+        self.well_pairs_keep = well_pairs[0]
+        self.well_pairs_remove = well_pairs[1]
+
+        # wells_in_dac: {cluster: [list of wells in dac], ...}
+        self.wells_in_dac = get_wells_in_dac(wd, self.campaign_candidates)
 
         # Construct owner well count data
+        col_names = wd.column_names
         operator_list = set(wd[col_names.operator_name])
         self.owner_well_count = {owner: [] for owner in operator_list}
         for well in wd:
@@ -288,11 +301,25 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
                 (wd.data.loc[well, col_names.cluster], well)
             )
 
+        # Raise an error if efficiency metrics are not provided when they are required
+        if self.config.objective_type in ["Efficiency", "Combined"]:
+            if wd.efficiency_metrics is None:
+                msg = (
+                    f"efficiency_metrics is not defined in the WellData object. "
+                    f"Effeciency metrics are essential for objective_type "
+                    f"{self.config.objective_type}."
+                )
+                raise_exception(msg, ValueError)
+
+            # Efficiency metrics are provided, so compute scaling factors
+            compute_efficieny_scaling_factors(self)
+
         # NOTE: Attributes _opt_model and _solver are defined in
         # build_optimization_model and solve_model methods, respectively.
         self._opt_model = None
         self._solver = None
-        LOGGER.info("Finished optimization model inputs.")
+        self._opt_campaign = None
+        LOGGER.info("Completed processing optimization model inputs.")
 
     @property
     def get_total_budget(self):
@@ -327,26 +354,13 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         """Returns the solver object"""
         return self._solver
 
-    def _pairwise_matrix(self, metric: str):
-        wd = self.config.well_data  # WellData object
-        # distance_matrix returns a numpy array.
-        metric_array = distance_matrix(wd, {metric: 1})
+    @property
+    def optimal_campaign(self):
+        """Return the optimal campaign"""
+        if self._opt_campaign is None:
+            LOGGER.warning("Optimal campaign is not available.")
 
-        # DataFrame index -> metric_array index map
-        df_to_array = {
-            df_index: array_index for array_index, df_index in enumerate(wd.data.index)
-        }
-
-        # NOTE: Storing the entire matrix may require a lot of memory.
-        # So, constructing the following dict of dicts
-        # {cluster: {(w1, w2): metric, (w1, w3): metric,...}, ...}
-        return {
-            cluster: {
-                (w1, w2): metric_array[df_to_array[w1], df_to_array[w2]]
-                for w1, w2 in combinations(well_list, 2)
-            }
-            for cluster, well_list in self.campaign_candidates.items()
-        }
+        return self._opt_campaign
 
     def build_optimization_model(self):
         """Builds the optimization model"""
@@ -354,98 +368,6 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         self._opt_model = PluggingCampaignModel(self)
         LOGGER.info("Completed the construction of the optimization model.")
         return self._opt_model
-
-    def get_eff_scaling_factors(self):
-        """Returns scaling factors for efficiency metrics to be used in the opt model"""
-        LOGGER.info("Beginning to calculate the scaling factors for efficiency metrics")
-        if self.config.objective_type == "Efficiency" or "Combined":
-            eff_metrics = wd.efficiency_metrics
-            wd = self.config.well_data
-            if (
-                self.config.max_distance_to_road == None
-                and eff_metrics.dist_road.effective_weight > 0
-            ):
-                self.config.max_distance_to_road = max(wd["Distance to Road [miles]"])
-                LOGGER.info(
-                    f"Maximum distance to road not provided, setting it to {max(wd['Distance to Road [miles]'])}"
-                )
-            if (
-                self.config.max_elevation_delta == None
-                and eff_metrics.elev_delta.effective_weight > 0
-            ):
-                self.config.max_elevation_delta = max(wd["Elevation Delta [m]"])
-                LOGGER.warning(
-                    f"Maximum elevation delta not provided, setting it to {max(wd['Elevation Delta [m]'])}"
-                )
-            if (
-                self.config.max_size_project == None
-                and eff_metrics.num_wells.effective_weight > 0
-            ):
-                self.config.max_size_project = 20
-                LOGGER.warning(f"Maximum project size not provided, setting it to {20}")
-            if (
-                self.config.max_number_of_unique_owners == None
-                and eff_metrics.num_unique_owners.effective_weight > 0
-            ):
-                self.config.max_number_of_unique_owners = 20
-                LOGGER.warning(
-                    f"Maximum number of unique owners not provided, setting it to {20}"
-                )
-            if (
-                self.config.max_age_range == None
-                and eff_metrics.age_range.effective_weight > 0
-            ):
-                self.config.max_age_range = max(
-                    max(inner_dict.values())
-                    for inner_dict in self.pairwise_age_difference.values()
-                )
-                LOGGER.warning(
-                    f"Maximum age range not provided, setting it to {self.config.max_age_range}"
-                )
-            if (
-                self.config.max_depth_range == None
-                and eff_metrics.depth_range.effective_weight > 0
-            ):
-                self.config.max_depth_range = max(
-                    max(inner_dict.values())
-                    for inner_dict in self.pairwise_depth_difference.values()
-                )
-                LOGGER.warning(
-                    f"Maximum depth range not provided, setting it to {self.config.max_depth_range}"
-                )
-            if (
-                self.config.max_well_distance == None
-                and eff_metrics.well_distance.effective_weight > 0
-            ):
-                self.config.max_well_distance = max(
-                    max(inner_dict.values())
-                    for inner_dict in self.pairwise_distance.values()
-                )
-                LOGGER.warning(
-                    f"Maximum pairwise distance not provided, setting it to {self.config.max_well_distance}"
-                )
-            if (
-                self.config.max_record_completeness == None
-                and eff_metrics.rec_comp.effective_weight > 0
-            ):
-                self.config.max_record_completeness = max(wd["Record Completeness"])
-                LOGGER.warning(
-                    f"Maximum record completeness not provided, setting it to {max(wd['Record Completeness'])}"
-                )
-            if (
-                self.config.max_population_density == None
-                and eff_metrics.pop_den.effective_weight > 0
-            ):
-                self.config.max_population_density = max(wd["Population Density"])
-                LOGGER.warning(
-                    f"Maximum population density not provided, setting it to {max(wd['Population Density'])}"
-                )
-            LOGGER.info(
-                "Completed calculating the scaling factors for efficiency metrics"
-            )
-        else:
-            return
-        return
 
     def solve_model(self, **kwargs):
         """Solves the optimization"""
@@ -486,4 +408,5 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             return self._opt_model.get_solution_pool(self._solver)
 
         # In all other cases, return the optimal campaign
-        return self._opt_model.get_optimal_campaign()
+        self._opt_campaign = self._opt_model.get_optimal_campaign()
+        return self._opt_campaign

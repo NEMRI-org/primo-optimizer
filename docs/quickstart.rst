@@ -6,6 +6,13 @@ and run the examples provided. For a more detailed overview or for developers wi
 PRIMO source code, please refer to sections :doc:`Getting Started <install>`, :doc:`Workflow <workflow>` and 
 :doc:`Examples <example>`.  
 
+The quickstart process is summarized by the following graphic and detailed in the subsequent sections.
+
+.. figure:: _static/primo_quickstart.svg
+    :width: 1000
+    :align: center
+
+|
 
 Step 1: Download the source code from GitHub 
 --------------------------------------------

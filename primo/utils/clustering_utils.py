@@ -13,6 +13,9 @@
 
 # Standard libs
 import logging
+from itertools import combinations
+from types import SimpleNamespace
+from typing import Dict, Optional
 
 # Installed libs
 import numpy as np
@@ -70,64 +73,65 @@ def distance_matrix(wd: WellData, weights: dict) -> np.ndarray:
         raise_exception("Feature weights do not add up to 1.", ValueError)
 
     # Construct the matrices only if the weights are non-zero
-    cn = wd.col_names  # Column names
+    cn = wd.column_names
     coordinates = list(zip(wd[cn.latitude], wd[cn.longitude]))
-    dist_matrix = (
+    dist_matrix = wt_dist * (
         haversine_vector(coordinates, coordinates, unit=Unit.MILES, comb=True)
         if wt_dist > 0
         else 0
     )
 
-    age_range_matrix = (
+    # Modifying the object in-place to save memory for large datasets
+    dist_matrix += wt_age * (
         np.abs(np.subtract.outer(wd[cn.age].to_numpy(), wd[cn.age].to_numpy()))
         if wt_age > 0
         else 0
     )
 
-    depth_range_matrix = (
+    dist_matrix += wt_depth * (
         np.abs(np.subtract.outer(wd[cn.depth].to_numpy(), wd[cn.depth].to_numpy()))
         if wt_depth > 0
         else 0
     )
 
-    return (
-        wt_dist * dist_matrix
-        + wt_age * age_range_matrix
-        + wt_depth * depth_range_matrix
-    )
+    return dist_matrix
 
 
-def perform_clustering(wd: WellData, distance_threshold: float = 10.0):
+def _well_clusters(wd: WellData) -> dict:
+    """Returns well clusters"""
+    col_names = wd.column_names
+    set_clusters = set(wd[col_names.cluster])
+    return {
+        cluster: wd.data[wd[col_names.cluster] == cluster].index.to_list()
+        for cluster in set_clusters
+    }
+
+
+def perform_clustering(wd: WellData, distance_threshold: float) -> dict:
     """
     Partitions the data into smaller clusters.
 
     Parameters
     ----------
-    distance_threshold : float, default = 10.0
+    wd: WellData
+        Object containing well data
+
+    distance_threshold : float
         Threshold distance for breaking clusters
 
     Returns
     -------
-    n_clusters : int
-        Returns number of clusters
+    well_clusters : dict
+        Dictionary of list of wells contained in each cluster
     """
-    if hasattr(wd.col_names, "cluster"):
+    col_names = wd.column_names
+    if hasattr(col_names, "cluster"):
         # Clustering has already been performed, so return.
-        # Return number of cluster.
-        LOGGER.warning(
-            "Found cluster attribute in the WellDataColumnNames object."
-            "Assuming that the data is already clustered. If the corresponding "
-            "column does not correspond to clustering information, please use a "
-            "different name for the attribute cluster while instantiating the "
-            "WellDataColumnNames object."
-        )
-        return len(set(wd[wd.col_names.cluster]))
+        LOGGER.warning("Input well data is already clustered.")
+        return _well_clusters(wd)
 
     # Hard-coding the weights data since this should not be a tunable parameter
     # for users. Move to arguments if it is desired to make it tunable.
-    # TODO: Need to scale each metric appropriately. Since good scaling
-    # factors are not available right now, setting the weights of age and depth
-    # as zero.
     weights = {"distance": 1, "age": 0, "depth": 0}
 
     distance_metric = distance_matrix(wd, weights)
@@ -138,10 +142,129 @@ def perform_clustering(wd: WellData, distance_threshold: float = 10.0):
         distance_threshold=distance_threshold,
     ).fit(distance_metric)
 
-    wd.data["Clusters"] = clustered_data.labels_
-    # Uncomment the line below to convert labels to strings. Keeping them as
-    # integers for convenience.
-    # wd.data["Clusters"] = "Cluster " + wd.data["Clusters"].astype(str)
-    wd.col_names.register_new_columns({"cluster": "Clusters"})
+    wd.add_new_column_ordered("cluster", "Clusters", clustered_data.labels_)
+    return _well_clusters(wd)
 
-    return clustered_data.n_clusters_
+
+def get_pairwise_metrics(wd: WellData, well_clusters: Dict[int, list]):
+    """
+    Returns pairwise metric values for all well pairs in each clusters
+
+    Parameters
+    ----------
+    wd : WellData
+        Object containing well data
+
+    well_clusters : dict
+        Dictionary containing well clusters
+    """
+    # DataFrame index -> metric_array index map
+    df_to_array = {
+        df_index: array_index for array_index, df_index in enumerate(wd.data.index)
+    }
+    pairwise_metrics = SimpleNamespace()
+
+    for metric in ["distance", "age", "depth"]:
+        metric_array = distance_matrix(wd, {metric: 1})
+        # {cluster: {(w1, w2): metric, (w1, w3): metric,...}, ...}
+        data = {
+            cluster: {
+                (w1, w2): metric_array[df_to_array[w1], df_to_array[w2]]
+                for w1, w2 in combinations(well_list, 2)
+            }
+            for cluster, well_list in well_clusters.items()
+        }
+        setattr(pairwise_metrics, metric, data)
+
+    return pairwise_metrics
+
+
+def get_admissible_well_pairs(
+    pairwise_metrics: SimpleNamespace,
+    max_distance: float,
+    max_age_range: Optional[float] = None,
+    max_depth_range: Optional[float] = None,
+):
+    """
+    Returns the set of well pairs that are admissible and not admissible
+    for  each cluster.
+
+    Parameters
+    ----------
+    pairwise_metrics : SimpleNamespace
+        Object containing pairwise metric data
+
+    max_distance : float
+        Maximum distance [in miles] for filtering out well pairs
+
+    max_age_range : float
+        Maximum age range [in years] for filtering out well pairs
+
+    max_depth_range : float
+        Maximum depth range [in ft] for filtering out well pairs
+
+    Returns
+    -------
+    well_pairs_keep : Admissible well pairs for each cluster
+    well_pairs_remove : Non admissible well pairs for each cluster
+    """
+    distance_data = pairwise_metrics.distance
+    age_data = pairwise_metrics.age  # age_range_data
+    depth_data = pairwise_metrics.depth  # depth_range_data
+
+    if max_age_range is None:
+        max_age_range = 1e6  # Set a large number to avoid filtering pairs
+
+    if max_depth_range is None:
+        max_depth_range = 1e6  # Set a large number to avoid filtering pairs
+
+    well_pairs = {
+        cluster: list(pairs.keys()) for cluster, pairs in distance_data.items()
+    }
+    well_pairs_keep = {cluster: [] for cluster in well_pairs}
+    well_pairs_remove = {cluster: [] for cluster in well_pairs}
+
+    for cluster, pairs in well_pairs.items():
+        for w1, w2 in pairs:
+            if (
+                distance_data[cluster][w1, w2] > max_distance
+                or age_data[cluster][w1, w2] > max_age_range
+                or depth_data[cluster][w1, w2] > max_depth_range
+            ):
+                well_pairs_remove[cluster].append((w1, w2))
+                # Delete the data from the matrices. Removing these
+                # numbers to accuaratelt calculate the scaling factors
+                # for efficiency calculations.
+                del distance_data[cluster][w1, w2]
+                del age_data[cluster][w1, w2]
+                del depth_data[cluster][w1, w2]
+
+            else:
+                well_pairs_keep[cluster].append((w1, w2))
+
+    return well_pairs_keep, well_pairs_remove
+
+
+def get_wells_in_dac(wd: WellData, well_clusters: Dict[int, list]):
+    """
+    Returns the list of well in disadvantaged communities in
+    each cluster
+
+    Parameters
+    ----------
+    wd : WellData
+        Object containing well data
+
+    well_clusters : dict
+        Dictionary containing well clusters
+    """
+    wells_in_dac = {cluster: [] for cluster in well_clusters}
+
+    # Update the attribute name when federal DAC data is supported
+    if hasattr(wd.column_names, "is_disadvantaged"):
+        for cluster, well_list in well_clusters.items():
+            for well in well_list:
+                if wd.data.loc[well, "is_disadvantaged"]:
+                    wells_in_dac[cluster].append(well)
+
+    return wells_in_dac

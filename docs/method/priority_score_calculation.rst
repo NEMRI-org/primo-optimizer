@@ -44,15 +44,30 @@ scale of 0 to 100 using the min-and-max method based on the source data. This en
 scores under value-based priority factors.
 
 Since weights are assigned to each priority factor, the score that a well receives under the priority factor is 
-calculated using the equation :eq:`eq:priority`, which includes the assigned weight.
+calculated using one of the following two equations:
 
 **Priority Score**
 
-.. math::
-  :label: eq:priority
-    
-  \textcolor{brown}{v^p} = \textcolor{brown}{m^p} \times \frac {\textcolor{brown}{a}} {(\textcolor{brown}{a_{max}} - \textcolor{brown}{a_{min}})}
+*Prefer larger values*
 
+For factors where larger values indicate higher priority, such as desiring older wells in a project, the
+priority score is calculated using the equation :eq:`eq:prio1`:
+
+.. math::
+  :label: eq:prio1
+    
+  \textcolor{brown}{v^p} = \textcolor{brown}{m^p} \times \frac {(\textcolor{brown}{a} - \textcolor{brown}{a_{min}})} {(\textcolor{brown}{a_{max}} - \textcolor{brown}{a_{min}})}
+
+
+*Prefer smaller values*
+
+For factors where smaller values indicate higher priority, such as desiring wells with low oil/gas production, the
+priority score is calculated using the equation :eq:`eq:prio2`:
+
+.. math::
+  :label: eq:prio2
+
+  \textcolor{brown}{v^p} = \textcolor{brown}{m^p} \times \frac {(\textcolor{brown}{a_{max}} - \textcolor{brown}{a})} {(\textcolor{brown}{a_{max}} - \textcolor{brown}{a_{min}})}
 
 .. list-table:: **Parameters**
         :widths: 25 75
