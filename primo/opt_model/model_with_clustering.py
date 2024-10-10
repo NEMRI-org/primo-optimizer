@@ -23,7 +23,6 @@ from pyomo.environ import (
     Constraint,
     Expression,
     NonNegativeReals,
-    NonNegativeIntegers,
     Objective,
     Param,
     Set,
@@ -32,6 +31,7 @@ from pyomo.environ import (
 )
 
 # User-defined libs
+from primo.opt_model.efficiency import build_efficiency_model
 from primo.opt_model.result_parser import Campaign
 
 LOGGER = logging.getLogger(__name__)
@@ -43,41 +43,23 @@ def build_cluster_model(model_block, cluster):
     for a given cluster `cluster`
     """
     # Parameters are located in the parent block
-    params = model_block.parent_block().model_inputs
-    wd = params.config.well_data
-    well_index = params.campaign_candidates[cluster]
-    pairwise_distance = params.pairwise_distance[cluster]
-
-    # Get well pairs which violate the distance threshold
-    well_dac = []
-    # Update the column name after federal DAC info is added
-    if "is_disadvantaged" in wd:
-        for well in well_index:
-            if wd.data.loc[well, "is_disadvantaged"]:
-                well_dac.append(well)
-
-    well_pairs_remove = [
-        key
-        for key, val in pairwise_distance.items()
-        if val > params.config.threshold_distance
-    ]
-    well_pairs_keep = [key for key in pairwise_distance if key not in well_pairs_remove]
+    params = model_block.parent_block().model_inputs  # OptModelInputs object
 
     # Essential model sets
     model_block.set_wells = Set(
-        initialize=well_index,
+        initialize=params.campaign_candidates[cluster],
         doc="Set of wells in cluster c",
     )
     model_block.set_wells_dac = Set(
-        initialize=well_dac,
+        initialize=params.wells_in_dac[cluster],
         doc="Set of wells that are in disadvantaged communities",
     )
     model_block.set_well_pairs_remove = Set(
-        initialize=well_pairs_remove,
+        initialize=params.well_pairs_remove[cluster],
         doc="Well-pairs which cannot be a part of the project",
     )
     model_block.set_well_pairs_keep = Set(
-        initialize=well_pairs_keep,
+        initialize=params.well_pairs_keep[cluster],
         doc="Well-pairs which can be a part of the project",
     )
 
@@ -104,7 +86,6 @@ def build_cluster_model(model_block, cluster):
     # Although the following two variables are of type Integer, they
     # can be declared as continuous. The optimal solution is guaranteed to have
     # integer values.
-
     model_block.num_wells_chosen = Var(
         within=NonNegativeReals,
         doc="Total number of wells chosen in the project",
@@ -114,35 +95,15 @@ def build_cluster_model(model_block, cluster):
         doc="Number of wells chosen in disadvantaged communities",
     )
 
-    # Set the maximum cost and size of the project: default is None.
-    model_block.plugging_cost.setub(params.get_max_cost_project)
-    model_block.num_wells_chosen.setub(params.config.max_size_project)
-
     # Useful expressions
-    priority_score = wd["Priority Score [0-100]"]
-    model_block.cluster_priority_score = Expression(
-        expr=(
-            sum(
-                priority_score[w] * model_block.select_well[w]
-                for w in model_block.set_wells
-            )
-        ),
-        doc="Computes the total priority score for the cluster",
-    )
+    wd = params.config.well_data
+    wt_impact = params.config.objective_weight_impact / 100
 
-    pairwise_age_range = params.pairwise_age_range[cluster]
-    model_block.pairwise_age_range = Param(
-        model_block.set_well_pairs_keep,
-        initialize=pairwise_age_range,
-        doc="Pairwise age range for well pairs in the cluster.",
-    )
+    priority_score = wd[wd.column_names.priority_score]
 
-    pairwise_depth_range = params.pairwise_depth_range[cluster]
-    model_block.pairwise_depth_range = Param(
-        model_block.set_well_pairs_keep,
-        initialize=pairwise_depth_range,
-        doc="Pairwise depth range for well pairs in the cluster.",
-    )
+    @model_block(model_block.set_wells, doc="(Combined) priority score for each well")
+    def well_priority_score(blk, w):
+        return wt_impact * priority_score[w] * blk.select_well[w]
 
     # Essential constraints
     model_block.calculate_num_wells_chosen = Constraint(
@@ -192,136 +153,6 @@ def build_cluster_model(model_block, cluster):
         ),
         doc="Ensures at most one num_wells_var is selected",
     )
-
-    if params.config.objective_type == "Impact":
-        return
-    else:
-        pass
-
-    #### Efficiency terms
-    model_block.eff_num_wells = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_age_range = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_depth_range = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_dist_road = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_elev_delta = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_unique_owner = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_rec_comp = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_pop_den = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_max_dist = Var(
-        within=NonNegativeReals, doc=""
-    )  # change to dist_range
-
-    model_block.eff_age_depth_dist = Var(within=NonNegativeReals, doc="")
-
-    model_block.eff_pop_road_elev = Var(within=NonNegativeReals, doc="")
-
-    max_dist_road = params.config.max_distance_to_road
-    max_elev_delta = params.config.max_elevation_delta
-    max_size_project = params.config.max_size_project
-    max_unique_owners = params.config.max_number_of_unique_owners
-    max_age_range = params.config.max_age_range
-    max_depth_range = params.config.max_depth_range
-    max_rec_comp = params.config.record_completeness
-    max_pop_den = params.config.max_population_density
-    max_well_dist = params.config.max_well_distance
-    max_num_proj = params.config.max_num_project
-
-    eff_metrics = wd.efficiency_metrics
-    w_age_range = eff_metrics.age_range.effective_weight
-    w_depth_range = eff_metrics.depth_range.effective_weight
-    w_rec_comp = eff_metrics.rec_comp.effective_weight
-    w_pop_den = eff_metrics.pop_den.effective_weight
-    w_well_dist = eff_metrics.well_dist.effective_weight
-    w_unique_owners = eff_metrics.unique_owners.effective_weight
-    w_num_wells = eff_metrics.num_wells.effective_weight
-    w_elev_delta = eff_metrics.elev_delta.effective_weight
-    w_dist_road = eff_metrics.dist_road.effective_weight
-
-    model_block.eff_num_wells = Constraint(
-        expr=(
-            model_block.eff_num_wells
-            == w_num_wells * (model_block.num_wells_chosen / max_size_project)
-        )
-    )
-
-    @model_block.Constraint(
-        model_block.set_well_pairs_keep,
-        doc="Combined constraint for age, depth, distance",
-    )
-    def rule(model_block, w1, w2):
-        cluster = model_block.parent_block().cluster
-        return (
-            w_age_range + w_depth_range + w_well_dist
-        ) * model_block.select_cluster - model_block.eff_age_depth_distance >= (
-            model_block.select_well[w1]
-            + model_block.select_well[w2]
-            - model_block.select_cluster
-        ) * (
-            (w_age_range * model_block.pairwise_age_range[w1, w2] / max_age_range)
-            + (
-                w_depth_range
-                * model_block.pairwise_depth_range[w1, w2]
-                / max_depth_range
-            )
-            + (w_well_dist * model_block.pairwise_dist[w1, w2] / max_well_dist)
-        )
-
-    @model_block.Constraint(
-        model_block.set_wells,
-        doc="Combined constraint for popoulation density, distance to road, elevation",
-    )
-    def rule(model_block, w):
-        cluster = model_block.parent_block().cluster
-        return (
-            w_pop_den + w_dist_road + w_elev_delta
-        ) * model_block.select_cluster - model_block.eff_pop_road_elev >= (
-            model_block.select_well[w] - model_block.select_cluster
-        ) * (
-            (w_pop_den * wd.col_names.population_density[w] / max_pop_den)
-            + (w_dist_road * wd.col_names.dist_road[w] / max_dist_road)
-            + (w_elev_delta * wd.col_names.elevation_delta[w] / max_elev_delta)
-        )
-
-    # @model_block.Constraint(
-    #     model_block.set_wells, doc="Unique Owner constraint for all wells"
-    # )
-    # def unique_owner_rule(model_block, w1):
-    #     cluster = model_block.parent_block().cluster
-    #     return (
-    #         1 - model_block.eff_unique_owner
-    #         >= model_block.unique_owner[w1]
-    #         * (model_block.select_well[w1])
-    #         / max_unique_owners
-    #     )
-
-    ## TODO: Add constraint for max number of projects
-
-    @model_block.Constraint(
-        model_block.set_wells, doc="Unique Owner constraint for all wells"
-    )
-    def rec_comp_rule(model_block, w1):
-        cluster = model_block.parent_block().cluster
-        return model_block.eff_rec_comp <= w_rec_comp * (
-            model_block.rec_comp[w1] * (model_block.select_well[w1]) / max_rec_comp
-        )
-
-    @model_block.Constraint(doc="Maximum number of projects constraint")
-    def max_proj_rule(model_block):
-        return (
-            sum(
-                model_block.select_cluster[i]
-                for i in model_block.parent_block().cluster
-            )
-            <= max_num_proj
-        )
 
 
 def num_wells_incremental_formulation(model_block):
@@ -486,6 +317,10 @@ class PluggingCampaignModel(ConcreteModel):
         self.cluster = ClusterBlock(self.set_clusters, rule=build_cluster_model)
 
         # Define slack variable for unutilized budget
+
+        self.unused_budget = Var(
+            within=NonNegativeReals,
+            doc="Unused budget from the total budget",
         self.budget_slack_var = Var(
             within=NonNegativeReals,
             doc="Slack variable for the unutilized amount of total budget",
@@ -495,11 +330,17 @@ class PluggingCampaignModel(ConcreteModel):
         self.total_budget_constraint = Constraint(
             expr=(
                 sum(self.cluster[c].plugging_cost for c in self.set_clusters)
+                + self.unused_budget
                 <= self.total_budget
             ),
             doc="Total cost of plugging must be within the total budget",
         )
 
+
+        if model_inputs.objective_type in ["Efficiency", "Combined"]:
+            LOGGER.info("Building the efficiency model.")
+            for c in self.set_clusters:
+                build_efficiency_model(self.cluster[c], cluster=c)
         # Add a constraint to calculate the unutilized amount of budget
         self.budget_constraint_slack = Constraint(
             expr=(
@@ -523,6 +364,13 @@ class PluggingCampaignModel(ConcreteModel):
 
         if model_inputs.config.max_wells_per_owner is not None:
             self.add_owner_well_count()
+
+        if model_inputs.config.max_num_projects is not None:
+            self.add_max_num_projects()
+
+        for c in self.set_clusters:
+            self.cluster[c].plugging_cost.setub(model_inputs.get_max_cost_project)
+            self.cluster[c].num_wells_chosen.setub(model_inputs.config.max_num_wells)
 
         if model_inputs.config.min_budget_usage is not None:
             if budget_sufficient is False:
@@ -556,7 +404,7 @@ class PluggingCampaignModel(ConcreteModel):
         owner_dict = self.model_inputs.owner_well_count
 
         @self.Constraint(
-            owner_dict.keys(),
+            list(owner_dict.keys()),
             doc="Limit number of wells belonging to each owner",
         )
         def max_well_owner_constraint(b, owner):
@@ -564,6 +412,16 @@ class PluggingCampaignModel(ConcreteModel):
                 sum(b.cluster[c].select_well[w] for c, w in owner_dict[owner])
                 <= max_owc
             )
+
+    def add_max_num_projects(self):
+        """Constrains the maximum number of projects a campaign can have."""
+        self.max_num_projects_constraint = Constraint(
+            expr=(
+                sum(self.cluster[c].select_cluster for c in self.cluster)
+                <= self.model_inputs.config.max_num_projects
+            ),
+            doc="Maximum number of projects constraint",
+        )
 
     def add_min_budget_usage(self):
         """
@@ -585,6 +443,12 @@ class PluggingCampaignModel(ConcreteModel):
         Appends objective function to the model
         """
         self.total_priority_score = Objective(
+            expr=sum(
+                self.cluster[c].well_priority_score[w]
+                for c in self.set_clusters
+                for w in self.cluster[c].set_wells
+            )
+            - self.slack_var_scaling * self.unused_budget,
             expr=(
                 sum(self.cluster[c].cluster_priority_score for c in self.set_clusters)
                 - self.slack_var_scaling * self.budget_slack_var
@@ -656,9 +520,9 @@ class PluggingCampaignModel(ConcreteModel):
         ----------
         solver : Pyomo solver object
         """
-        pm = self  # This is the pyomo model
+        pm = self  # This is the Pyomo model
         # pylint: disable=protected-access
-        gm = solver._solver_model  # This is the gurobipy model
+        gm = solver._solver_model  # This is the Gurobipy model
         # Get Pyomo var to Gurobipy var map.
         # Gurobi vars can be accessed as pm_to_gm[<pyomo var>]
         pm_to_gm = solver._pyomo_var_to_solver_var_map

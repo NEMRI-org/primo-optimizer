@@ -33,6 +33,7 @@ from primo.utils.raise_exception import raise_exception
 LOGGER = logging.getLogger(__name__)
 
 CONFIG = data_config()
+OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
 
 OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
 
@@ -164,7 +165,7 @@ class WellData:
         return len(self.data)
 
     @property
-    def col_names(self) -> WellDataColumnNames:
+    def column_names(self) -> WellDataColumnNames:
         """
         Returns the WellDataColumnNames object associated with the current object
         """
@@ -497,8 +498,12 @@ class WellData:
 
         Parameters
         ----------
-        col_name : list(str)
-            List of 2 strings: the column variable name, the column header for the data
+        column_var_name : str
+            This string will be set as the attribute name in WellDataColumnNames
+
+        column_header_name : str
+            This string will be set as the column header in the DataFrame
+
         values : np.array, pd.DataFrame, list
             The values for the column
         """
@@ -933,12 +938,10 @@ class WellData:
                 )
                 raise_exception(msg, ValueError)
 
-    def _process_dac_data(self):
-        """
-        processes the dac data
-        """
-        self._append_fed_dac_data()
-        return
+    def _compute_fed_dac_score(self):
+        """Appends federal DAC data and computes its score"""
+        # Append Tract ID/GEOID, population density, Total population, land area,
+        # federal DAC score to the DataFrame
 
     def _compute_well_count_score(self):
         """
@@ -986,14 +989,7 @@ class WellData:
         Computes scores for all metrics/submetrics (supported and custom metrics) and
         the total priority score. This method must be called after processing the
         data for custom metrics (if any).
-
         """
-        # Check if all the required columns for supported metrics are specified
-        # If yes, register the name of the column containing the data in the
-        # data_col_name attribute
-        # TODO: Combine the check_columns_available method with this method.
-        # TODO: Check fill data consistency for ann_gas_production and
-        # ann_oil_production. See _categorize_gas_oil_wells method for details.
 
         for metric in self.config.impact_metrics:
             if metric.weight == 0 or hasattr(metric, "submetrics"):
@@ -1006,7 +1002,7 @@ class WellData:
             )
 
             if metric.name == "fed_dac":
-                self._process_dac_data()
+                self._compute_fed_dac_score()
                 continue
 
             if metric.name == "well_count":

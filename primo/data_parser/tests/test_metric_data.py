@@ -13,6 +13,7 @@
 
 # Standard libs
 import logging
+from types import SimpleNamespace
 
 # Installed libs
 import pytest
@@ -149,6 +150,10 @@ def test_set_of_metrics_class():
     )
 
     assert str(z) == print_format
+    weights = z.get_weights
+    assert weights.met_1 == 33
+    assert weights.met_2 == 33
+    assert weights.met_3 == 34
 
     z.register_new_submetric("sub_met_1_1", z.met_1, 50, "Sub Metric One-One")
     z.register_new_submetric("sub_met_1_2", z.met_1, 50, "Sub Metric One-Two")
@@ -176,6 +181,15 @@ def test_set_of_metrics_class():
     )
 
     assert str(z) == print_format
+    weights = z.get_weights
+    assert isinstance(weights, SimpleNamespace)
+    assert weights.sub_met_1_1 == 16.5
+    assert weights.sub_met_1_2 == 16.5
+    assert weights.met_2 == 33
+    assert weights.sub_met_3_1 == 8.5
+    assert weights.sub_met_3_2 == 25.5
+    assert not hasattr(weights, "met_1")
+    assert not hasattr(weights, "met_3")
 
     assert z.check_validity() is None
     assert isinstance(z.met_1, Metric)
@@ -443,6 +457,8 @@ def test_efficiency_metrics_class():
     assert hasattr(ef_wt, "avg_elevation_delta")
     assert hasattr(ef_wt, "age_range")
     assert hasattr(ef_wt, "depth_range")
+    assert hasattr(ef_wt, "dist_range")
+    assert hasattr(ef_wt, "population_density")
     assert hasattr(ef_wt, "record_completeness")
     assert hasattr(ef_wt, "avg_dist_to_road")
     assert len(ef_wt.get_primary_metrics) == 7

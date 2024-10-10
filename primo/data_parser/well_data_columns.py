@@ -78,6 +78,7 @@ class WellDataColumnNames:  # pylint: disable=too-many-instance-attributes
     # Columns for efficiency metrics
     elevation_delta: Optional[str] = None
     dist_to_road: Optional[str] = None
+    population_density: Optional[str] = None
 
     # Additional user-specific columns
     additional_columns: InitVar[dict] = {}
