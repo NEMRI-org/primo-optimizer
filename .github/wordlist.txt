@@ -61,6 +61,7 @@ np
 num
 param
 pre
+quickstart
 scikit
 shapefile
 shapefiles
