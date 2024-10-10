@@ -4,6 +4,7 @@
 PRIMO - The P&A Project Optimizer
 ==============================================================
 
+
 PRIMO Description
 -----------------
 In support of the Methane Emissions Reduction Program (MERP) and under the National Methane Emissions Reduction Initiative (NEMRI), 
@@ -74,6 +75,7 @@ Contents
 .. toctree::
     :maxdepth: 1
 
+    documentation
     install
     quickstart
     workflow

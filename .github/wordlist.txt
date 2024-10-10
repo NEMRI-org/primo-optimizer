@@ -69,6 +69,7 @@ param
 pathlib
 pre
 pyo
+quickstart
 scikit
 shapefile
 shapefiles
