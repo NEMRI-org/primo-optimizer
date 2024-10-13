@@ -5,6 +5,5 @@ channels:
 dependencies:
   - python >=3.9
   - pip
-  - scip >=9.1.0
   - pip:
     - -r requirements.txt

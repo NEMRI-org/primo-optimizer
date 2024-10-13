@@ -32,7 +32,7 @@ Regular users can use conda to create a new "primo" environment.
 conda env create -f conda-env.yml
 ```
 
-This creates a new conda environment with the name "primo" that comes installed with all required dependencies and the free solver SCIP to solve PRIMO's optimization problems.
+This creates a new conda environment with the name "primo" that comes installed with all required dependencies to solve PRIMO's optimization problems.
 
 Developers can create a new "primo" environment by executing:
 ```bash
@@ -64,7 +64,7 @@ Additionally, use of [elevation based utilities](https://primo.readthedocs.io/en
 [Elevation Data]((https://primo.readthedocs.io/en/latest/method/elevation.html))
 
 Users can also employ other commercial solvers, for example Gurobi, to solve the optimization problem. 
-However, users are responsible for configuring and setting up these solvers themselves
+However, users are responsible for configuring and setting up these solvers themselves.
 
 General, background and overview information is available at the [NEMRI website](https://edx.netl.doe.gov/nemri/).
 

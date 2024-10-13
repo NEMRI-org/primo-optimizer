@@ -91,7 +91,7 @@ Step 3: Install PRIMO and required dependencies
 
     Activating the new 'primo' environment
 
-* Note that the the free and open-source solver `SCIP <https://scipopt.org/>`_ will also get installed with the above step. PRIMO can also utilize other free or commercial optimization solvers if you have access to other solvers already.
+* PRIMO can also utilize other free or commercial optimization solvers if you have access to other solvers already.
 
 
 Step 4: Run Examples in Jupyter Notebook 

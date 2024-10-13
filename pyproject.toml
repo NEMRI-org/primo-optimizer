@@ -34,7 +34,6 @@ dependencies = [
     "fast_autocomplete[levenshtein]",
     "folium",
     "geopandas",
-    "gurobipy",
     "highspy",
     "haversine",
     "ipyfilechooser",
@@ -95,6 +94,9 @@ test = [
     "pytest-playwright"
 ]
 
+gurobi = [
+    "gurobipy"
+]
 [project.scripts]
 stagedfright = "stagedfright:main"
 
