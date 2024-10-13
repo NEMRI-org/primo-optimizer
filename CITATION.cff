@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Puranik"
+    given-names: "Yash"
+  - family-names: "Kakkad"
+    given-names: "Dev"
+  - family-names: "Jaffe"
+    given-names: "Tyler"
+  - family-names: "Li"
+    given-names: "Ruonan"
+  - family-names: "Strahl"
+    given-names: "William"
+  - family-names: "Gooty"
+    given-names: "Radhakrishna Tumbalam"
+  - family-names: "Lee"
+    given-names: "Sangbum"
+  - family-names: "Zamarripa"
+    given-names: "Miguel"
+  - family-names: "Drouven"
+    given-names: "Markus"
+title: "PRIMO - The P&A Project Optimizer"
+url: "https://github.com/NEMRI-org/primo-optimizer/"
+license-url: "https://github.com/NEMRI-org/primo-optimizer/blob/main/LICENSE.md"
+version: 0.1
+doi: 10.18141/2439193
+date-released: 2024-9-03
+identifiers:
+  - description: "NETL's Energy Data eXchange Archive"
+    type: url
+    value: "https://edx.netl.doe.gov/dataset/primo-the-p-a-project-optimizer"
