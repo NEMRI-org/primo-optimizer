@@ -1,6 +1,7 @@
 Bing
 Bool
 Combobox
+ConcreteModel
 CheckBoxWidget
 CRS
 Dataclass
@@ -14,12 +15,14 @@ HBox
 IntSlider
 Iterable
 Jupyter
+LLC
 Mcf
 Namespace
 Pyomo
 Pytest
 Quickstart
 Redistributions
+Sandia
 SubCheckBoxWidget
 Submetric
 Submetrics
@@ -41,6 +44,7 @@ csv
 customizable
 dataset
 datasets
+devnull
 dicts
 df
 dtype
@@ -48,6 +52,7 @@ dunder
 env
 geopoint
 geospatial
+glpk
 gpd
 inplace
 ipynb
@@ -55,15 +60,19 @@ ipywidgets
 iterable
 json
 libs
+msg
 multicommodity
 ndarray
 np
 num
 param
+pathlib
 pre
+pyo
 scikit
 shapefile
 shapefiles
+stacktrace
 sublicense
 submetric
 submetrics
@@ -71,6 +80,7 @@ txt
 ub
 uncheck
 unchecking
+url
 validator
 waypoint
 waypoints

@@ -1,4 +1,4 @@
-[MAIN]
+﻿[MAIN]
 
 # Analyse import fallback blocks. This can be used to support both Python 2 and
 # 3 compatible code, which means that the block might have code that exists
@@ -68,7 +68,7 @@ ignored-modules=
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-init-hook=
+#init-hook=
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
 # number of processors available to use, and will cap the count on Windows to
@@ -438,7 +438,7 @@ disable=raw-checker-failed,
         use-implicit-booleaness-not-comparison-to-zero,
         missing-module-docstring,
         logging-fstring-interpolation,
-        unspecified-encoding
+        logging-not-lazy
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

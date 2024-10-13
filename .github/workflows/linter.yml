@@ -1,0 +1,38 @@
+# This workflow will install Python and run pylint on changed files
+# For more information see: https://github.com/marketplace/actions/changed-files
+
+name: Pylint
+
+on:
+  push:
+    branches: ["linter"]
+  pull_request:
+    branches: ["main"]
+    types:
+      - opened
+      # ready_for_review occurs when a draft PR is turned to non-draft
+      - ready_for_review
+      # synchronize occurs whenever commits are pushed to the PR branch
+      - synchronize
+
+jobs:
+  changed_files:
+    runs-on: ubuntu-latest  # windows-latest || macos-latest
+    name: Run linter
+    env:
+        target_dir: primo/
+        target_score: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.10
+
+      - name: Set up package (install-mode=dev)
+        run: |
+          pip --no-cache-dir install -r requirements-dev.txt
+
+      - name: Lint all python files
+        run: |
+            python ./.github/workflows/lint.py -t $target_score -p "$target_dir"
+          

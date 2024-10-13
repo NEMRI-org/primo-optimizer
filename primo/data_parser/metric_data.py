@@ -317,8 +317,6 @@ class SetOfMetrics:
                 if val.fill_missing_value is not None:
                     metric._configure_fill_missing_value(**val.fill_missing_value)
 
-        return
-
     def __iter__(self):
         # Makes the object iterable! Iterate over all Metric and SubMetric objects.
         return iter(self.__dict__.values())
@@ -693,8 +691,14 @@ class ImpactMetrics(SetOfMetrics):
 
     def __init__(
         self,
-        impact_metrics: Optional[Dict[str, _SupportedContent]] = SUPP_IMPACT_METRICS,
+        impact_metrics: Optional[Dict[str, _SupportedContent]] = None,
     ) -> None:
+        # Default arguments retain values between function calls.
+        # If we use a mutable argument, unexpected things can occurs.
+        # See this for example:
+        # https://stackoverflow.com/questions/26320899/
+        if impact_metrics is None:
+            impact_metrics = SUPP_IMPACT_METRICS
         super().__init__(impact_metrics)
 
 
@@ -703,6 +707,8 @@ class EfficiencyMetrics(SetOfMetrics):
 
     def __init__(
         self,
-        efficiency_metrics: Optional[Dict[str, _SupportedContent]] = SUPP_EFF_METRICS,
+        efficiency_metrics: Optional[Dict[str, _SupportedContent]] = None,
     ) -> None:
+        if efficiency_metrics is None:
+            efficiency_metrics = SUPP_EFF_METRICS
         super().__init__(efficiency_metrics)
