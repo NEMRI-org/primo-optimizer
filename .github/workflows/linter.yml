@@ -4,8 +4,6 @@
 name: Pylint
 
 on:
-  push:
-    branches: ["linter"]
   pull_request:
     branches: ["main"]
     types:
