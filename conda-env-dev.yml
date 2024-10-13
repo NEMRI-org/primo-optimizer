@@ -1,8 +1,7 @@
 name: primo
 channels:
   - conda-forge
-  - defaults
-  - https://conda.anaconda.org/gurobi
+  - gurobi
 dependencies:
   - python >=3.9
   - pip
