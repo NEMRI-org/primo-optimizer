@@ -18,16 +18,19 @@ This file contains utilities to query and use census data.
 # Standard libs
 import logging
 import os
+import tempfile
 from typing import List, Tuple, Union
 
 # Installed libs
 import censusgeocode as cg
+import geopandas as gpd
 import pandas as pd
 import requests
 from dotenv import load_dotenv
 
 # User-defined libs
 from primo.utils import CENSUS_YEAR
+from primo.utils.download_utils import download_file, unzip_file
 from primo.utils.geo_utils import is_acceptable, is_valid_lat, is_valid_long
 from primo.utils.raise_exception import raise_exception
 
@@ -36,6 +39,58 @@ LOGGER = logging.getLogger(__name__)
 CODE_LENGTH = {"STATE": 2, "COUNTY": 3, "TRACT": 6, "BLOCK_GROUP": 1, "BLOCK": 3}
 
 CODE_ORDER = ["STATE", "COUNTY", "TRACT", "BLOCK_GROUP", "BLOCK"]
+
+
+def get_state_census_tracts(state_code: str, census_year: int) -> gpd.GeoDataFrame:
+    """
+    Retrieves a GeoDataFrame based on a shapefile available via the US Census
+    that makes it easy to identify census tract ids for a list of lat/longs
+
+    Parameters
+    ----------
+    state_code : str
+        The two-digit string identifier for a state
+
+    census_year : int
+        The census year for which the census tract designations is to be downloaded
+
+    Returns
+    -------
+    gpd.GeoDataFrame
+        The census tract ids associated with the state
+    """
+    url = (
+        f"https://www2.census.gov/geo/tiger/TIGER{census_year}/"
+        f"TRACT/tl_2020_{state_code}_tract.zip"
+    )
+    temp_path = tempfile.TemporaryFile().name
+    extract_path = tempfile.TemporaryFile().name
+    download_file(temp_path, url)
+    unzip_file(temp_path, extract_path)
+    return gpd.read_file(extract_path)
+
+
+def get_cejst_data() -> pd.DataFrame:
+    """
+    Downloads and returns the CEJST data from
+    https://screeningtool.geoplatform.gov as a DataFrame
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the Climate and Economic Justice Screening Tool Data
+    """
+    temp_path = tempfile.TemporaryFile().name
+    url = (
+        "https://static-data-screeningtool.geoplatform.gov/data-versions/"
+        "1.0/data/score/downloadable/1.0-communities.csv"
+    )
+    download_file(temp_path, url)
+    return pd.read_csv(temp_path)
 
 
 def get_census_key() -> str:
@@ -55,7 +110,7 @@ def get_census_key() -> str:
     return os.environ["CENSUS_KEY"]
 
 
-def make_FIPS_code(
+def make_fips_code(
     state: str,
     county: Union[str, None] = None,
     tract: Union[str, None] = None,
@@ -308,27 +363,37 @@ def get_fips_part(fips_code: str, identifier: str) -> str:
     if identifier == "STATE":
         return get_state(fips_code)
 
-    elif identifier == "COUNTY":
+    if identifier == "COUNTY":
         return get_county(fips_code)
 
-    elif identifier == "TRACT":
+    if identifier == "TRACT":
         return get_tract(fips_code)
 
-    elif identifier == "BLOCK_GROUP":
+    if identifier == "BLOCK_GROUP":
         return get_block_group(fips_code)
 
     return get_block(fips_code)
 
 
 class CensusAPIException(Exception):
-    pass
+    """
+    Custom Exception class to capture and log any exceptions
+    arising from querying the CensusAPI
+    """
 
 
 class CensusAPIKeyError(CensusAPIException):
-    pass
+    """
+    Custom Exception class to capture and log exceptions arising out of
+    invalid/unavailable Census API Key
+    """
 
 
 class CensusClient:
+    """
+    Sets up methods to interact with and extract data from US Census API
+    """
+
     def __init__(self, key: str):
         """
         Initialize the class.
@@ -343,7 +408,7 @@ class CensusClient:
 
     def _generate_geo_identifiers(self, fips_code: str) -> Tuple[str, Union[str, None]]:
         """
-        Generate the geo string needed to query the Census API based on
+        Generate the string needed to query the Census API based on
         the FIPS code.
 
         Parameters
@@ -425,25 +490,30 @@ class CensusClient:
 
             try:
                 response = resp.json()
-            except Exception as e:
+            except (
+                requests.exceptions.RequestException,
+                requests.exceptions.InvalidJSONError,
+                TypeError,
+            ) as e:
                 msg = f"Exception details: {str(e)}"
                 msg += f"Response received is: {resp.text}"
                 raise_exception(msg, CensusAPIException)
 
             return pd.DataFrame([response[1]], columns=response[0])
 
-        elif resp.status_code == 204:
+        if resp.status_code == 204:
             LOGGER.warning(
                 "No data found from Census API. "
                 "Please ensure all fields, FIPS Code, collection, and "
                 "dataset info are correct."
             )
             return pd.DataFrame([], columns=fields)
-        else:
-            # All other status codes untreated for now
-            LOGGER.debug(f"Untreated status code is: {resp.status_code}")
-            LOGGER.debug(f"Untreated response text is: {resp.text}")
-            raise_exception("Untreated response code", CensusAPIException)
+
+        # All other status codes untreated for now
+        LOGGER.debug(f"Untreated status code is: {resp.status_code}")
+        LOGGER.debug(f"Untreated response text is: {resp.text}")
+        raise_exception("Untreated response code", CensusAPIException)
+        return pd.DataFrame([], columns=fields)
 
     def get_total_population(self, latitude: float, longitude: float) -> float:
         """
@@ -472,6 +542,6 @@ class CensusClient:
 if __name__ == "__main__":
     CENSUS_KEY = get_census_key()
     CLIENT = CensusClient(CENSUS_KEY)
-    data = CLIENT.get(["NAME", "P1_001N"], "dec", "dhc", "42079216601")
-    total_pop = CLIENT.get_total_population(41, -76)
-    print(f"Total population from census tract for test point: {total_pop}")
+    DATA = CLIENT.get(["NAME", "P1_001N"], "dec", "dhc", "42079216601")
+    TOTAL_POP = CLIENT.get_total_population(41, -76)
+    print(f"Total population from census tract for test point: {TOTAL_POP}")

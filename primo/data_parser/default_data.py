@@ -27,6 +27,10 @@ BING_MAPS_BASE_URL = "http://dev.virtualearth.net/REST/V1/Routes/Driving"
 # Fixed start coordinates in elevation utility to get nearest road point
 START_COORDINATES = (40.44, -79.94)
 
+# CEJST data available on https://screeningtool.geoplatform.gov
+# relies on Census Tracts from 2010
+DAC_TRACT_YEAR = 2010
+
 
 # Set of supported impact metrics along with
 # the required data for the analysis.

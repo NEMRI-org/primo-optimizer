@@ -10,6 +10,7 @@
 # reproduce, distribute copies to the public, prepare derivative works, and
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
+# pylint: disable=too-many-lines, fixme
 
 # Standard libs
 import copy
@@ -19,15 +20,22 @@ import pathlib
 from typing import Optional, Union
 
 # Installed libs
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 from pyomo.common.config import Bool, document_kwargs_from_configdict
 
 # User-defined libs
-from primo.data_parser import EfficiencyMetrics, ImpactMetrics, Metric, SetOfMetrics
-from primo.data_parser.default_data import CONVERSION_FACTOR
+from primo.data_parser import EfficiencyMetrics, ImpactMetrics, SetOfMetrics
+from primo.data_parser.default_data import CONVERSION_FACTOR, DAC_TRACT_YEAR
 from primo.data_parser.input_config import data_config
 from primo.data_parser.well_data_columns import WellDataColumnNames
+from primo.utils.census_utils import (
+    get_cejst_data,
+    get_fips_code,
+    get_fips_part,
+    get_state_census_tracts,
+)
 from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +44,7 @@ CONFIG = data_config()
 
 OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
 
-
+# pylint: disable=too-many-public-methods
 class WellData:
     """
     Reads, processes, and analyzes well data.
@@ -864,12 +872,76 @@ class WellData:
 
         LOGGER.info("Completed processing the essential inputs.")
 
+    def _get_state(self) -> str:
+        """
+        Attempts to infer the state for which the dataset belong.
+        Assumes that all data points belong to the same state and
+        we have at least one row of data
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Two-digit code identifying the state for which the data belongs
+        """
+        wcn = self._col_names
+        lat = self.data[wcn.latitude].iloc[0]
+        long = self.data[wcn.longitude].iloc[0]
+        fips_code = get_fips_code(lat, long)
+        state = get_fips_part(fips_code, "STATE")
+        return state
+
+    def _convert_data_to_geodataframe(self) -> gpd.GeoDataFrame:
+        """
+        Returns a Geopandas GeoDataFrame object from well data
+        """
+        wcn = self._col_names
+        data = copy.deepcopy(self.data)
+        gdf = gpd.GeoDataFrame(
+            data,
+            geometry=gpd.points_from_xy(data[wcn.longitude], data[wcn.latitude]),
+            crs="EPSG:4326",
+        )
+        return gdf
+
     def _append_fed_dac_data(self):
         """Appends federal DAC data"""
-        census_year = self.config.census_year
-        # TODO:
-        # Append Tract ID/GEOID, population density, Total population, land area,
-        # federal DAC score to the DataFrame
+        if len(self.data) == 0:
+            # Nothing to do if no data
+            return
+
+        state_code = self._get_state()
+        census_tracts = get_state_census_tracts(state_code, DAC_TRACT_YEAR)
+        gdf = self._convert_data_to_geodataframe()
+
+        # Spatial join to identify tract id associated with every well
+        # Per 2010 data
+        gdf.sjoin(census_tracts, how="left", predicate="within")
+        self.data["Area Land"] = gdf["ALAND"]
+        self.data["Area Water"] = gdf["WATER"]
+        self.data["Census Tract ID [2010]"] = gdf["GEOID"]
+
+        cejst_data = get_cejst_data()
+        joined_data = self.data.merge(
+            cejst_data,
+            left_on="Census Tract ID [2010]",
+            right_on="Census tract 2010 ID",
+            how="left",
+        )
+        self.data["Percent area disadvantaged"] = joined_data[
+            "Percentage of tract that is disadvantaged by area"
+        ]
+
+        self.data["Percent pop disadvantaged"] = joined_data[
+            "Percentage of tract that is disadvantaged by area"
+        ]
+
+        self.data["Disadvantaged Score"] = (
+            self.data["Percent area disadvantaged"]
+            + self.data["Percent pop disadvantaged"]
+        ) / 2
 
     def _set_metric(self, metrics: SetOfMetrics):
         """
@@ -892,11 +964,11 @@ class WellData:
                 # This is a parent metric, so no data assessment is required
                 continue
 
-            if (
-                metric.name == "fed_dac"
-                or metric.name == "well_count"
-                or metric.name == "num_wells"
-                or metric.name == "num_unique_owners"
+            if metric.name in (
+                "fed_dac",
+                "well_count",
+                "num_wells",
+                "num_unique_owners",
             ):
                 # these have their own processing functions (or none at all)
                 continue
@@ -935,10 +1007,16 @@ class WellData:
 
     def _process_dac_data(self):
         """
-        processes the dac data
+        processes the DAC data
         """
         self._append_fed_dac_data()
-        return
+        metrics = self.config.impact_metrics
+        metric = [obj for obj in metrics if obj.name == "fed_dac"][0]
+        weight = metric.effective_weight
+        metric.data_col_name = "Disadvantaged Score"
+        self.data[metric.score_col_name] = (
+            self.data[metric.data_col_name] * weight / 100
+        )
 
     def _compute_well_count_score(self):
         """
