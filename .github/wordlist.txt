@@ -65,6 +65,7 @@ multicommodity
 ndarray
 np
 num
+numpy
 param
 pathlib
 pre
