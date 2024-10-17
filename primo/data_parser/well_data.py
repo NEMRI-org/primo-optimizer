@@ -24,7 +24,7 @@ import pandas as pd
 from pyomo.common.config import Bool, document_kwargs_from_configdict
 
 # User-defined libs
-from primo.data_parser import EfficiencyMetrics, ImpactMetrics, Metric, SetOfMetrics
+from primo.data_parser import EfficiencyMetrics, ImpactMetrics, SetOfMetrics
 from primo.data_parser.default_data import CONVERSION_FACTOR
 from primo.data_parser.input_config import data_config
 from primo.data_parser.well_data_columns import WellDataColumnNames
@@ -35,8 +35,9 @@ LOGGER = logging.getLogger(__name__)
 CONFIG = data_config()
 
 OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
-
-
+# disabling too many lines in module warning
+# pylint: disable = C0302
+# pylint: disable = too-many-public-methods
 class WellData:
     """
     Reads, processes, and analyzes well data.
@@ -660,7 +661,7 @@ class WellData:
             return
 
         # Ensure the required columns are present in the DataFrame
-        # FIXME: This value is being accepted as input at two different locations.
+        # FIXME: This value is being accepted as input at two different locations. # pylint: disable=fixme
         #   Value-check is added in the assess_supported_metrics method for now.
         if wcn.ann_gas_production in self and wcn.ann_oil_production in self:
             self.fill_incomplete_data(
@@ -814,26 +815,25 @@ class WellData:
         self.drop_incomplete_data(col_name=wcn.longitude, dict_key="longitude")
 
         # Drop wells if the operator name is not available
+        unknown_owner = []
         if self.config.ignore_operator_name:
             LOGGER.info("Checking if the operator name is available for all wells.")
             self.drop_incomplete_data(
                 col_name=wcn.operator_name, dict_key="operator_name"
             )
+            # Sometimes owner_name is listed as unknown. Remove those as well
+            for row in self:
+                if self.data.loc[row, wcn.operator_name].lower() == "unknown":
+                    unknown_owner.append(row)
 
-        # Sometimes owner_name is listed as unknown. Remove those as well
-        unknown_owner = []
-        for row in self:
-            if self.data.loc[row, wcn.operator_name].lower() == "unknown":
-                unknown_owner.append(row)
-
-        if self.config.ignore_operator_name and len(unknown_owner) > 0:
-            LOGGER.warning(
-                "Owner name for some wells is listed as unknown."
-                "Treating these wells as if the owner name is not provided, "
-                "so removing them from the dataset."
-            )
-            self.data = self.data.drop(unknown_owner)
-            self._removed_rows["unknown_owner"] = unknown_owner
+            if len(unknown_owner) > 0:
+                LOGGER.warning(
+                    "Owner name for some wells is listed as unknown."
+                    "Treating these wells as if the owner name is not provided, "
+                    "so removing them from the dataset."
+                )
+                self.data = self.data.drop(unknown_owner)
+                self._removed_rows["unknown_owner"] = unknown_owner
 
         # Check if age data is available, and calculate it if it is missing
         LOGGER.info("Checking if age of all wells is available.")
@@ -866,8 +866,8 @@ class WellData:
 
     def _append_fed_dac_data(self):
         """Appends federal DAC data"""
-        census_year = self.config.census_year
-        # TODO:
+        # census_year = self.config.census_year
+        # TODO: # pylint: disable=fixme
         # Append Tract ID/GEOID, population density, Total population, land area,
         # federal DAC score to the DataFrame
 
@@ -892,11 +892,11 @@ class WellData:
                 # This is a parent metric, so no data assessment is required
                 continue
 
-            if (
-                metric.name == "fed_dac"
-                or metric.name == "well_count"
-                or metric.name == "num_wells"
-                or metric.name == "num_unique_owners"
+            if metric.name in (
+                "fed_dac",
+                "well_count",
+                "num_wells",
+                "num_unique_owners",
             ):
                 # these have their own processing functions (or none at all)
                 continue
@@ -935,10 +935,9 @@ class WellData:
 
     def _process_dac_data(self):
         """
-        processes the dac data
+        processes the DAC data
         """
         self._append_fed_dac_data()
-        return
 
     def _compute_well_count_score(self):
         """
@@ -991,8 +990,8 @@ class WellData:
         # Check if all the required columns for supported metrics are specified
         # If yes, register the name of the column containing the data in the
         # data_col_name attribute
-        # TODO: Combine the check_columns_available method with this method.
-        # TODO: Check fill data consistency for ann_gas_production and
+        # TODO: Combine the check_columns_available method with this method.# pylint: disable=fixme
+        # TODO: Check fill data consistency for ann_gas_production and # pylint: disable=fixme
         # ann_oil_production. See _categorize_gas_oil_wells method for details.
 
         for metric in self.config.impact_metrics:
