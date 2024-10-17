@@ -902,6 +902,8 @@ class WellData:
                 or metric.name == "well_count"
                 or metric.name == "num_wells"
                 or metric.name == "num_unique_owners"
+                or metric.name == "dist_range"
+                or metric.name == "record_completeness"
             ):
                 # these have their own processing functions (or none at all)
                 continue

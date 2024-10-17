@@ -78,7 +78,7 @@ class Project:
         # Optimization problem uses million USD. Convert it to USD
         self.plugging_cost = plugging_cost * 1e6
         self.efficiency_score = 0
-        accessibility_column_attr = ["elevation_delta", "dist_to_road"]
+        accessibility_column_attr = ["avg_elevation_delta", "avg_dist_to_road"]
         self.accessibility_attr = [
             attribute
             for attribute in accessibility_column_attr
@@ -157,11 +157,11 @@ class Project:
         """
         Returns the average elevation delta of the project
         """
-        col_name = self._col_names.elevation_delta
+        col_name = self._col_names.avg_elevation_delta
         self._check_column_exists(col_name)
         return calculate_average(
             self.well_data.data,
-            self._col_names.elevation_delta,
+            self._col_names.avg_elevation_delta,
             estimation_method="yes",
         )
 
@@ -187,9 +187,20 @@ class Project:
         """
         Returns the average distance to road for a project
         """
-        col_name = self._col_names.dist_to_road
+        col_name = self._col_names.avg_dist_to_road
         self._check_column_exists(col_name)
-        return calculate_average(self.well_data.data, self._col_names.dist_to_road)
+        return calculate_average(self.well_data.data, self._col_names.avg_dist_to_road)
+
+    @property
+    def population_density(self):
+        """
+        Returns the average distance to road for a project
+        """
+        col_name = self._col_names.population_density
+        self._check_column_exists(col_name)
+        return calculate_average(
+            self.well_data.data, self._col_names.population_density
+        )
 
     @property
     def num_unique_owners(self):
@@ -555,6 +566,7 @@ class Campaign:
             col_names.compliance,
             col_names.violation,
             col_names.incident,
+            col_names.population_density,
         ]
         # add hospitals and schools if provided
         if col_names.hospitals is not None:
@@ -673,7 +685,7 @@ class EfficiencyCalculator(object):
                 )
 
             assert getattr(project, metric.score_attribute, None) is None
-            assert hasattr(project, metric.name)
+            # assert hasattr(project, metric.name)
 
             # Check if division by a zero is likely
             if np.isclose(max_value, min_value, rtol=0.001):

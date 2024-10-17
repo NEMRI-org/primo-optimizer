@@ -53,7 +53,7 @@ def compute_efficieny_scaling_factors(opt_model_inputs):
     # Setting a scaling factor for num_wells metric
     if config.max_num_wells is None and eff_weights.num_wells > 0:
         log_message(eff_metrics.num_wells.name, 20)
-        config.max_size_project = 20
+        config.max_num_wells = 20
 
     # Setting a scaling factor for num_unique_owners metric
     if config.max_num_unique_owners is None and eff_weights.num_unique_owners > 0:
@@ -61,15 +61,15 @@ def compute_efficieny_scaling_factors(opt_model_inputs):
         config.max_num_unique_owners = 5
 
     # Computing scaling factor dist_to_road metric
-    if config.max_dist_to_road is None and eff_weights.dist_to_road > 0:
-        max_dist_to_road = wd[col_names.dist_to_road].max()
-        log_message(eff_metrics.dist_to_road.name, max_dist_to_road)
+    if config.max_dist_to_road is None and eff_weights.avg_dist_to_road > 0:
+        max_dist_to_road = wd[col_names.avg_dist_to_road].max()
+        log_message(eff_metrics.avg_dist_to_road.name, max_dist_to_road)
         config.max_dist_to_road = max_dist_to_road
 
     # Computing scaling factor for elevation_delta metric
-    if config.max_elevation_delta is None and eff_weights.elevation_delta > 0:
-        max_elevation_delta = wd[col_names.elevation_delta].max()
-        log_message(eff_metrics.elevation_delta.name, max_elevation_delta)
+    if config.max_elevation_delta is None and eff_weights.avg_elevation_delta > 0:
+        max_elevation_delta = wd[col_names.avg_elevation_delta].max()
+        log_message(eff_metrics.avg_elevation_delta.name, max_elevation_delta)
         config.max_elevation_delta = max_elevation_delta
 
     # Setting a scaling factor for population_density metric
@@ -80,18 +80,26 @@ def compute_efficieny_scaling_factors(opt_model_inputs):
 
     # Computing scaling factors for age_range and depth_range metrics
     # Scaling factor for dist_range = threshold_distance/max_dist_range
-    if config.max_age_range is None and eff_weights.age_range > 0:
+    if config.max_age_range is None:
         max_age_range = max(
-            max(inner_dict.values())
-            for inner_dict in opt_model_inputs.pairwise_metrics.age.values()
+            (
+                max(inner_dict.values())
+                for inner_dict in opt_model_inputs.pairwise_metrics.age.values()
+                if inner_dict
+            ),
+            default=0,
         )
         log_message(eff_metrics.age_range.name, max_age_range)
         config.max_age_range = max_age_range
 
-    if config.max_depth_range is None and eff_weights.depth_range > 0:
+    if config.max_depth_range is None:
         max_depth_range = max(
-            max(inner_dict.values())
-            for inner_dict in opt_model_inputs.pairwise_metrics.depth.values()
+            (
+                max(inner_dict.values())
+                for inner_dict in opt_model_inputs.pairwise_metrics.depth.values()
+                if inner_dict
+            ),
+            default=0,
         )
         log_message(eff_metrics.depth_range.name, max_depth_range)
         config.max_depth_range = max_depth_range
@@ -143,16 +151,16 @@ def get_aggregated_data(wd: WellData):
         aggregated_data += (eff_weights.population_density / data.max()) * data
 
     # Compute the score for distance to road
-    if eff_weights.dist_to_road > 0:
+    if eff_weights.avg_dist_to_road > 0:
         # Distance to road data is available
-        data = wd[col_names.dist_to_road]
-        aggregated_data += (eff_weights.dist_to_road / data.max()) * data
+        data = wd[col_names.avg_dist_to_road]
+        aggregated_data += (eff_weights.avg_dist_to_road / data.max()) * data
 
     # Compute the score for elevation delta
-    if eff_weights.elevation_data > 0:
+    if eff_weights.avg_elevation_delta > 0:
         # Elevation delta is available
-        data = abs(wd[col_names.elevation_delta])
-        aggregated_data += (eff_weights.elevation_delta / data.max()) * data
+        data = abs(wd[col_names.avg_elevation_delta])
+        aggregated_data += (eff_weights.avg_elevation_delta / data.max()) * data
 
     return aggregated_data
 
@@ -216,7 +224,6 @@ def build_efficiency_model(model_block, cluster):
         ),
         doc="Calculates the total efficiency of the project",
     )
-
     model_block.calculate_eff_num_wells = Constraint(
         expr=(
             model_block.eff_num_wells
@@ -225,11 +232,10 @@ def build_efficiency_model(model_block, cluster):
         doc="Calculates efficiency of num_wells metric",
     )
 
-    if weights.num_unique_owners > 0:
-        LOGGER.warning(
-            "num_unique_owners is not supported currently. Setting its score to zero"
-        )
-        model_block.eff_num_unique_owners.fix(0)
+    # LOGGER.warning(
+    #     "num_unique_owners is not supported currently. Setting its score to zero"
+    # )
+    model_block.eff_num_unique_owners.fix(0)
 
     # Age range, depth range, and distance metrics
     aggregated_weight = weights.age_range + weights.depth_range + weights.dist_range
@@ -262,8 +268,8 @@ def build_efficiency_model(model_block, cluster):
     # Population density, distance to road, elevation delta, record completeness
     aggregated_weight = (
         weights.population_density
-        + weights.dist_to_road
-        + weights.elevation_delta
+        + weights.avg_dist_to_road
+        + weights.avg_elevation_delta
         + weights.record_completeness
     )
     # Aggregated coefficient is computed using the get_aggregated_data function, and
@@ -281,13 +287,13 @@ def build_efficiency_model(model_block, cluster):
         def calculate_eff_pop_elevation_record(model_block, w):
             return (
                 aggregated_weight * model_block.select_cluster
-                - model_block.eff_pop_road_elevation_record
+                - model_block.eff_pop_road_elevation_rec
                 >= aggregated_coeff[w] * model_block.select_well[w]
             )
 
     else:
         # Metrics are not chosen, so set the efficiency to zero
-        model_block.eff_pop_road_elevation_record.fix(0)
+        model_block.eff_pop_road_elevation_rec.fix(0)
 
     # Compute well efficiency score
     @model_block.Constraint(

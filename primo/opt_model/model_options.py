@@ -81,8 +81,8 @@ def model_config() -> ConfigDict:
     config.declare(
         "objective_type",
         ConfigValue(
-            default="Priority",
-            domain=In(["Priority", "NumWells"]),
+            default="Impact",
+            domain=In(["Impact", "Efficiency", "Combined"]),
             doc="Objective Type",
         ),
     )
@@ -112,6 +112,7 @@ def model_config() -> ConfigDict:
     )
 
     # Parameters for optional constraints
+
     config.declare(
         "perc_wells_in_dac",
         ConfigValue(
@@ -163,14 +164,6 @@ def model_config() -> ConfigDict:
                 "Minimum percent of the budget that needs to be used "
                 "for plugging all wells"
             ),
-        ),
-    )
-    config.declare(
-        "min_budget_usage",
-        ConfigValue(
-            default=None,
-            domain=InRange(0, 100),
-            doc="The minimum percent of the budget usage when the budget is insufficient for plugging all wells",
         ),
     )
 
@@ -303,7 +296,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
 
         # Raise an error if efficiency metrics are not provided when they are required
         if self.config.objective_type in ["Efficiency", "Combined"]:
-            if wd.efficiency_metrics is None:
+            if wd.config.efficiency_metrics is None:
                 msg = (
                     f"efficiency_metrics is not defined in the WellData object. "
                     f"Effeciency metrics are essential for objective_type "

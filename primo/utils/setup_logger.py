@@ -87,3 +87,6 @@ def setup_logger(
         datefmt=LOGGER_DATE,
         handlers=handlers,
     )
+
+    logger = logging.getLogger("gurobipy")
+    logger.propagate = False

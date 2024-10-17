@@ -101,7 +101,9 @@ def build_cluster_model(model_block, cluster):
 
     priority_score = wd[wd.column_names.priority_score]
 
-    @model_block(model_block.set_wells, doc="(Combined) priority score for each well")
+    @model_block.Expression(
+        model_block.set_wells, doc="(Combined) priority score for each well"
+    )
     def well_priority_score(blk, w):
         return wt_impact * priority_score[w] * blk.select_well[w]
 
@@ -153,6 +155,7 @@ def build_cluster_model(model_block, cluster):
         ),
         doc="Ensures at most one num_wells_var is selected",
     )
+
 
 def num_wells_incremental_formulation(model_block):
     """
@@ -330,14 +333,13 @@ class PluggingCampaignModel(ConcreteModel):
         self.total_budget_constraint = Constraint(
             expr=(
                 sum(self.cluster[c].plugging_cost for c in self.set_clusters)
-                + self.unused_budget
+                # + self.unused_budget
                 <= self.total_budget
             ),
             doc="Total cost of plugging must be within the total budget",
         )
 
-
-        if model_inputs.objective_type in ["Efficiency", "Combined"]:
+        if model_inputs.config.objective_type in ["Efficiency", "Combined"]:
             LOGGER.info("Building the efficiency model.")
             for c in self.set_clusters:
                 build_efficiency_model(self.cluster[c], cluster=c)
@@ -356,7 +358,7 @@ class PluggingCampaignModel(ConcreteModel):
             self.add_min_wells_in_dac()
 
         if (
-            model_inputs.config.threshold_distance is not None
+            model_inputs.config.max_dist_range is not None
             and not model_inputs.config.lazy_constraints
         ):
             for c in self.set_clusters:
@@ -449,10 +451,6 @@ class PluggingCampaignModel(ConcreteModel):
                 for w in self.cluster[c].set_wells
             )
             - self.slack_var_scaling * self.unused_budget,
-            expr=(
-                sum(self.cluster[c].cluster_priority_score for c in self.set_clusters)
-                - self.slack_var_scaling * self.budget_slack_var
-            ),
             sense=maximize,
             doc="Total Priority score minus scaled slack variable for unutilized budget",
         )
