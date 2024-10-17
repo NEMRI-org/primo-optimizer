@@ -134,7 +134,15 @@ def model_config() -> ConfigDict:
         ConfigValue(
             default=None,
             domain=InRange(0, 100),
-            doc="The minimum percent of the budget usage when the budget is insufficient for plugging all wells",
+            doc="The min percent of the budget usage when it is insufficient",
+        ),
+    )
+    config.declare(
+        "budget_slack_usage",
+        ConfigValue(
+            default=False,
+            domain=Bool,
+            doc="If True, the slack variable for the budget will be active",
         ),
     )
 
