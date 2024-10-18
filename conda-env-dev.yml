@@ -1,11 +1,10 @@
 name: primo
 channels:
-  - conda-forge
+  - defaults
   - gurobi
 dependencies:
-  - python >=3.9
+  - python ==3.12
   - pip
-  - scip >=9.1.0
   - gurobi
   - pip:
     - -r requirements-dev.txt
