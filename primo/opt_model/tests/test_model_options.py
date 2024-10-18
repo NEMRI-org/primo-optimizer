@@ -31,9 +31,12 @@ from primo.opt_model.result_parser import Campaign, Project
 
 LOGGER = logging.getLogger(__name__)
 
+# pylint: disable=missing-function-docstring
+
 
 @pytest.fixture(name="get_column_names", scope="function")
 def get_column_names_fixture():
+
     # Define impact metrics by creating an instance of ImpactMetrics class
     im_metrics = ImpactMetrics()
 
@@ -92,6 +95,9 @@ def get_column_names_fixture():
 
 
 def test_opt_model_inputs(get_column_names):
+    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-statements
+
     im_metrics, col_names, filename = get_column_names
 
     # Create the well data object
@@ -146,6 +152,7 @@ def test_opt_model_inputs(get_column_names):
         threshold_distance=10,
         max_wells_per_owner=1,
         min_budget_usage=50,
+        budget_slack_usage=True,
     )
 
     # Ensure that clustering is performed internally
@@ -154,7 +161,6 @@ def test_opt_model_inputs(get_column_names):
     opt_mdl_inputs.build_optimization_model()
     opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
     opt_mdl = opt_mdl_inputs.optimization_model
-    solver = opt_mdl_inputs.solver
 
     assert hasattr(opt_mdl_inputs, "config")
     assert "Clusters" in wd_gas  # Column is added after clustering
@@ -181,7 +187,7 @@ def test_opt_model_inputs(get_column_names):
     # assert isinstance(opt_campaign[1], dict)
 
     # Four or five projects are chosen in the optimal campaign
-    # TODO: Confirm degeneracy
+    # TODO: Confirm degeneracy # pylint: disable=fixme
     assert len(opt_campaign.projects) in [4, 5]
 
     # Test the structure of the optimization model
@@ -190,13 +196,11 @@ def test_opt_model_inputs(get_column_names):
     assert len(opt_mdl.cluster) == num_clusters
     assert isinstance(opt_mdl.cluster, IndexedClusterBlock)
     assert not hasattr(opt_mdl, "min_wells_in_dac_constraint")
-    assert hasattr(opt_mdl, "min_budget_usage_con")
     assert hasattr(opt_mdl, "max_well_owner_constraint")
-    assert hasattr(opt_mdl, "budget_constraint_slack")
     assert hasattr(opt_mdl, "total_priority_score")
 
-    # Check if the scaling factor for budget slack variable is correctly built
-    scaling_factor, budget_sufficient = opt_mdl.budget_slack_variable_scaling()
+    # Check if the scaling factor for unused budget variable is correctly built
+    scaling_factor, budget_sufficient = opt_mdl.unused_budget_variable_scaling()
     assert np.isclose(scaling_factor, 955.6699386511185)
     assert not budget_sufficient
 
@@ -219,7 +223,11 @@ def test_opt_model_inputs(get_column_names):
     assert opt_mdl.cluster[1].plugging_cost.domain == pe.NonNegativeReals
     assert opt_mdl.cluster[1].num_wells_chosen.domain == pe.NonNegativeReals
     assert opt_mdl.cluster[1].num_wells_dac.domain == pe.NonNegativeReals
-    assert opt_mdl.budget_slack_var.domain == pe.NonNegativeReals
+    # pylint: disable=no-member
+    assert opt_mdl.unused_budget.domain == pe.NonNegativeReals
+
+    # Check if upper bound of the unused budget is defined correctly
+    assert opt_mdl.unused_budget.upper is not None
 
     # Check if the required expressions are defined
     assert hasattr(opt_mdl.cluster[1], "cluster_priority_score")
@@ -318,16 +326,17 @@ def test_incremental_formulation(get_column_names):
     assert isinstance(opt_campaign.projects[1], Project)
     # assert isinstance(opt_campaign[1], dict)
 
-    # Test the structure of the optimization model
-    assert not hasattr(opt_mdl, "min_budget_usage_con")
-
     # Check if the scaling factor for budget slack variable is correctly built
-    _, budget_sufficient = opt_mdl.budget_slack_variable_scaling()
-    assert np.isclose(opt_mdl.slack_var_scaling.value, 0)
+    _, budget_sufficient = opt_mdl.unused_budget_variable_scaling()
+    # pylint: disable=no-member
+    assert np.isclose(opt_mdl.unused_budget_scaling.value, 0)
     assert not budget_sufficient
 
+    # Check if the upper bound of the unused budget is set
+    assert opt_mdl.unused_budget.upper is None
+
     # Four or five projects are chosen in the optimal campaign
-    # TODO: Confirm degeneracy
+    # TODO: Confirm degeneracy # pylint: disable=fixme
 
     assert len(opt_campaign.projects) in [4, 5]
 
@@ -340,7 +349,7 @@ def test_incremental_formulation(get_column_names):
     assert hasattr(opt_mdl.cluster[1], "ordering_num_wells_vars")
 
 
-def test_budget_slack_variable_scaling(get_column_names):
+def test_unused_budget_variable_scaling(get_column_names):
     im_metrics, col_names, filename = get_column_names
 
     # Create the well data object
@@ -365,11 +374,15 @@ def test_budget_slack_variable_scaling(get_column_names):
         threshold_distance=10,
         max_wells_per_owner=1,
         min_budget_usage=50,
+        budget_slack_usage=True,
     )
 
     opt_mdl = opt_mdl_inputs.build_optimization_model()
 
     # Check if the scaling factor for budget slack variable is correctly built
-    scaling_factor, budget_sufficient = opt_mdl.budget_slack_variable_scaling()
+    scaling_factor, budget_sufficient = opt_mdl.unused_budget_variable_scaling()
     assert np.isclose(scaling_factor, 105.71767887503083)
     assert budget_sufficient
+
+    # Check if the upper bound of the unused budget is set
+    assert opt_mdl.unused_budget.upper is None

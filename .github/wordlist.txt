@@ -47,9 +47,11 @@ datasets
 devnull
 dicts
 df
+docstring
 dtype
 dunder
 env
+fixme
 geopoint
 geospatial
 glpk
