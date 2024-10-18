@@ -990,8 +990,6 @@ class WellData:
         # Check if all the required columns for supported metrics are specified
         # If yes, register the name of the column containing the data in the
         # data_col_name attribute
-        # TODO: Combine the check_columns_available method with this method.# pylint: disable=fixme
-        # TODO: Check fill data consistency for ann_gas_production and # pylint: disable=fixme
         # ann_oil_production. See _categorize_gas_oil_wells method for details.
 
         for metric in self.config.impact_metrics:
