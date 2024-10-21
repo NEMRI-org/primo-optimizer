@@ -21,7 +21,8 @@ import pyomo.environ as pe
 import pytest
 
 # User-defined libs
-from primo.data_parser import ImpactMetrics, WellData, WellDataColumnNames
+from primo.data_parser import ImpactMetrics, WellDataColumnNames
+from primo.data_parser.well_data import WellData
 from primo.opt_model.model_options import OptModelInputs
 from primo.opt_model.model_with_clustering import (  # pylint: disable=no-name-in-module
     IndexedClusterBlock,
@@ -32,6 +33,7 @@ from primo.opt_model.result_parser import Campaign, Project
 LOGGER = logging.getLogger(__name__)
 
 
+# pylint: disable=missing-function-docstring
 @pytest.fixture(name="get_column_names", scope="function")
 def get_column_names_fixture():
     # Define impact metrics by creating an instance of ImpactMetrics class
@@ -91,7 +93,11 @@ def get_column_names_fixture():
     return im_metrics, col_names, data_file
 
 
+# pylint: disable=too-many-locals, too-many-statements
 def test_opt_model_inputs(get_column_names):
+    """
+    Tests opt_model_inputs
+    """
     im_metrics, col_names, filename = get_column_names
 
     # Create the well data object
@@ -154,7 +160,6 @@ def test_opt_model_inputs(get_column_names):
     opt_mdl_inputs.build_optimization_model()
     opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
     opt_mdl = opt_mdl_inputs.optimization_model
-    solver = opt_mdl_inputs.solver
 
     assert hasattr(opt_mdl_inputs, "config")
     assert "Clusters" in wd_gas  # Column is added after clustering

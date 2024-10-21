@@ -28,7 +28,6 @@ from primo.utils.solvers import check_optimal_termination, get_solver
 
 LOGGER = logging.getLogger(__name__)
 
-# pylint: disable = logging-fstring-interpolation
 # Ensure that census year is as recent as possible
 if datetime.date.today().year - CENSUS_YEAR > 10:
     LOGGER.warning(f"Package is using {CENSUS_YEAR} CENSUS Data by default")

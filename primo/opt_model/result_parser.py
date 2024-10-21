@@ -13,7 +13,6 @@
 
 # Standard libs
 import logging
-import sys
 from typing import List, Union
 
 # Installed libs
@@ -22,13 +21,14 @@ import numpy as np
 import pandas as pd
 
 # User-defined libs
-from primo.data_parser import EfficiencyMetrics, WellData
-from primo.utils.geo_utils import get_distance
-from primo.utils.kpi_utils import calculate_average, calculate_range
+from primo.data_parser import EfficiencyMetrics
+from primo.data_parser.well_data import WellData
+from primo.utils.kpi_utils import calculate_average
 
 LOGGER = logging.getLogger(__name__)
 
 
+# pylint: disable=too-many-instance-attributes
 class Project:
     """
     Class for storing optimal projects
@@ -102,7 +102,9 @@ class Project:
         Checks if a column exists
         """
         if col_name is None:
-            raise ValueError(f"The column is not in the welldatacolumns class")
+            raise ValueError(
+                f"The column: {col_name} is not in the welldatacolumns class"
+            )
 
     @property
     def num_wells_near_hospitals(self):
@@ -192,6 +194,13 @@ class Project:
         return calculate_average(self.well_data.data, self._col_names.dist_to_road)
 
     @property
+    def col_names(self):
+        """
+        Returns column names associated with project data
+        """
+        return self._col_names
+
+    @property
     def num_unique_owners(self):
         """
         Returns the number of well owners for a project
@@ -214,7 +223,8 @@ class Project:
     @property
     def accessibility_score(self):
         """
-        Returns the accessibility score and the total weight of the accessibility score for a project
+        Returns the accessibility score and the total weight of the accessibility
+        score for a project
         """
         names_attributes = [
             attribute_name
@@ -225,10 +235,8 @@ class Project:
             efficiency_score_name
             for efficiency_score_name in names_attributes
             if any(
-                [
-                    accessibility_score_name in efficiency_score_name
-                    for accessibility_score_name in self.accessibility_attr
-                ]
+                accessibility_score_name in efficiency_score_name
+                for accessibility_score_name in self.accessibility_attr
             )
         ]
         if len(names_attributes_accessibility) == 0:
@@ -321,7 +329,7 @@ class Campaign:
             f"The optimal campaign has {self.num_projects} projects.\n"
             f"The total cost of the campaign is ${round(self.total_plugging_cost)}\n\n"
         )
-        for id, project in self.projects.items():
+        for _, project in self.projects.items():
             msg += str(project)
             msg += "\n"
 
@@ -332,7 +340,7 @@ class Campaign:
         """
         Returns the total plugging cost of the campaign
         """
-        return sum([project.plugging_cost for _, project in self.projects.items()])
+        return sum(project.plugging_cost for _, project in self.projects.items())
 
     def get_max_value_across_all_projects(self, attribute: str) -> Union[float, int]:
         """
@@ -347,9 +355,7 @@ class Campaign:
             raise AttributeError(
                 "The project does not have the requested attribute: " + attribute
             )
-        return max(
-            [getattr(project, attribute) for _, project in self.projects.items()]
-        )
+        return max(getattr(project, attribute) for _, project in self.projects.items())
 
     def get_min_value_across_all_projects(self, attribute: str) -> Union[float, int]:
         """
@@ -365,9 +371,7 @@ class Campaign:
             raise AttributeError(
                 "The project does not have the requested attribute: " + attribute
             )
-        return min(
-            [getattr(project, attribute) for _, project in self.projects.items()]
-        )
+        return min(getattr(project, attribute) for _, project in self.projects.items())
 
     def get_max_value_across_all_wells(self, col_name: str) -> Union[float, int]:
         """
@@ -396,7 +400,7 @@ class Campaign:
         """
         Plots the projects of the campaign
 
-        Paramters
+        Parameters
         ---------
         title : str
             Title for the plot
@@ -420,8 +424,8 @@ class Campaign:
         ax = plt.gca()
         for _, project in self.projects.items():
             ax.scatter(
-                project.well_data[project._col_names.latitude],
-                project.well_data[project._col_names.longitude],
+                project.well_data[project.col_names.latitude],
+                project.well_data[project.col_names.longitude],
             )
         plt.title(title)
         plt.xlabel("x-coordinate of wells")
@@ -430,7 +434,7 @@ class Campaign:
 
     def get_project_well_information(self):
         """
-        Returns a dict of dataframes corresponding to each project containing essential data
+        Returns a dict of DataFrames corresponding to each project containing essential data
         """
         return {
             project.project_id: project.get_well_info_dataframe()
@@ -538,7 +542,7 @@ class Campaign:
         campaign_category : str
             The label for the category of the campaign (e.g., "oil", "gas")
         """
-        col_names = self.projects[1]._col_names
+        col_names = self.projects[1].col_names
         # the priority score must have been previously computed
         assert hasattr(col_names, "priority_score")
         columns_to_export = [
@@ -602,7 +606,7 @@ class Campaign:
         self.efficiency_calculator.compute_efficiency_scores()
 
 
-class EfficiencyCalculator(object):
+class EfficiencyCalculator:
     """
     A class to compute efficiency scores for projects.
     """
@@ -739,7 +743,7 @@ class EfficiencyCalculator(object):
         """
         Computes the overall efficiency score for all projects in a campaign
         """
-        for id, project in self.campaign.projects.items():
+        for _, project in self.campaign.projects.items():
             self.compute_overall_efficiency_scores_project(project)
 
     def compute_efficiency_scores(self):
@@ -768,6 +772,6 @@ def export_data_to_excel(
         A list of labels corresponding to the campaigns in the campaigns argument
     """
     excel_writer = pd.ExcelWriter(output_file_path, engine="xlsxwriter")
-    for i in range(len(campaigns)):
-        campaigns[i].export_data(excel_writer, campaign_categories[i])
+    for idx, campaign in enumerate(campaigns):
+        campaign.export_data(excel_writer, campaign_categories[idx])
     excel_writer.close()

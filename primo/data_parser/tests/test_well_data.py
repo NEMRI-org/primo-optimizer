@@ -21,7 +21,8 @@ import pandas as pd
 import pytest
 
 # User-defined libs
-from primo.data_parser import ImpactMetrics, WellData, WellDataColumnNames
+from primo.data_parser import ImpactMetrics, WellDataColumnNames
+from primo.data_parser.well_data import WellData
 
 LOGGER = logging.getLogger(__name__)
 

@@ -20,7 +20,8 @@ import pandas as pd
 import pytest
 
 # User-defined libs
-from primo.data_parser import WellData, WellDataColumnNames
+from primo.data_parser import WellDataColumnNames
+from primo.data_parser.well_data import WellData
 from primo.utils.clustering_utils import distance_matrix, perform_clustering
 
 
@@ -106,6 +107,9 @@ from primo.utils.clustering_utils import distance_matrix, perform_clustering
     ],
 )
 def test_distance_matrix(well_data, weight, result, status):
+    """
+    Tests for distance_matrix method
+    """
     well_df = pd.DataFrame(well_data)
     well_cn = WellDataColumnNames(
         well_id="Well API",
@@ -127,6 +131,9 @@ def test_distance_matrix(well_data, weight, result, status):
 
 
 def test_perform_clustering(caplog):
+    """
+    Tests for perform_clustering method
+    """
     filename = os.path.dirname(os.path.realpath(__file__))[:-12]  # Primo folder
     filename += "//data_parser//tests//random_well_data.csv"
 

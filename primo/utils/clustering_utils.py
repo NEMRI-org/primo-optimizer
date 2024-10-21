@@ -20,7 +20,7 @@ from haversine import Unit, haversine_vector
 from sklearn.cluster import AgglomerativeClustering
 
 # User-defined libs
-from primo.data_parser import WellData
+from primo.data_parser.well_data import WellData
 from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)

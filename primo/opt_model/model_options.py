@@ -29,9 +29,9 @@ from pyomo.common.config import (
 from pyomo.environ import SolverFactory
 
 # User-defined libs
-from primo.data_parser import WellData
+from primo.data_parser.well_data import WellData
 from primo.opt_model.model_with_clustering import PluggingCampaignModel
-from primo.utils import check_optimal_termination, get_solver
+from primo.utils import get_solver
 from primo.utils.clustering_utils import distance_matrix, perform_clustering
 from primo.utils.domain_validators import InRange, validate_mobilization_cost
 from primo.utils.raise_exception import raise_exception
@@ -134,7 +134,10 @@ def model_config() -> ConfigDict:
         ConfigValue(
             default=None,
             domain=InRange(0, 100),
-            doc="The minimum percent of the budget usage when the budget is insufficient for plugging all wells",
+            doc=(
+                "The minimum percent of the budget usage when the budget is"
+                "insufficient for plugging all wells"
+            ),
         ),
     )
 

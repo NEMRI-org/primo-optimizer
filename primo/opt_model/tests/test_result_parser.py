@@ -11,7 +11,6 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 # Standard libs
-import os
 
 # Installed libs
 import matplotlib.pyplot as plt
@@ -20,17 +19,13 @@ import pandas as pd
 import pytest
 
 # User-defined libs
-from primo.data_parser import WellData, WellDataColumnNames
+from primo.data_parser import WellDataColumnNames
 from primo.data_parser.metric_data import EfficiencyMetrics, ImpactMetrics
-from primo.opt_model.result_parser import (
-    Campaign,
-    EfficiencyCalculator,
-    Project,
-    export_data_to_excel,
-)
-from primo.utils.geo_utils import get_distance
+from primo.data_parser.well_data import WellData
+from primo.opt_model.result_parser import Campaign, export_data_to_excel
 
 
+# pylint: disable=missing-function-docstring
 @pytest.fixture
 def get_campaign():
     im_metrics = ImpactMetrics()
@@ -266,7 +261,7 @@ def get_eff_metrics_accessibility():
 
 
 def test_check_column_exists(get_project):
-    get_project._col_names.hospitals = None
+    get_project.col_names.hospitals = None
     with pytest.raises(ValueError):
         print(get_project.num_wells_near_hospitals)
 
@@ -292,7 +287,7 @@ def test_project_attributes(get_project):
     project.avg_dist_to_road == 1.5
     assert project.num_unique_owners == 2
     assert project.impact_score == 38.25
-    delattr(project._col_names, "priority_score")
+    delattr(project.col_names, "priority_score")
     with pytest.raises(AttributeError):
         project.impact_score == 2.0
 
@@ -310,7 +305,7 @@ def test_project_attributes_minimal(get_minimal_campaign):
 
 def test_max_val_col(get_project):
     project = get_project
-    assert project.get_max_val_col(project._col_names.age) == 2
+    assert project.get_max_val_col(project.col_names.age) == 2
 
 
 def test_update_efficiency_score(get_project):
@@ -383,14 +378,14 @@ def test_campaign_attributes(get_campaign):
     assert len(campaign.wd) == 6
     # already tested the project string function
     msg = (
-        f"The optimal campaign has 3 projects.\n"
-        f"The total cost of the campaign is $45000000\n\n"
+        "The optimal campaign has 3 projects.\n"
+        "The total cost of the campaign is $45000000\n\n"
     )
-    for id, project in campaign.projects.items():
+    for project in campaign.projects.values():
         msg += str(project)
         msg += "\n"
     assert str(campaign) == msg
-    assert campaign.efficiency_calculator.efficiency_weights == None
+    assert campaign.efficiency_calculator.efficiency_weights is None
 
 
 def test_get_max_value_across_all_projects(get_campaign):
@@ -421,7 +416,7 @@ def test_get_min_value_across_all_wells(get_campaign):
 # for now leaving the plotting out of the tests
 def test_get_project_well_information(get_campaign):
     info = get_campaign.get_project_well_information()
-    assert all([i in [1, 2, 3] for i in info.keys()])
+    assert all(i in [1, 2, 3] for i in info.keys())
     # already tested well_info_dataframe
 
 
@@ -510,10 +505,8 @@ def test_compute_efficiency_score_edge_cases(
     get_minimal_campaign.set_efficiency_weights(get_efficiency_metrics_minimal)
     get_minimal_campaign.efficiency_calculator.compute_efficiency_scores()
     assert all(
-        [
-            "num_wells_eff_score" not in entry
-            for entry in dir(get_minimal_campaign.projects[1])
-        ]
+        "num_wells_eff_score" not in entry
+        for entry in dir(get_minimal_campaign.projects[1])
     )
     with pytest.raises(ValueError):
         get_minimal_campaign.projects[1].avg_elevation_delta
@@ -620,11 +613,9 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
     assert len(efficiency_metric_output) == 3
 
     assert all(
-        [
-            list(efficiency_metric_output.iloc[0, :].values)[i]
-            == pytest.approx([1, 10.0, 18.0, 20.0, 0.0, 20][i])
-            for i in range(6)
-        ]
+        list(efficiency_metric_output.iloc[0, :].values)[i]
+        == pytest.approx([1, 10.0, 18.0, 20.0, 0.0, 20][i])
+        for i in range(6)
     )
     for _, project in campaign.projects.items():
         delattr(project, "avg_elevation_delta_eff_score_0_20")
@@ -641,11 +632,9 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
         for i in efficiency_metric_output.columns
     )
     assert all(
-        [
-            list(efficiency_metric_output.iloc[0, :].values)[i]
-            == pytest.approx([1, 10.0, 20.0, 0.0, 20][i])
-            for i in range(5)
-        ]
+        list(efficiency_metric_output.iloc[0, :].values)[i]
+        == pytest.approx([1, 10.0, 20.0, 0.0, 20][i])
+        for i in range(5)
     )
 
 
