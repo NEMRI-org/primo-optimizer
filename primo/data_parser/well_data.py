@@ -20,7 +20,6 @@ import pathlib
 from typing import Optional, Union
 
 # Installed libs
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 from pyomo.common.config import Bool, document_kwargs_from_configdict
@@ -32,9 +31,9 @@ from primo.data_parser.input_config import data_config
 from primo.data_parser.well_data_columns import WellDataColumnNames
 from primo.utils.census_utils import (
     get_cejst_data,
-    get_fips_code,
-    get_fips_part,
+    get_data_as_geodataframe,
     get_state_census_tracts,
+    identify_state,
 )
 from primo.utils.raise_exception import raise_exception
 
@@ -43,6 +42,7 @@ LOGGER = logging.getLogger(__name__)
 CONFIG = data_config()
 
 OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
+
 
 # pylint: disable=too-many-public-methods
 class WellData:
@@ -872,55 +872,19 @@ class WellData:
 
         LOGGER.info("Completed processing the essential inputs.")
 
-    def _get_state(self) -> str:
-        """
-        Attempts to infer the state for which the dataset belong.
-        Assumes that all data points belong to the same state and
-        we have at least one row of data
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        Two-digit code identifying the state for which the data belongs
-        """
-        wcn = self._col_names
-        lat = self.data[wcn.latitude].iloc[0]
-        long = self.data[wcn.longitude].iloc[0]
-        fips_code = get_fips_code(lat, long)
-        state = get_fips_part(fips_code, "STATE")
-        return state
-
-    def _convert_data_to_geodataframe(self) -> gpd.GeoDataFrame:
-        """
-        Returns a Geopandas GeoDataFrame object from well data
-        """
-        wcn = self._col_names
-        data = copy.deepcopy(self.data)
-        gdf = gpd.GeoDataFrame(
-            data,
-            geometry=gpd.points_from_xy(data[wcn.longitude], data[wcn.latitude]),
-            crs="EPSG:4326",
-        )
-        return gdf
-
     def _append_fed_dac_data(self):
         """Appends federal DAC data"""
         if len(self.data) == 0:
             # Nothing to do if no data
             return
 
-        state_code = self._get_state()
+        state_code = identify_state(self)
         census_tracts = get_state_census_tracts(state_code, DAC_TRACT_YEAR)
-        gdf = self._convert_data_to_geodataframe()
+        gdf = get_data_as_geodataframe(self)
 
         # Spatial join to identify tract id associated with every well
         # Per 2010 data
         gdf.sjoin(census_tracts, how="left", predicate="within")
-        self.data["Area Land"] = gdf["ALAND"]
-        self.data["Area Water"] = gdf["WATER"]
         self.data["Census Tract ID [2010]"] = gdf["GEOID"]
 
         cejst_data = get_cejst_data()
@@ -1010,8 +974,7 @@ class WellData:
         processes the DAC data
         """
         self._append_fed_dac_data()
-        metrics = self.config.impact_metrics
-        metric = [obj for obj in metrics if obj.name == "fed_dac"][0]
+        metric = self.config.impact_metrics.fed_dac
         weight = metric.effective_weight
         metric.data_col_name = "Disadvantaged Score"
         self.data[metric.score_col_name] = (

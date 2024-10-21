@@ -110,6 +110,52 @@ def get_census_key() -> str:
     return os.environ["CENSUS_KEY"]
 
 
+def identify_state(data) -> str:
+    """
+    Attempts to infer the state for which the dataset belong.
+    Assumes that all data points belong to the same state and
+    we have at least one row of data
+
+    Parameters
+    ----------
+    data : WellData
+        A well data object
+
+    Returns
+    -------
+    Two-digit code identifying the state for which the data belongs
+    """
+    wcn = data.col_names
+    lat = data.data[wcn.latitude].iloc[0]
+    long = data.data[wcn.longitude].iloc[0]
+    fips_code = get_fips_code(lat, long)
+    state = get_fips_part(fips_code, "STATE")
+    return state
+
+
+def get_data_as_geodataframe(data) -> gpd.GeoDataFrame:
+    """
+    Returns a Geopandas GeoDataFrame object from WellData Object
+
+    Parameters
+    ----------
+    data : WellData
+        Object containing relevant well data
+
+    Returns
+    -------
+    gpd.GeoDataFrame
+        A Geopandas GeoDataFrame object
+    """
+    wcn = data.col_names
+    gdf = gpd.GeoDataFrame(
+        data.data,
+        geometry=gpd.points_from_xy(data[wcn.longitude], data[wcn.latitude]),
+        crs="EPSG:4326",
+    )
+    return gdf
+
+
 def make_fips_code(
     state: str,
     county: Union[str, None] = None,
