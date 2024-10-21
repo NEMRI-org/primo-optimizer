@@ -83,6 +83,93 @@ def get_column_names_fixture():
     return filename, col_names
 
 
+@pytest.fixture(name="get_random_generator", scope="function")
+def get_random_generator_fixture():
+    """
+    Return a random generator with a known seed
+    """
+    return np.random.default_rng(42)
+
+
+@pytest.fixture(name="get_random_lat_long_bounds", scope="function")
+def get_random_lat_long_bounds_fixture():
+    """
+    Provides a block randomly selected across the continental US
+    """
+    return (37.5, 39.2, -81.6, -81.5)
+
+
+def test_dac_score(get_column_names, get_random_generator, get_random_lat_long_bounds):
+    """Test DAC score calculation"""
+
+    filename, col_names = get_column_names
+    im_metrics = ImpactMetrics()
+    im_metrics.set_weight(
+        primary_metrics={
+            "ch4_emissions": 20,
+            "dac_impact": 10,
+            "sensitive_receptors": 20,
+            "ann_production_volume": 20,
+            "well_age": 20,
+            "well_count": 10,
+        },
+        submetrics={
+            "ch4_emissions": {
+                "leak": 40,
+                "compliance": 30,
+                "violation": 20,
+                "incident": 10,
+            },
+            "dac_impact": {
+                "fed_dac": 100,
+            },
+            "sensitive_receptors": {
+                "schools": 50,
+                "hospitals": 50,
+            },
+            "ann_production_volume": {
+                "ann_gas_production": 50,
+                "ann_oil_production": 50,
+            },
+        },
+    )
+
+    wd = WellData(
+        data=filename,
+        column_names=col_names,
+        fill_age=99,
+        fill_depth=999,
+        fill_life_gas_production=1.5,
+        fill_life_oil_production=1.5,
+        threshold_gas_production=2,
+        threshold_oil_production=2,
+        impact_metrics=im_metrics,
+    )
+    with pytest.raises(
+        ValueError, match="FIPS code is of insufficient length to extract STATE"
+    ):
+        wd.compute_priority_scores()
+
+    df = pd.read_csv(filename)
+    rng = get_random_generator
+    bounds = get_random_lat_long_bounds
+    (long_lo, long_hi, lat_lo, lat_hi) = get_random_lat_long_bounds
+    df["x"] = rng.uniform(long_lo, long_hi, len(df))
+    df["y"] = rng.uniform(lat_lo, lat_hi, len(df))
+    wd = WellData(
+        data=df,
+        column_names=col_names,
+        fill_age=99,
+        fill_depth=999,
+        fill_life_gas_production=1.5,
+        fill_life_oil_production=1.5,
+        threshold_gas_production=2,
+        threshold_oil_production=2,
+        impact_metrics=im_metrics,
+    )
+    wd.compute_priority_scores()
+
+
 def test_well_data(caplog, get_column_names):
     """Returns well data from a csv file"""
 

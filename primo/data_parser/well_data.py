@@ -884,8 +884,8 @@ class WellData:
 
         # Spatial join to identify tract id associated with every well
         # Per 2010 data
-        gdf.sjoin(census_tracts, how="left", predicate="within")
-        self.data["Census Tract ID [2010]"] = gdf["GEOID"]
+        gdf = gdf.sjoin(census_tracts, how="left", predicate="within")
+        self.data["Census Tract ID [2010]"] = pd.to_numeric(gdf["GEOID10"])
 
         cejst_data = get_cejst_data()
         joined_data = self.data.merge(
@@ -906,6 +906,9 @@ class WellData:
             self.data["Percent area disadvantaged"]
             + self.data["Percent pop disadvantaged"]
         ) / 2
+
+        # Assume disadvantaged score of 0 for rows where value was not found
+        self.data["Disadvantaged Score"] = self.data["Disadvantaged Score"].fillna(0)
 
     def _set_metric(self, metrics: SetOfMetrics):
         """

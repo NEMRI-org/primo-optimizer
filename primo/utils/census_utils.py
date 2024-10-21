@@ -59,10 +59,22 @@ def get_state_census_tracts(state_code: str, census_year: int) -> gpd.GeoDataFra
     gpd.GeoDataFrame
         The census tract ids associated with the state
     """
-    url = (
-        f"https://www2.census.gov/geo/tiger/TIGER{census_year}/"
-        f"TRACT/tl_2020_{state_code}_tract.zip"
-    )
+    url = None
+    if census_year == 2020:
+        url = (
+            f"https://www2.census.gov/geo/tiger/TIGER2020/"
+            f"TRACT/tl_2020_{state_code}_tract.zip"
+        )
+    elif census_year == 2010:
+        url = (
+            f"https://www2.census.gov/geo/tiger/TIGER2010/"
+            f"TRACT/2010/tl_2010_{state_code}_tract10.zip"
+        )
+    else:
+        raise_exception(
+            f"Getting census tracts for census_year: {census_year} is not implemented",
+            ValueError,
+        )
     temp_path = tempfile.TemporaryFile().name
     extract_path = tempfile.TemporaryFile().name
     download_file(temp_path, url)
