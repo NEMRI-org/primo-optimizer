@@ -489,10 +489,10 @@ def test_compute_priority_scores(
     im_metrics.set_weight(
         primary_metrics={
             "ch4_emissions": 30,
-            "dac_impact": 5,
+            "dac_impact": 0,
             "sensitive_receptors": 20,
             "ann_production_volume": 20,
-            "well_age": 15,
+            "well_age": 20,
             "well_count": 10,
         },
         submetrics={
@@ -503,7 +503,7 @@ def test_compute_priority_scores(
                 "incident": 10,
             },
             "dac_impact": {
-                "fed_dac": 100,
+                "fed_dac": 0,
             },
             "sensitive_receptors": {
                 "schools": 50,
@@ -661,7 +661,7 @@ def test_compute_priority_scores(
     im_metrics.register_new_metric("my_metric", 5, "My Custom Metric")
     im_metrics.dac_impact.weight = 0
     im_metrics.fed_dac.weight = 0
-
+    im_metrics.well_age.weight = 15
     wd_df = pd.read_csv(
         filename, usecols=[col for col in col_names.values() if "Priority" not in col]
     )

@@ -14,8 +14,12 @@
 # Standard libs
 import logging
 import os
+import urllib.error
 import urllib.request
 import zipfile
+
+# User-defined libs
+from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,7 +73,8 @@ def download_file(local_path: str, url: str):
 
     try:
         urllib.request.urlretrieve(url, local_path)
-    except Exception as e:
-        LOGGER.error(
-            f"Failed to download from: {url} or save to: {local_path}" + str(e)
+    except urllib.error.HTTPError as e:
+        raise_exception(
+            f"Failed to download from: {url} or save to: {local_path}" + str(e),
+            RuntimeError,
         )
