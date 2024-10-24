@@ -885,7 +885,9 @@ class WellData:
         # Spatial join to identify tract id associated with every well
         # Per 2010 data
         gdf = gdf.sjoin(census_tracts, how="left", predicate="within")
-        self.data["Census Tract ID [2010]"] = pd.to_numeric(gdf["GEOID10"])
+        self.add_new_column_ordered(
+            "geoid", "Census Tract ID [2010]", pd.to_numeric(gdf["GEOID10"])
+        )
 
         cejst_data = get_cejst_data()
         joined_data = self.data.merge(
