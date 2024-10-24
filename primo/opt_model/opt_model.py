@@ -20,20 +20,26 @@ from typing import Dict, Union
 # Installed libs
 import numpy as np
 import pyomo.environ as pyo
-from gurobipy import GRB
+from gurobipy import GRB  # pylint: disable=no-name-in-module
+from pyomo.environ import check_optimal_termination
 
 # User-defined libs
 from primo.data_parser.data_model import OptInputs
 from primo.opt_model import FEASIBILITY_TOLERANCE
 from primo.opt_model.base_model import BaseModel
-from primo.utils import check_optimal_termination, get_solver
+from primo.utils import get_solver
 from primo.utils.opt_utils import budget_slack_variable_scaling, is_pyomo_model_feasible
 from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)
 
 
+# pylint: disable=super-init-not-called
 class OptModel(BaseModel):
+    """
+    Class that provides the attributes and methods for the optimization model.
+    """
+
     def __init__(
         self,
         model_name: str,
@@ -52,6 +58,7 @@ class OptModel(BaseModel):
         self.model_name = model_name
         self.model_inputs = model_inputs
         self.model = pyo.ConcreteModel()
+        self.budget_sufficient = None
         self._threshold = model_inputs.distance_threshold
         self._max_wells_per_owner = model_inputs.max_wells_per_owner
 
@@ -433,7 +440,7 @@ class OptModel(BaseModel):
 
         def budget_constraint_slack(model):
             """
-            Implements a constraint that calculates the unutilized
+            Implements a constraint that calculates the un-utilized
             amount of the available budget.
 
 
@@ -457,9 +464,9 @@ class OptModel(BaseModel):
 
         model.con_budget_slack = pyo.Constraint(
             rule=budget_constraint_slack,
-            doc="Calculate the unutilized amount of budget",
+            doc="Calculate the un-utilized amount of budget",
         )
-        LOGGER.info("Added a constraint to calculate the unutilized amount of budget")
+        LOGGER.info("Added a constraint to calculate the un-utilized amount of budget")
 
         if self.budget_sufficient is False:
 
@@ -492,7 +499,8 @@ class OptModel(BaseModel):
             )
 
         LOGGER.info(
-            "Added a constraint to ensure that at least 50 percent of the budget is used when the total budget is sufficient to plug all wells."
+            "Added a constraint to ensure that at least 50 percent of the \
+            budget is used when the total budget is sufficient to plug all wells."
         )
 
         LOGGER.info("Finished adding constraints")
@@ -638,15 +646,9 @@ class OptModel(BaseModel):
                 solver_obj.options["LazyConstraints"] = 1
                 solver_obj.set_callback(distance_callback)
 
-        if solver == "highs":
-            # Highs does not like the keepfiles and tee keywords
-            results = solver_obj.solve(self.model)
-        else:
-            results = solver_obj.solve(
-                self.model, keepfiles=keepfiles, tee=stream_output
-            )
+        results = solver_obj.solve(self.model, keepfiles=keepfiles, tee=stream_output)
 
-        if check_optimal_termination(results, solver):
+        if check_optimal_termination(results):
             return True
 
         # If solution is not proven optimal, let's check for feasibility

@@ -1,3 +1,5 @@
+# pylint: disable=missing-function-docstring
+# pylint: disable=missing-class-docstring
 """
 These checks are used by stagedfright to determine whether a staged file is cleared for commit 
 or not. The check suite should be optimized and optimized based on the features of the specific 
@@ -53,12 +55,13 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "primo/utils/geo_utils.py": 20,
     "primo/utils/kpi_utils.py": 7,
     "primo/utils/map_utils.py": 40,
-    "primo/utils/opt_utils.py": 5,
+    "primo/utils/opt_utils.py": 8,
     "primo/utils/override_utils.py": 8,
     "primo/utils/proximity_to_sensitive_receptors.py": 4,
     "primo/utils/proximity_utils.py": 5,
     "primo/utils/setup_arg_parser.py": 9,
     "primo/utils/setup_logger.py": 3,
+    "primo/utils/solvers.py": 3,
     "primo/utils/tests/test_config_utils.py": 67,
     "primo/utils/tests/test_clustering_utils.py": 41,
     "primo/utils/tests/test_demo_utils.py": 92,
@@ -69,7 +72,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "primo/utils/tests/test_kpi_utils.py": 118,
     "primo/utils/tests/test_logger.py": 3,
     "primo/utils/tests/test_map_utils.py": 124,
-    "primo/utils/tests/test_opt_utils.py": 55,
+    "primo/utils/tests/test_opt_utils.py": 61,
     "primo/utils/tests/test_proximity_utils.py": 26,
     "primo/utils/tests/test_secrets.py": 26,
     "primo/utils/welldata_clustering_functions.py": 14,

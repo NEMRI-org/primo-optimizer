@@ -159,7 +159,8 @@ def test_opt_model_inputs(get_column_names):
     assert "Clusters" in wd_gas
 
     opt_mdl_inputs.build_optimization_model()
-    opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
+    opt_campaign, opt_flag = opt_mdl_inputs.solve_model(solver="highs")
+    assert opt_flag == 1
     opt_mdl = opt_mdl_inputs.optimization_model
 
     assert hasattr(opt_mdl_inputs, "config")
@@ -320,8 +321,8 @@ def test_incremental_formulation(get_column_names):
     )
 
     opt_mdl = opt_mdl_inputs.build_optimization_model()
-    opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
-
+    opt_campaign, opt_flag = opt_mdl_inputs.solve_model(solver="highs")
+    assert opt_flag == 1
     assert isinstance(opt_mdl, PluggingCampaignModel)
     assert isinstance(opt_campaign, Campaign)
     assert isinstance(opt_campaign.projects[1], Project)
