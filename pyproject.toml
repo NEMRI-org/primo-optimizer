@@ -42,7 +42,7 @@ dependencies = [
     "kneed",
     "matplotlib",
     "notebook",
-    "numpy<=1.28",
+    "numpy",
     "openpyxl",
     "pandas",
     "pyarrow",

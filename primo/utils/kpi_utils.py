@@ -35,7 +35,8 @@ def _is_numeric_valid_column(
     column_name : str
         The column name for column under consideration
     estimation_method: str
-        "yes" if this being applied to a method that's estimating values, or "no" if it's anything else.
+        "yes" if this being applied to a method that's estimating values,
+        or "no" if it's anything else.
 
     Raises
     ------
@@ -114,7 +115,8 @@ def calculate_average(
     column_name: str
         The column name of the specified metric for calculation
     estimation_method: str
-        "yes" if this being applied to a method that's estimating values, or "no" if it's anything else
+        "yes" if this being applied to a method that's estimating values,
+        or "no" if it's anything else
 
     Returns
     -------
@@ -129,12 +131,12 @@ def calculate_average(
     """
     _is_numeric_valid_column(group, column_name, estimation_method)
 
-    # If all values in the column are NaN, a runtime warning is raised by np.nanmean
+    # If all values in the column are NaN, a run time warning is raised by np.nanmean
     col = np.abs(group[column_name])
     if pd.isna(col).all():
-        return np.NaN
-    else:
-        return np.nanmean(col)
+        return np.nan
+
+    return np.nanmean(col)
 
 
 def calculate_number_of_owners(group: pd.DataFrame) -> int:
@@ -159,6 +161,7 @@ def calculate_number_of_owners(group: pd.DataFrame) -> int:
     return len(set(group["Operator Name"]))
 
 
+# pylint: disable=too-many-locals
 def process_data(merged_df: pd.DataFrame, centroids: dict) -> pd.DataFrame:
     """
     Process the merged DataFrame to compute various statistics for each project.
