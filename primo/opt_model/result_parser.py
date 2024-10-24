@@ -102,9 +102,7 @@ class Project:
         Checks if a column exists
         """
         if col_name is None:
-            raise ValueError(
-                f"The column: {col_name} is not in the welldatacolumns class"
-            )
+            raise ValueError("The column is not in the welldatacolumns class")
 
     @property
     def num_wells_near_hospitals(self):

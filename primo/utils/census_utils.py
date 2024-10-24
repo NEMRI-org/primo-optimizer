@@ -595,11 +595,3 @@ class CensusClient:
 
         data = self.get(["NAME", "P1_001N"], "dec", "dhc", fips_code)
         return data.iloc[0]["P1_001N"]
-
-
-if __name__ == "__main__":
-    CENSUS_KEY = get_census_key()
-    CLIENT = CensusClient(CENSUS_KEY)
-    DATA = CLIENT.get(["NAME", "P1_001N"], "dec", "dhc", "42079216601")
-    TOTAL_POP = CLIENT.get_total_population(41, -76)
-    print(f"Total population from census tract for test point: {TOTAL_POP}")

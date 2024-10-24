@@ -894,21 +894,16 @@ class WellData:
             right_on="Census tract 2010 ID",
             how="left",
         )
-        self.data["Percent area disadvantaged"] = joined_data[
-            "Percentage of tract that is disadvantaged by area"
-        ]
 
-        self.data["Percent pop disadvantaged"] = joined_data[
-            "Percentage of tract that is disadvantaged by area"
-        ]
+        fed_dac_data = (
+            joined_data["Percentage of tract that is disadvantaged by area"]
+            + joined_data["Percentage of tract that is disadvantaged by area"]
+        )
 
-        self.data["Disadvantaged Score"] = (
-            self.data["Percent area disadvantaged"]
-            + self.data["Percent pop disadvantaged"]
-        ) / 2
+        self.add_new_column_ordered("fed_dac", "Federal DAC Data", fed_dac_data)
 
         # Assume disadvantaged score of 0 for rows where value was not found
-        self.data["Disadvantaged Score"] = self.data["Disadvantaged Score"].fillna(0)
+        self.fill_incomplete_data(self.col_names.fed_dac, 0, "fed_dac_flag")
 
     def _set_metric(self, metrics: SetOfMetrics):
         """
@@ -979,7 +974,7 @@ class WellData:
         self._append_fed_dac_data()
         metric = self.config.impact_metrics.fed_dac
         weight = metric.effective_weight
-        metric.data_col_name = "Disadvantaged Score"
+        metric.data_col_name = self.col_names.fed_dac
         self.data[metric.score_col_name] = (
             self.data[metric.data_col_name] * weight / 100
         )
