@@ -206,14 +206,15 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         self.pairwise_depth_difference = self._pairwise_matrix(metric="depth")
 
         # Construct owner well count data
-        operator_list = set(wd[col_names.operator_name])
-        self.owner_well_count = {owner: [] for owner in operator_list}
-        for well in wd:
-            # {Owner 1: [(c1, i2), (c1, i3), (c4, i7), ...], ...}
-            # Key => Owner name, Tuple[0] => cluster, Tuple[1] => index
-            self.owner_well_count[wd.data.loc[well, col_names.operator_name]].append(
-                (wd.data.loc[well, col_names.cluster], well)
-            )
+        if wd.config.ignore_operator_name:
+            operator_list = set(wd[col_names.operator_name])
+            self.owner_well_count = {owner: [] for owner in operator_list}
+            for well in wd:
+                # {Owner 1: [(c1, i2), (c1, i3), (c4, i7), ...], ...}
+                # Key => Owner name, Tuple[0] => cluster, Tuple[1] => index
+                self.owner_well_count[
+                    wd.data.loc[well, col_names.operator_name]
+                ].append((wd.data.loc[well, col_names.cluster], well))
 
         # NOTE: Attributes _opt_model and _solver are defined in
         # build_optimization_model and solve_model methods, respectively.
