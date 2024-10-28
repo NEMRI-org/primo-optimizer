@@ -15,10 +15,7 @@
 import logging
 
 # Installed libs
-from pyomo.contrib.appsi.base import TerminationCondition
-from pyomo.contrib.appsi.solvers import Highs
 from pyomo.environ import SolverFactory
-from pyomo.environ import check_optimal_termination as pyo_opt_term
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +25,7 @@ def get_solver(
     stream_output=True,
     mip_gap=0.01,
     time_limit=10000,
-    solver_options={},
+    solver_options=None,
 ):
     """
     Returns a solver object. A few open-source solvers can be installed using conda.
@@ -65,8 +62,12 @@ def get_solver(
         If an unrecognized solver is provided as an input.
         Supported solvers include glpk, gurobi, gurobi_persistent, highs, and scip
     """
+
+    if solver_options is None:
+        solver_options = {}
+
     if solver == "highs":
-        sol_obj = Highs()
+        sol_obj = SolverFactory("appsi_highs")
         sol_obj.config.stream_solver = stream_output
         sol_obj.config.mip_gap = mip_gap
         sol_obj.config.time_limit = time_limit
@@ -102,40 +103,3 @@ def get_solver(
         return sol_obj
 
     raise ValueError(f"Solver {solver} is not recognized!")
-
-
-def check_optimal_termination(results, solver):
-    """
-    Checks if the solver found the optimal solution or not.
-
-    Parameters
-    ----------
-    results : Pyomo results object
-
-    solver : str
-        Solver used to solve the MIP
-
-    Returns
-    -------
-    bool :
-        True, if optimal solution is found; False, otherwise.
-
-    Raises
-    ------
-    ValueError
-        If an unrecognized solver is provided as an input.
-        Supported solvers include highs, gurobi, scip, and glpk
-    """
-
-    if solver in ["glpk", "gurobi", "gurobi_persistent", "scip"]:
-        # This works for Gurobi, SCIP, and GLPK, but not for HiGHS
-        return pyo_opt_term(results)
-
-    if solver == "highs":
-        # This part works for HiGHS
-        if results.termination_condition == TerminationCondition.optimal:
-            return True
-
-        return False
-
-    raise ValueError(f"Solver {solver} is not recognized")

@@ -18,6 +18,8 @@ from typing import Dict, Tuple, Union
 # Installed libs
 import numpy as np
 import pyomo.environ as pyo
+from pyomo.environ import check_optimal_termination
+from pyomo.opt import SolverResults, SolverStatus, TerminationCondition
 
 LOGGER = logging.getLogger(__name__)
 
@@ -99,6 +101,7 @@ def in_bounds(
     return True
 
 
+# pylint: disable=too-many-branches
 def is_pyomo_model_feasible(model: pyo.ConcreteModel, tol: float) -> bool:
     """
     Checks whether a Pyomo model solution is feasible subject to a tolerance.
@@ -167,6 +170,7 @@ def is_pyomo_model_feasible(model: pyo.ConcreteModel, tol: float) -> bool:
     return True
 
 
+# pylint: disable=fixme
 # TODO: delete this function after the demo notebook has been fully updated
 def budget_slack_variable_scaling(
     model_inputs: object, objective_weights: Dict[str, float]
@@ -187,7 +191,8 @@ def budget_slack_variable_scaling(
     -------
     Tuple
         A tuple containing: the scaling factor for the budget slack variable;
-        a boolean indicating whether the budget is sufficient to plug all wells (True) or not (False).
+        a boolean indicating whether the budget is sufficient
+        to plug all wells (True) or not (False).
 
     """
     # estimate the maximum number of wells can be plugged with the budget.
@@ -211,3 +216,46 @@ def budget_slack_variable_scaling(
         ) / model_inputs.budget
         budget_sufficient = True
     return scaling_budget_slack, budget_sufficient
+
+
+class OptimizationException(Exception):
+    """Exception for the optimization"""
+
+
+def optimization_results_handler(results: SolverResults, model: pyo.ConcreteModel):
+    """
+    A function to handle the various results returned by an optimization solve
+
+    Parameters
+    ----------
+    results : SolverResults
+        Result of an optimization solve
+
+    model : pyo.ConcreteModel
+        Pyomo model being solved
+
+    Returns
+    -------
+        1 : Optimal termination
+        2 : Feasible sub-optimal termination
+
+    Raises
+    ------
+    Exception
+        if the solver doesn't optimally terminate, raise the error
+    """
+    if check_optimal_termination(results):
+        return 1
+
+    # feasible solution - couldn't find a suitable test
+    if (
+        results.solver.status == SolverStatus.ok
+        and not results.solver.termination_condition == TerminationCondition.other
+    ):
+        LOGGER.warning("Loading a feasible, but sub-optimal solution")
+        model.solutions.load_from(results)
+        return 2
+
+    raise OptimizationException(
+        "Optimization did not terminate feasibly or optimally", results
+    )

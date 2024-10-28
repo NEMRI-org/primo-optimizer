@@ -31,7 +31,7 @@ from pyomo.environ import SolverFactory
 # User-defined libs
 from primo.data_parser import WellData
 from primo.opt_model.model_with_clustering import PluggingCampaignModel
-from primo.utils import get_solver
+from primo.utils import get_solver, optimization_results_handler
 from primo.utils.clustering_utils import distance_matrix, perform_clustering
 from primo.utils.domain_validators import InRange, validate_mobilization_cost
 from primo.utils.raise_exception import raise_exception
@@ -314,7 +314,9 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             solver.set_gurobi_param("PoolSolutions", pool_size)
 
         # Solve the optimization problem
-        solver.solve(self._opt_model)
+        results = solver.solve(self._opt_model)
+
+        optimality_flag = optimization_results_handler(results, self._opt_model)
 
         # Return the solution pool, if it is requested
         if solver_name == "gurobi_persistent" and pool_search_mode == 2:
@@ -322,4 +324,4 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             return self._opt_model.get_solution_pool(self._solver)
 
         # In all other cases, return the optimal campaign
-        return self._opt_model.get_optimal_campaign()
+        return self._opt_model.get_optimal_campaign(), optimality_flag
