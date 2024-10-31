@@ -899,7 +899,7 @@ class WellData:
         fed_dac_data = (
             joined_data["Percentage of tract that is disadvantaged by area"]
             + joined_data["Percentage of tract that is disadvantaged by area"]
-        )
+        ) / 2
 
         self.add_new_column_ordered("fed_dac", "Federal DAC Data", fed_dac_data)
 
