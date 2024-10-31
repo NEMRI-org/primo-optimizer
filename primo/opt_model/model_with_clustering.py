@@ -307,6 +307,8 @@ class PluggingCampaignModel(ConcreteModel):
     Builds the optimization model
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, model_inputs, *args, **kwargs):
         """
         Builds the optimization model for identifying the set of projects that
@@ -330,40 +332,31 @@ class PluggingCampaignModel(ConcreteModel):
             mutable=True,
             doc="Total budget available [Million USD]",
         )
-        scaling_factor, budget_sufficient = self.budget_slack_variable_scaling()
-        self.slack_var_scaling = Param(
-            initialize=scaling_factor,
+
+        self.unused_budget_scaling = Param(
+            initialize=0,
             mutable=True,
             within=NonNegativeReals,
-            doc="Budget slack variable coefficient in the objective function",
+            doc="Unused budget variable scaling factor in the objective function",
+        )
+
+        self.unused_budget = Var(
+            within=NonNegativeReals,
+            doc="The unutilized amount of total budget",
         )
 
         # Define essential variables and constraints for each cluster
+        # pylint: disable=undefined-variable
         self.cluster = ClusterBlock(self.set_clusters, rule=build_cluster_model)
-
-        # Define slack variable for unutilized budget
-        self.budget_slack_var = Var(
-            within=NonNegativeReals,
-            doc="Slack variable for the unutilized amount of total budget",
-        )
 
         # Add total budget constraint
         self.total_budget_constraint = Constraint(
             expr=(
-                sum(self.cluster[c].plugging_cost for c in self.set_clusters)
-                <= self.total_budget
-            ),
-            doc="Total cost of plugging must be within the total budget",
-        )
-
-        # Add a constraint to calculate the unutilized amount of budget
-        self.budget_constraint_slack = Constraint(
-            expr=(
                 self.total_budget
                 - sum(self.cluster[c].plugging_cost for c in self.set_clusters)
-                <= self.budget_slack_var
+                == self.unused_budget
             ),
-            doc="Calculate the unutilized amount of budget",
+            doc="Total cost of plugging must be within the total budget",
         )
 
         # Add optional constraints:
@@ -380,11 +373,17 @@ class PluggingCampaignModel(ConcreteModel):
         if model_inputs.config.max_wells_per_owner is not None:
             self.add_owner_well_count()
 
+        scaling_factor, budget_sufficient = self._unused_budget_variable_scaling()
         if model_inputs.config.min_budget_usage is not None:
-            if budget_sufficient is False:
+            if budget_sufficient:
+                LOGGER.warning(
+                    "Ignoring min_budget_usage as the total_budget is sufficient to plug all wells."
+                )
+            else:
                 self.add_min_budget_usage()
-        else:
-            self.slack_var_scaling = 0
+
+        if model_inputs.config.penalize_unused_budget:
+            self.unused_budget_scaling = scaling_factor
 
         # Append the objective function
         self.append_objective()
@@ -423,18 +422,17 @@ class PluggingCampaignModel(ConcreteModel):
 
     def add_min_budget_usage(self):
         """
-        Implements a constraint to ensure at least 50% of the
-        budget is used when the budget is sufficient to
-        plug all wells.
+        Implements an upper bound on the unused budget to ensure that at
+        least the specified percentage of the budget is utilized.
         """
-        min_percent = self.model_inputs.config.min_budget_usage / 100
-        self.min_budget_usage_con = Constraint(
-            expr=(
-                sum(self.cluster[c].plugging_cost for c in self.set_clusters)
-                >= min_percent * self.total_budget
-            ),
-            doc="Enforces a minimum budget usage",
-        )
+
+        max_unused_budget = (
+            1 - self.model_inputs.config.min_budget_usage / 100
+        ) * self.total_budget
+
+        # Define upper bound for unutilized budget
+        # pylint: disable=no-member
+        self.unused_budget.setub(max_unused_budget)
 
     def append_objective(self):
         """
@@ -443,13 +441,13 @@ class PluggingCampaignModel(ConcreteModel):
         self.total_priority_score = Objective(
             expr=(
                 sum(self.cluster[c].cluster_priority_score for c in self.set_clusters)
-                - self.slack_var_scaling * self.budget_slack_var
+                - self.unused_budget_scaling * self.unused_budget
             ),
             sense=maximize,
             doc="Total Priority score minus scaled slack variable for unutilized budget",
         )
 
-    def budget_slack_variable_scaling(self):
+    def _unused_budget_variable_scaling(self):
         """
         Check whether the budget is sufficient to plug all wells and
         calculate the scaling factor for the budget slack variable based on the
@@ -512,9 +510,9 @@ class PluggingCampaignModel(ConcreteModel):
         ----------
         solver : Pyomo solver object
         """
-        pm = self  # This is the pyomo model
+        pm = self  # This is the Pyomo model
         # pylint: disable=protected-access
-        gm = solver._solver_model  # This is the gurobipy model
+        gm = solver._solver_model  # This is the Gurobipy model
         # Get Pyomo var to Gurobipy var map.
         # Gurobi vars can be accessed as pm_to_gm[<pyomo var>]
         pm_to_gm = solver._pyomo_var_to_solver_var_map

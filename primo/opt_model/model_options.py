@@ -134,9 +134,17 @@ def model_config() -> ConfigDict:
         ConfigValue(
             default=None,
             domain=InRange(0, 100),
+            doc="Minimum percentage of the total budget to be used for plugging",
+        ),
+    )
+    config.declare(
+        "penalize_unused_budget",
+        ConfigValue(
+            default=False,
+            domain=Bool,
             doc=(
-                "The minimum percent of the budget usage when the budget is"
-                "insufficient for plugging all wells"
+                "If True, unused budget will be penalized in the objective function\n"
+                "with suitably chosen weight factor"
             ),
         ),
     )

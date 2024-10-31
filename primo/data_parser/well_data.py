@@ -44,7 +44,7 @@ CONFIG = data_config()
 OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
 
 
-# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-lines, too-many-public-methods
 class WellData:
     """
     Reads, processes, and analyzes well data.
@@ -668,7 +668,7 @@ class WellData:
             return
 
         # Ensure the required columns are present in the DataFrame
-        # FIXME: This value is being accepted as input at two different locations.
+        # FIXME: This value is being accepted as input at two different locations. # pylint: disable=fixme
         #   Value-check is added in the assess_supported_metrics method for now.
         if wcn.ann_gas_production in self and wcn.ann_oil_production in self:
             self.fill_incomplete_data(
@@ -822,26 +822,25 @@ class WellData:
         self.drop_incomplete_data(col_name=wcn.longitude, dict_key="longitude")
 
         # Drop wells if the operator name is not available
+        unknown_owner = []
         if self.config.ignore_operator_name:
             LOGGER.info("Checking if the operator name is available for all wells.")
             self.drop_incomplete_data(
                 col_name=wcn.operator_name, dict_key="operator_name"
             )
+            # Sometimes owner_name is listed as unknown. Remove those as well
+            for row in self:
+                if self.data.loc[row, wcn.operator_name].lower() == "unknown":
+                    unknown_owner.append(row)
 
-        # Sometimes owner_name is listed as unknown. Remove those as well
-        unknown_owner = []
-        for row in self:
-            if self.data.loc[row, wcn.operator_name].lower() == "unknown":
-                unknown_owner.append(row)
-
-        if self.config.ignore_operator_name and len(unknown_owner) > 0:
-            LOGGER.warning(
-                "Owner name for some wells is listed as unknown."
-                "Treating these wells as if the owner name is not provided, "
-                "so removing them from the dataset."
-            )
-            self.data = self.data.drop(unknown_owner)
-            self._removed_rows["unknown_owner"] = unknown_owner
+            if len(unknown_owner) > 0:
+                LOGGER.warning(
+                    "Owner name for some wells is listed as unknown."
+                    "Treating these wells as if the owner name is not provided, "
+                    "so removing them from the dataset."
+                )
+                self.data = self.data.drop(unknown_owner)
+                self._removed_rows["unknown_owner"] = unknown_owner
 
         # Check if age data is available, and calculate it if it is missing
         LOGGER.info("Checking if age of all wells is available.")
@@ -1032,8 +1031,6 @@ class WellData:
         # Check if all the required columns for supported metrics are specified
         # If yes, register the name of the column containing the data in the
         # data_col_name attribute
-        # TODO: Combine the check_columns_available method with this method.
-        # TODO: Check fill data consistency for ann_gas_production and
         # ann_oil_production. See _categorize_gas_oil_wells method for details.
 
         for metric in self.config.impact_metrics:
