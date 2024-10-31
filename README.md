@@ -11,7 +11,6 @@ Emissions Reduction Initiative (NEMRI).
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/primo-optimizer.svg)](https://pypi.org/project/primo-optimizer/)
 [![Pypi](https://img.shields.io/pypi/v/primo-optimizer)](https://pypi.org/project/primo-optimizer/)
 [![Checks](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/checks.yml/badge.svg)](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/checks.yml)
-[![Demo](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/demo.yml/badge.svg)](https://github.com/NEMRI-org/primo-optimizer/actions/workflows/demo.yml)
 [![codecov](https://codecov.io/gh/NEMRI-org/primo-optimizer/graph/badge.svg?token=2T6L5J8C3P)](https://codecov.io/gh/NEMRI-org/primo-optimizer)
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
