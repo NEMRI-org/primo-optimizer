@@ -352,9 +352,9 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             for new_cluster, wells in new_clusters.items():
                 for well in wells:
                     self.campaign_candidates[new_cluster].append(well)
-                    self.config.well_data.data.loc[
-                        well, col_names.cluster
-                    ] = new_cluster
+                    self.config.well_data.data.loc[well, col_names.cluster] = (
+                        new_cluster
+                    )
                     self.owner_well_count[
                         wd.data.loc[well, col_names.operator_name]
                     ].append((new_cluster, well))
