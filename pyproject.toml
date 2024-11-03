@@ -31,7 +31,6 @@ description = "PRIMO - The P&A Project Optimizer"
 dependencies = [
     "appengine-python-standard",
     "censusgeocode",
-    "fast_autocomplete[levenshtein]",
     "folium",
     "geopandas",
     "highspy",
@@ -42,7 +41,7 @@ dependencies = [
     "kneed",
     "matplotlib",
     "notebook",
-    "numpy<=1.28",
+    "numpy",
     "openpyxl",
     "pandas",
     "pyarrow",

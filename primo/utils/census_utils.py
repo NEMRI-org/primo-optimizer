@@ -76,6 +76,8 @@ def get_state_census_tracts(state_code: str, census_year: int) -> gpd.GeoDataFra
             ValueError,
         )
     # pylint: disable=consider-using-with
+    # Disabling this is necessary as unzip_file seems to run into issues with temp
+    # paths
     temp_path = tempfile.NamedTemporaryFile().name
     extract_path = tempfile.NamedTemporaryFile().name
     download_file(temp_path, url)
@@ -98,6 +100,7 @@ def get_cejst_data() -> pd.DataFrame:
         DataFrame containing the Climate and Economic Justice Screening Tool Data
     """
     # pylint: disable=consider-using-with
+    # Disabling this is necessary as pd.read_csv seems to run into issues with temp path
     temp_path = tempfile.NamedTemporaryFile().name
     url = (
         "https://static-data-screeningtool.geoplatform.gov/data-versions/"

@@ -1,5 +1,6 @@
 Bing
 Bool
+BoundedIntText
 Combobox
 ConcreteModel
 CheckBoxWidget
@@ -19,6 +20,7 @@ Jupyter
 LLC
 Mcf
 Namespace
+NaN
 Pyomo
 Pytest
 Quickstart
@@ -29,6 +31,7 @@ Submetric
 Submetrics
 Uncomment
 USD
+Vbox
 arg
 argparse
 astype
@@ -63,8 +66,10 @@ ipywidgets
 iterable
 json
 libs
+monkeypatch
 msg
 multicommodity
+nanmean
 ndarray
 np
 num

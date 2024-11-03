@@ -199,6 +199,13 @@ class Project:
         return self._col_names
 
     @property
+    def essential_cols(self):
+        """
+        Returns the minimal essential/necessary cols associated with a project
+        """
+        return self._essential_cols
+
+    @property
     def num_unique_owners(self):
         """
         Returns the number of well owners for a project
@@ -308,14 +315,15 @@ class Campaign:
         # for now include a pointer to well data, so that I have column names
         self.wd = wd
         self.projects = {}
+        self.clusters_dict = clusters_dict
 
         index = 1
-        for cluster, wells in clusters_dict.items():
-            self.projects[index] = Project(
+        for cluster, wells in self.clusters_dict.items():
+            self.projects[cluster] = Project(
                 wd=wd,
                 index=wells,
                 plugging_cost=plugging_cost[cluster],
-                project_id=index,
+                project_id=cluster,
             )
             index += 1
 
@@ -472,10 +480,10 @@ class Campaign:
         # TODO What to do with single well projects
 
         project_column = [project.project_id for _, project in self.projects.items()]
-
+        first_key = list(self.projects.keys())[0]
         names_attributes = [
             attribute_name
-            for attribute_name in dir(self.projects[1])
+            for attribute_name in dir(self.projects[first_key])
             if "eff_score" in attribute_name
         ]
 
@@ -489,7 +497,7 @@ class Campaign:
             for attr in names_attributes
         ]
 
-        if self.projects[1].accessibility_score is not None:
+        if self.projects[first_key].accessibility_score is not None:
             # accessibility score
             total_weights, accessibility_data = map(
                 list,
@@ -540,7 +548,8 @@ class Campaign:
         campaign_category : str
             The label for the category of the campaign (e.g., "oil", "gas")
         """
-        col_names = self.projects[1].col_names
+        first_key = list(self.projects.keys())[0]
+        col_names = self.projects[first_key].col_names
         # the priority score must have been previously computed
         assert hasattr(col_names, "priority_score")
         columns_to_export = [

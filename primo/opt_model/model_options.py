@@ -206,14 +206,15 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         self.pairwise_depth_difference = self._pairwise_matrix(metric="depth")
 
         # Construct owner well count data
-        operator_list = set(wd[col_names.operator_name])
-        self.owner_well_count = {owner: [] for owner in operator_list}
-        for well in wd:
-            # {Owner 1: [(c1, i2), (c1, i3), (c4, i7), ...], ...}
-            # Key => Owner name, Tuple[0] => cluster, Tuple[1] => index
-            self.owner_well_count[wd.data.loc[well, col_names.operator_name]].append(
-                (wd.data.loc[well, col_names.cluster], well)
-            )
+        if wd.config.ignore_operator_name:
+            operator_list = set(wd[col_names.operator_name])
+            self.owner_well_count = {owner: [] for owner in operator_list}
+            for well in wd:
+                # {Owner 1: [(c1, i2), (c1, i3), (c4, i7), ...], ...}
+                # Key => Owner name, Tuple[0] => cluster, Tuple[1] => index
+                self.owner_well_count[
+                    wd.data.loc[well, col_names.operator_name]
+                ].append((wd.data.loc[well, col_names.cluster], well))
 
         # NOTE: Attributes _opt_model and _solver are defined in
         # build_optimization_model and solve_model methods, respectively.
@@ -275,10 +276,10 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             for cluster, well_list in self.campaign_candidates.items()
         }
 
-    def build_optimization_model(self):
+    def build_optimization_model(self, override_dict=None):
         """Builds the optimization model"""
         LOGGER.info("Beginning to construct the optimization model.")
-        self._opt_model = PluggingCampaignModel(self)
+        self._opt_model = PluggingCampaignModel(self, override_dict)
         LOGGER.info("Completed the construction of the optimization model.")
         return self._opt_model
 
@@ -322,3 +323,41 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
 
         # In all other cases, return the optimal campaign
         return self._opt_model.get_optimal_campaign()
+
+    def update_cluster(self, add_widget_return):
+        """
+        Updates the campaign candidates by changing the cluster numbers for specific wells.
+
+        Parameters
+        ---------
+        add_widget_return : OverrideAddInfo
+            An OverrideAddInfo object which includes information on wells selected to add
+            to the existing optimal P&A projects
+        """
+        existing_clusters = add_widget_return.existing_clusters
+        new_clusters = add_widget_return.new_clusters
+        wd = self.config.well_data
+        col_names = wd.col_names
+
+        if existing_clusters != new_clusters:
+            # Remove wells from existing clusters and update owner well counts
+            for existing_cluster, existing_wells in existing_clusters.items():
+                for well in existing_wells:
+                    self.campaign_candidates[existing_cluster].remove(well)
+                    self.owner_well_count[
+                        wd.data.loc[well, col_names.operator_name]
+                    ].remove((existing_cluster, well))
+
+            # Add wells to new clusters and update the well data and owner well counts
+            for new_cluster, wells in new_clusters.items():
+                for well in wells:
+                    self.campaign_candidates[new_cluster].append(well)
+                    self.config.well_data.data.loc[
+                        well, col_names.cluster
+                    ] = new_cluster
+                    self.owner_well_count[
+                        wd.data.loc[well, col_names.operator_name]
+                    ].append((new_cluster, well))
+
+            # Update pairwise distances based on the new well data
+            self.pairwise_distance = self._pairwise_matrix(metric="distance")

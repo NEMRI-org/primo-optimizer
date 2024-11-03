@@ -26,8 +26,8 @@ from primo.opt_model.result_parser import Campaign, export_data_to_excel
 
 
 # pylint: disable=missing-function-docstring
-@pytest.fixture
-def get_campaign():
+@pytest.fixture(name="get_campaign", scope="function")
+def get_campaign_fixture():
     im_metrics = ImpactMetrics()
 
     # Specify weights
@@ -124,8 +124,8 @@ def get_campaign():
     return Campaign(well_data, {2: [0, 1], 3: [2, 3], 4: [4, 5]}, {2: 10, 3: 15, 4: 20})
 
 
-@pytest.fixture
-def get_minimal_campaign():
+@pytest.fixture(name="get_minimal_campaign", scope="function")
+def get_minimal_campaign_fixture():
     im_metrics = ImpactMetrics()
 
     # Specify weights
@@ -218,13 +218,13 @@ def get_minimal_campaign():
     return Campaign(well_data, {1: [0, 1], 2: [2, 3], 3: [4]}, {1: 10, 2: 15, 3: 20})
 
 
-@pytest.fixture
-def get_project(get_campaign):
-    return get_campaign.projects[1]
+@pytest.fixture(name="get_project", scope="function")
+def get_project_fixture(get_campaign):
+    return get_campaign.projects[2]
 
 
-@pytest.fixture
-def get_eff_metrics():
+@pytest.fixture(name="get_eff_metrics", scope="function")
+def get_eff_metrics_fixture():
     eff_metrics = EfficiencyMetrics()
     eff_metrics.set_weight(
         primary_metrics={
@@ -241,8 +241,8 @@ def get_eff_metrics():
     return eff_metrics
 
 
-@pytest.fixture
-def get_eff_metrics_accessibility():
+@pytest.fixture(name="get_eff_metrics_accessibility", scope="function")
+def get_eff_metrics_accessibility_fixture():
     eff_metrics = EfficiencyMetrics()
     eff_metrics.set_weight(
         primary_metrics={
@@ -272,7 +272,7 @@ def test_project_attributes(get_project):
     for index in project:
         assert index in project.well_data.data.index
     assert len(project.well_data.data) == 2
-    assert project.project_id == 1
+    assert project.project_id == 2
     assert project.num_wells == 2
     assert project.plugging_cost == 10e6
     assert project.efficiency_score == 0
@@ -284,12 +284,12 @@ def test_project_attributes(get_project):
     assert project.depth_range == 1
     assert project.avg_elevation_delta == 1.5
     assert project.centroid == (0.999885, 1.954185)
-    project.avg_dist_to_road == 1.5
+    assert project.avg_dist_to_road == 1.5
     assert project.num_unique_owners == 2
     assert project.impact_score == 38.25
     delattr(project.col_names, "priority_score")
     with pytest.raises(AttributeError):
-        project.impact_score == 2.0
+        project.impact_score += 2.0
 
 
 def test_project_attributes_minimal(get_minimal_campaign):
@@ -297,10 +297,10 @@ def test_project_attributes_minimal(get_minimal_campaign):
 
     # checking for missing attributes
     with pytest.raises(ValueError):
-        project.avg_dist_to_road
+        print(project.avg_dist_to_road)
 
     with pytest.raises(ValueError):
-        project.avg_elevation_delta
+        print(project.avg_elevation_delta)
 
 
 def test_max_val_col(get_project):
@@ -320,10 +320,10 @@ def test_update_efficiency_score(get_project):
 def test_get_well_info_data_frame(get_project):
     project = get_project
     well_data = project.get_well_info_dataframe()
-    for col in project._essential_cols:
+    for col in project.essential_cols:
         assert col in well_data.columns
     assert (
-        "Violation [Yes/No]" == project._col_names.violation
+        "Violation [Yes/No]" == project.col_names.violation
         and "Violation [Yes/No]" not in well_data.columns
     )
     assert len(well_data) == 2
@@ -337,7 +337,7 @@ def test_compute_accessibility_score(get_campaign, get_eff_metrics_accessibility
     )
     get_campaign.set_efficiency_weights(get_eff_metrics_accessibility)
     get_campaign.efficiency_calculator.compute_efficiency_scores()
-    project = get_campaign.projects[1]
+    project = get_campaign.projects[2]
     assert project.accessibility_score == (
         30,
         pytest.approx((6 - 1.5) / 5 * 20 + (6 - 1.5) / 5 * 10),
@@ -354,7 +354,7 @@ def test_compute_accessibility_score_2(get_campaign, get_eff_metrics):
     )
     get_campaign.set_efficiency_weights(get_eff_metrics)
     get_campaign.efficiency_calculator.compute_efficiency_scores()
-    project = get_campaign.projects[1]
+    project = get_campaign.projects[2]
     assert project.accessibility_score == (20, pytest.approx((6 - 1.5) / 5 * 20))
 
 
@@ -362,7 +362,7 @@ def test_project_str(get_project):
     project = get_project
     assert (
         str(project)
-        == "Number of wells in project 1\t\t: 2\n"
+        == "Number of wells in project 2\t\t: 2\n"
         + "Estimated Project Cost\t\t\t: $10000000\n"
         + "Impact Score [0-100]\t\t\t: 38.25\n"
         + "Efficiency Score [0-100]\t\t: 0.00\n"
@@ -416,18 +416,19 @@ def test_get_min_value_across_all_wells(get_campaign):
 # for now leaving the plotting out of the tests
 def test_get_project_well_information(get_campaign):
     info = get_campaign.get_project_well_information()
-    assert all(i in [1, 2, 3] for i in info.keys())
+    assert all(i in [2, 3, 4] for i in info.keys())
     # already tested well_info_dataframe
 
 
 def test_get_efficiency_score_project(get_campaign):
-    project = get_campaign.projects[1]
-    assert get_campaign.get_efficiency_score_project(1) == 0
+    project = get_campaign.projects[2]
+    assert get_campaign.get_efficiency_score_project(2) == 0
     project.update_efficiency_score(5)
-    assert get_campaign.get_efficiency_score_project(1) == 5
+    assert get_campaign.get_efficiency_score_project(2) == 5
 
 
 def test_extract_column_header_for_efficiency_metrics(get_campaign):
+    # pylint: disable=protected-access
     assert (
         get_campaign._extract_column_header_for_efficiency_metrics(
             "this_is_a_name_eff_score_0_100"
@@ -454,7 +455,7 @@ def test_campaign_summary(get_campaign):
         ]
         for i in summary.columns
     )
-    assert list(summary["Project ID"].values) == [1, 2, 3]
+    assert list(summary["Project ID"].values) == [2, 3, 4]
     assert summary["Impact Score [0-100]"].values[0] == 38.25
     assert len(summary) == 3
 
@@ -470,8 +471,8 @@ def test_set_efficiency_weights(get_campaign, get_eff_metrics):
     assert campaign.efficiency_calculator.efficiency_weights == get_eff_metrics
 
 
-@pytest.fixture()
-def get_efficiency_calculator(get_campaign, get_eff_metrics):
+@pytest.fixture(name="get_efficiency_calculator", scope="function")
+def get_efficiency_calculator_fixture(get_campaign, get_eff_metrics):
     get_campaign.wd.set_impact_and_efficiency_metrics(
         efficiency_metrics=get_eff_metrics
     )
@@ -479,8 +480,8 @@ def get_efficiency_calculator(get_campaign, get_eff_metrics):
     return get_campaign
 
 
-@pytest.fixture()
-def get_efficiency_metrics_minimal():
+@pytest.fixture(name="get_efficiency_metrics_minimal", scope="function")
+def get_efficiency_metrics_minimal_fixture():
     eff_metrics = EfficiencyMetrics()
     eff_metrics.set_weight(
         primary_metrics={
@@ -509,7 +510,7 @@ def test_compute_efficiency_score_edge_cases(
         for entry in dir(get_minimal_campaign.projects[1])
     )
     with pytest.raises(ValueError):
-        get_minimal_campaign.projects[1].avg_elevation_delta
+        print(get_minimal_campaign.projects[1].avg_elevation_delta)
 
 
 def test_single_well(get_minimal_campaign, get_efficiency_metrics_minimal):
@@ -538,7 +539,7 @@ def test_zeros(get_minimal_campaign, get_efficiency_metrics_minimal):
 
 def test_compute_efficiency_attributes_for_project(get_efficiency_calculator):
     campaign = get_efficiency_calculator
-    project = campaign.projects[1]
+    project = campaign.projects[2]
     campaign.efficiency_calculator.compute_efficiency_attributes_for_project(project)
     assert project.num_wells_eff_score_0_20 == 20.0
     assert project.num_unique_owners_eff_score_0_30 == pytest.approx(0.0)
@@ -551,7 +552,7 @@ def test_compute_efficiency_attributes_for_project(get_efficiency_calculator):
 
 def test_compute_overall_efficiency_scores_project(get_efficiency_calculator):
     campaign = get_efficiency_calculator
-    project = campaign.projects[1]
+    project = campaign.projects[2]
     campaign.efficiency_calculator.compute_efficiency_attributes_for_project(project)
     campaign.efficiency_calculator.compute_overall_efficiency_scores_project(project)
     assert project.efficiency_score == pytest.approx(
@@ -614,7 +615,7 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
 
     assert all(
         list(efficiency_metric_output.iloc[0, :].values)[i]
-        == pytest.approx([1, 10.0, 18.0, 20.0, 0.0, 20][i])
+        == pytest.approx([2, 10.0, 18.0, 20.0, 0.0, 20][i])
         for i in range(6)
     )
     for _, project in campaign.projects.items():
@@ -633,7 +634,7 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
     )
     assert all(
         list(efficiency_metric_output.iloc[0, :].values)[i]
-        == pytest.approx([1, 10.0, 20.0, 0.0, 20][i])
+        == pytest.approx([2, 10.0, 20.0, 0.0, 20][i])
         for i in range(5)
     )
 

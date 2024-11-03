@@ -27,20 +27,21 @@
 # publicly and display publicly, and to permit others to do so.
 #####################################################################################################
 
+# Standard libs
 import ast
 import collections
-from dataclasses import dataclass
 import hashlib
 import logging
 import os
-from pathlib import Path
 import subprocess
 import sys
-from typing import Callable, Optional, Union, Iterable, Iterator, List, Tuple
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable, Iterable, Iterator, List, Optional, Tuple, Union
 
+# Installed libs
 import pytest
 from _pytest.terminal import TerminalReporter
-
 
 # Original version and author information
 NAME = "stagedfright"
