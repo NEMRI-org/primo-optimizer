@@ -75,8 +75,9 @@ def get_state_census_tracts(state_code: str, census_year: int) -> gpd.GeoDataFra
             f"Getting census tracts for census_year: {census_year} is not implemented",
             ValueError,
         )
-    temp_path = tempfile.TemporaryFile().name
-    extract_path = tempfile.TemporaryFile().name
+    # pylint: disable=consider-using-with
+    temp_path = tempfile.NamedTemporaryFile().name
+    extract_path = tempfile.NamedTemporaryFile().name
     download_file(temp_path, url)
     unzip_file(temp_path, extract_path)
     return gpd.read_file(extract_path)
@@ -96,7 +97,8 @@ def get_cejst_data() -> pd.DataFrame:
     pd.DataFrame
         DataFrame containing the Climate and Economic Justice Screening Tool Data
     """
-    temp_path = tempfile.TemporaryFile().name
+    # pylint: disable=consider-using-with
+    temp_path = tempfile.NamedTemporaryFile().name
     url = (
         "https://static-data-screeningtool.geoplatform.gov/data-versions/"
         "1.0/data/score/downloadable/1.0-communities.csv"
