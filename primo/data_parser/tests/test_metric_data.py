@@ -31,8 +31,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 # pylint: disable = no-member, missing-function-docstring
-# pylint: disable = f-string-without-interpolation
-# pylint: disable = protected-access, unused-variable
+# pylint: disable = protected-access
 # pylint: disable = too-many-statements
 def test_metric_class(caplog):
     z = Metric(name="met_1", weight=50, full_name="Metric One")
@@ -43,8 +42,7 @@ def test_metric_class(caplog):
     assert z.effective_weight == 50
     assert not z.is_submetric
     print_format = (
-        f"Metric name: Metric One, Metric weight: 50 \n"
-        f"    Admissible range: [0, 100]"
+        "Metric name: Metric One, Metric weight: 50 \n    Admissible range: [0, 100]"
     )
     assert str(z) == print_format
 
@@ -77,14 +75,14 @@ def test_metric_class(caplog):
             "Received met 2 for Metric's key name, which is not a valid python variable name!"
         ),
     ):
-        y = Metric("met 2", 100)
+        print(Metric("met 2", 100))
 
     # Add test to capture the weight out-of-range error
     with pytest.raises(
         ValueError,
         match=(
-            f"Attempted to assign -50 for metric met_1, which "
-            f"lies outside the admissible range \\[0, 100\\]."
+            "Attempted to assign -50 for metric met_1, which "
+            "lies outside the admissible range \\[0, 100\\]."
         ),
     ):
         z.weight = -50
@@ -288,8 +286,8 @@ def test_set_of_metrics_class():
     with pytest.raises(
         ValueError,
         match=(
-            f"Metric/submetric met_2 has already been registered. "
-            f"Attempting to register a new metric with the same name."
+            "Metric/submetric met_2 has already been registered. "
+            "Attempting to register a new metric with the same name."
         ),
     ):
         z.register_new_metric("met_2")

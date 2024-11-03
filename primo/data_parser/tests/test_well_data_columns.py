@@ -23,7 +23,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 # pylint: disable = missing-function-docstring, no-member
-# pylint: disable = f-string-without-interpolation
 def test_well_data_column_names():
     wcn = WellDataColumnNames(
         well_id="Well API",
@@ -78,7 +77,7 @@ def test_well_data_column_names():
 
     with pytest.raises(
         AttributeError,
-        match=(f"Attribute new_col_1 is already defined. Use a different name."),
+        match=("Attribute new_col_1 is already defined. Use a different name."),
     ):
         wcn.register_new_columns({"new_col_1": "New Column 1"})
 

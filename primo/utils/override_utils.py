@@ -248,7 +248,6 @@ class OverrideCampaign:
         Return information on constraints that the new campaign
         have violated.
         """
-        # pylint: disable=trailing-whitespace
         violation_info_dict = {}
         if self.feasibility.assess_feasibility() is False:
             violation_info_dict = {"Project Status:": "INFEASIBLE"}
@@ -258,39 +257,46 @@ class OverrideCampaign:
             violate_dac = self.feasibility.assess_dac()
 
             if violate_cost > 0:
-                msg = f""" After the modification, the total budget is over 
-                the limit by ${int(violate_cost)}. Please consider modifying 
-                wells you have selected by either using the widget above or 
-                by re-running the optimization problem."""
+                msg = (
+                    "After the modification, the total budget is over "
+                    f"the limit by ${int(violate_cost)}. Please consider modifying "
+                    "wells you have selected by either using the widget above or "
+                    "by re-running the optimization problem."
+                )
 
                 violation_info_dict[msg] = """"""
 
             if violate_operator:
-                msg = f""" After the modification, the following owners have 
-                more than {self.opt_inputs.config.max_wells_per_owner} well(s) 
-                being selected. Please consider modifying wells you have 
-                selected by either using the widget above or by re-running
-                the optimization problem."""
+                msg = (
+                    "After the modification, the following owners have "
+                    f"more than {self.opt_inputs.config.max_wells_per_owner} well(s) "
+                    "being selected. Please consider modifying wells you have "
+                    "selected by either using the widget above or by re-running "
+                    "the optimization problem."
+                )
 
                 violate_operator_df = pd.DataFrame.from_dict(violate_operator)
                 violation_info_dict[msg] = violate_operator_df
 
             if violate_distance:
-                msg = """ After the modification, the following projects have 
-                wells are far away from each others. Please consider modifying 
-                wells you have selected by either using the widget above or by 
-                re-running the optimization problem."""
+                msg = (
+                    "After the modification, the following projects have "
+                    "wells are far away from each others. Please consider modifying "
+                    "wells you have selected by either using the widget above or by "
+                    "re-running the optimization problem."
+                )
 
                 violate_distance_df = pd.DataFrame.from_dict(violate_distance)
                 violation_info_dict[msg] = violate_distance_df
 
             if violate_dac > 0:
                 dac_percent = self.opt_inputs.config.perc_wells_in_dac - violate_dac
-                msg = f""" After the modification, {int(dac_percent)}% of well 
-                is in DAC. Please consider modifying wells you have selected 
-                by either using the widget above or by re-running the optimization 
-                problem."""
-                # pylint: disable=trailing-whitespace
+                msg = (
+                    f"After the modification, {int(dac_percent)}% of well "
+                    "is in DAC. Please consider modifying wells you have selected "
+                    "by either using the widget above or by re-running the optimization "
+                    "problem."
+                )
                 violation_info_dict[msg] = """"""
         else:
             violation_info_dict = {"Project Status:": "FEASIBLE"}

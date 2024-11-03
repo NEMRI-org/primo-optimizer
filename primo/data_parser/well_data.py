@@ -10,7 +10,7 @@
 # reproduce, distribute copies to the public, prepare derivative works, and
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
-# pylint: disable=too-many-lines, fixme
+# pylint: disable=too-many-lines
 
 # Standard libs
 import copy
@@ -44,7 +44,7 @@ CONFIG = data_config()
 OWNER_WELL_COLUMN_NAME = "Owner Well-Count"
 
 
-# pylint: disable=too-many-lines, too-many-public-methods
+# pylint: disable=too-many-public-methods
 class WellData:
     """
     Reads, processes, and analyzes well data.

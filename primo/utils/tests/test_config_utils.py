@@ -175,11 +175,10 @@ def test_read_config(monkeypatch, path, expected_result):
     Test the read_config function for reading a config file.
     """
 
-    # pylint: disable=unused-argument
     def mock_exists(p):
         return p == "valid_config.json"
 
-    def mock_open(p, _):
+    def mock_open(_p, _):
         class MockFile:
             """
             A mock implementation of a file object for testing purposes.
