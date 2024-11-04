@@ -64,13 +64,12 @@ class Project:
 
         # Must display essential columns while printing a DataFrame
         self._essential_cols = [
-            col_names.well_id,
-            col_names.operator_name,
-            col_names.latitude,
-            col_names.longitude,
-            col_names.age,
-            col_names.depth,
-            col_names.priority_score,
+            self._col_names.well_id,
+            self._col_names.latitude,
+            self._col_names.longitude,
+            self._col_names.age,
+            self._col_names.depth,
+            self._col_names.priority_score,
         ]
         self._priority_score_cols = wd.get_priority_score_columns
         self._flag_cols = wd.get_flag_columns
@@ -287,6 +286,8 @@ class Project:
         """
         Returns the data frame to display in the notebook
         """
+        if self.well_data.config.ignore_operator_name:
+            self._essential_cols.insert(1, self._col_names.operator_name)
         return self.well_data[self._essential_cols]
 
 
@@ -567,6 +568,7 @@ class Campaign:
             col_names.violation,
             col_names.incident,
         ]
+        columns_to_export = [x for x in columns_to_export if x is not None]
         # add hospitals and schools if provided
         if col_names.hospitals is not None:
             columns_to_export.append(col_names.hospitals)
