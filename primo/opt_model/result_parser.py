@@ -58,18 +58,18 @@ class Project:
         # was not available, and the missing data was filled. Having the entire
         # DataFrame allows ease of access to flagged wells (columns containing _flag)
         self.well_data = wd._construct_sub_data(index)
-        self._col_names = self.well_data._col_names
+        self._col_names = self.well_data.col_names
         col_names = self._col_names
         self.project_id = project_id
 
         # Must display essential columns while printing a DataFrame
         self._essential_cols = [
-            self._col_names.well_id,
-            self._col_names.latitude,
-            self._col_names.longitude,
-            self._col_names.age,
-            self._col_names.depth,
-            self._col_names.priority_score,
+            self.col_names.well_id,
+            self.col_names.latitude,
+            self.col_names.longitude,
+            self.col_names.age,
+            self.col_names.depth,
+            self.col_names.priority_score,
         ]
         self._priority_score_cols = wd.get_priority_score_columns
         self._flag_cols = wd.get_flag_columns
@@ -538,7 +538,12 @@ class Campaign:
         ]
         return pd.DataFrame(rows, columns=header)
 
-    def export_data(self, excel_writer: pd.ExcelWriter, campaign_category: str):
+    def export_data(
+        self,
+        excel_writer: pd.ExcelWriter,
+        campaign_category: str,
+        columns_to_export: list = None,
+    ):
         """
         Exports campaign data to an excel file
 
@@ -553,27 +558,8 @@ class Campaign:
         col_names = self.projects[first_key].col_names
         # the priority score must have been previously computed
         assert hasattr(col_names, "priority_score")
-        columns_to_export = [
-            col_names.well_id,
-            col_names.operator_name,
-            col_names.priority_score,
-            col_names.ann_gas_production,
-            col_names.ann_oil_production,
-            col_names.age,
-            col_names.depth,
-            col_names.latitude,
-            col_names.longitude,
-            col_names.leak,
-            col_names.compliance,
-            col_names.violation,
-            col_names.incident,
-        ]
-        columns_to_export = [x for x in columns_to_export if x is not None]
-        # add hospitals and schools if provided
-        if col_names.hospitals is not None:
-            columns_to_export.append(col_names.hospitals)
-        if col_names.schools is not None:
-            columns_to_export.append(col_names.schools)
+        if columns_to_export is None:
+            columns_to_export = self.wd.col_names.values()
 
         # add the project data
         start_row = 0
