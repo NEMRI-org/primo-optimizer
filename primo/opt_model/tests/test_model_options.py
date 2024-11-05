@@ -557,3 +557,63 @@ def test_re_cluster(get_column_names):
     assert (19, 981) not in opt_mdl_inputs.owner_well_count["Owner 104"]
     assert any(981 in key for key in opt_mdl_inputs.pairwise_distance[10])
     assert not any(981 in key for key in opt_mdl_inputs.pairwise_distance[19])
+
+
+def test_dictionary_instantiation(get_column_names):
+    """
+    Test using a dictionary to instantiate the OptModelInputs object
+    and avoid re-clustering
+    """
+    im_metrics, col_names, filename = get_column_names
+
+    # Create the well data object
+    wd = WellData(data=filename, column_names=col_names, impact_metrics=im_metrics)
+
+    # Partition the wells as gas/oil
+    gas_oil_wells = wd.get_gas_oil_wells
+    wd_gas = gas_oil_wells["gas"]
+
+    gas_oil_wells_replica = wd.get_gas_oil_wells
+    wd_gas_replica = gas_oil_wells_replica["gas"]
+    # Mobilization cost
+    mobilization_cost = {1: 120000, 2: 210000, 3: 280000, 4: 350000}
+    for n_wells in range(5, len(wd_gas.data) + 1):
+        mobilization_cost[n_wells] = n_wells * 84000
+
+    # Test the model and options
+    wd_gas.compute_priority_scores()
+    wd_gas_replica.compute_priority_scores()
+
+    opt_mdl_inputs = OptModelInputs(
+        well_data=wd_gas,
+        total_budget=3210000,  # 3.25 million USD
+        mobilization_cost=mobilization_cost,
+        threshold_distance=10,
+        max_wells_per_owner=1,
+    )
+
+    opt_mdl_inputs.build_optimization_model()
+    opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
+
+    assert "Clusters" not in wd_gas_replica
+
+    clustering_dictionary = opt_mdl_inputs.campaign_candidates
+
+    opt_mdl_inputs_dict_init = OptModelInputs(
+        cluster_mapping=clustering_dictionary,
+        well_data=wd_gas_replica,
+        total_budget=3210000,  # 3.25 million USD
+        mobilization_cost=mobilization_cost,
+        threshold_distance=10,
+        max_wells_per_owner=1,
+    )
+
+    assert "Clusters" in wd_gas_replica
+
+    opt_mdl_inputs_dict_init.build_optimization_model()
+    opt_campaign_replica = opt_mdl_inputs_dict_init.solve_model(solver="highs")
+
+    for project_id, project in opt_campaign_replica.projects.items():
+        assert project_id in opt_campaign.projects
+        assert project.impact_score == opt_campaign.projects[project_id].impact_score
+        assert project.num_wells == opt_campaign.projects[project_id].num_wells

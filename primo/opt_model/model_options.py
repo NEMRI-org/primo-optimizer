@@ -161,7 +161,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
     CONFIG = model_config()
 
     @document_kwargs_from_configdict(CONFIG)
-    def __init__(self, **kwargs):
+    def __init__(self, cluster_mapping=None, **kwargs):
         # Update the values of all the inputs
         # ConfigDict handles KeyError, other input errors, and domain errors
         LOGGER.info("Processing optimization model inputs.")
@@ -186,18 +186,30 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             )
             raise_exception(msg, ValueError)
 
-        # Construct campaign candidates
-        # Step 1: Perform clustering, Should distance_threshold be a user argument?
-        perform_clustering(wd, distance_threshold=10.0)
-
-        # Step 2: Identify list of wells belonging to each cluster
-        # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}
         col_names = wd.col_names
-        set_clusters = set(wd[col_names.cluster])
-        self.campaign_candidates = {
-            cluster: list(wd.data[wd[col_names.cluster] == cluster].index)
-            for cluster in set_clusters
-        }
+        if cluster_mapping is None:
+            # Construct campaign candidates
+            # Step 1: Perform clustering, Should distance_threshold be a user argument?
+            perform_clustering(wd, distance_threshold=10.0)
+
+            # Step 2: Identify list of wells belonging to each cluster
+            # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}
+            set_clusters = set(wd[col_names.cluster])
+            self.campaign_candidates = {
+                cluster: list(wd.data[wd[col_names.cluster] == cluster].index)
+                for cluster in set_clusters
+            }
+        else:
+            self.campaign_candidates = cluster_mapping
+            well_cluster_map = {index: "" for index in wd.data.index}
+            for cluster, wells in self.campaign_candidates.items():
+                for well in wells:
+                    well_cluster_map[well] = cluster
+            for _, value in well_cluster_map.items():
+                assert value != ""
+            cluster_col_values = [cluster for _, cluster in well_cluster_map.items()]
+            wd.data["Clusters"] = cluster_col_values
+            col_names.register_new_columns({"cluster": "Clusters"})
 
         # Step 3: Construct pairwise-metrics between wells in each cluster.
         # Structure: {cluster: {(index_1, index_2): distance_12, ...}...}
