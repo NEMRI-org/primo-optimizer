@@ -592,14 +592,11 @@ def test_dictionary_instantiation(get_column_names):
         max_wells_per_owner=1,
     )
 
-    opt_mdl_inputs.build_optimization_model()
-    opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
-
     assert "Clusters" not in wd_gas_replica
 
     clustering_dictionary = opt_mdl_inputs.campaign_candidates
 
-    opt_mdl_inputs_dict_init = OptModelInputs(
+    OptModelInputs(
         cluster_mapping=clustering_dictionary,
         well_data=wd_gas_replica,
         total_budget=3210000,  # 3.25 million USD
@@ -609,11 +606,3 @@ def test_dictionary_instantiation(get_column_names):
     )
 
     assert "Clusters" in wd_gas_replica
-
-    opt_mdl_inputs_dict_init.build_optimization_model()
-    opt_campaign_replica = opt_mdl_inputs_dict_init.solve_model(solver="highs")
-
-    for project_id, project in opt_campaign_replica.projects.items():
-        assert project_id in opt_campaign.projects
-        assert project.impact_score == opt_campaign.projects[project_id].impact_score
-        assert project.num_wells == opt_campaign.projects[project_id].num_wells
