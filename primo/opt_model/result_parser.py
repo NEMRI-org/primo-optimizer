@@ -286,7 +286,7 @@ class Project:
         """
         Returns the data frame to display in the notebook
         """
-        if self.well_data.config.ignore_operator_name:
+        if self.well_data.config.verify_operator_name:
             self._essential_cols.insert(1, self._col_names.operator_name)
         return self.well_data[self._essential_cols]
 

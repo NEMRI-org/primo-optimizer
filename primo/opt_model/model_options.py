@@ -206,7 +206,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         self.pairwise_depth_difference = self._pairwise_matrix(metric="depth")
 
         # Construct owner well count data
-        if wd.config.ignore_operator_name:
+        if wd.config.verify_operator_name:
             operator_list = set(wd[col_names.operator_name])
             self.owner_well_count = {owner: [] for owner in operator_list}
             for well in wd:

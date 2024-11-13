@@ -47,7 +47,7 @@ def data_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "ignore_operator_name",
+        "verify_operator_name",
         ConfigValue(
             default=True,
             domain=Bool,
