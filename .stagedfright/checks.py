@@ -17,6 +17,9 @@ from stagedfright import AllowFile, PyContent, StagedFile
 
 
 def test_allowfile_matches_if_present(staged: StagedFile, allowfile: AllowFile):
+    """
+    Function to match fingerprints for allow files
+    """
     assert (
         staged.fingerprint == allowfile.fingerprint
     ), "An allowfile must contain a matching fingerprint for a staged file to be cleared for commit"
@@ -29,7 +32,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "primo/data_parser/metric_data.py": 15,
     "primo/data_parser/well_data.py": 40,
     "primo/data_parser/tests/test_metric_data.py": 50,
-    "primo/data_parser/tests/test_well_data.py": 203,
+    "primo/data_parser/tests/test_well_data.py": 237,
     "primo/data_parser/tests/test_well_data_columns.py": 13,
     "primo/data_parser/tests/test_well_data_common_methods.py": 73,
     "docs/conf.py": 4,
@@ -78,7 +81,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
 
 # this is meta, two levels deep:
 # - this file is also included checked by stagedfright,
-#   so the hardcoded data used to define this mapping must be counted,
+#   so the hard-coded data used to define this mapping must be counted,
 # - the extra number accounts for constants defined below,
 #   plus 1 for the fact that this number itself is defined using a constant
 MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT[".stagedfright/checks.py"] = (
@@ -86,8 +89,13 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT[".stagedfright/checks.py"] = (
 )
 
 
+# pylint: disable=missing-function-docstring
 @pytest.mark.usefixtures("skip_if_matching_allowfile")
 class TestIsClearedForCommit:
+    """
+    Class defining all the tests for files to pass the pre-commit hook for stagedfright
+    """
+
     def test_has_py_path_suffix(self, staged: StagedFile):
         assert staged.suffix in {
             ".py"

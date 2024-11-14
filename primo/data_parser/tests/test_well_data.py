@@ -94,9 +94,9 @@ def get_random_generator_fixture():
 @pytest.fixture(name="get_random_lat_long_bounds", scope="function")
 def get_random_lat_long_bounds_fixture():
     """
-    Provides a block randomly selected across the continental US
+    Provides a block randomly selected across the United States
     """
-    return (37.5, 39.2, -81.6, -81.5)
+    return (-113, -83, 33, 41)
 
 
 def test_dac_score(get_column_names, get_random_generator, get_random_lat_long_bounds):
@@ -154,8 +154,8 @@ def test_dac_score(get_column_names, get_random_generator, get_random_lat_long_b
     rng = get_random_generator
     bounds = get_random_lat_long_bounds
     (long_lo, long_hi, lat_lo, lat_hi) = get_random_lat_long_bounds
-    df["x"] = rng.uniform(long_lo, long_hi, len(df))
-    df["y"] = rng.uniform(lat_lo, lat_hi, len(df))
+    df["y"] = rng.uniform(long_lo, long_hi, len(df))
+    df["x"] = rng.uniform(lat_lo, lat_hi, len(df))
     wd = WellData(
         data=df,
         column_names=col_names,

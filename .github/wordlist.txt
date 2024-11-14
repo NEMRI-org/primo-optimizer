@@ -86,6 +86,8 @@ scikit
 shapefile
 shapefiles
 stacktrace
+stagedfright
+str
 sublicense
 submetric
 submetrics
