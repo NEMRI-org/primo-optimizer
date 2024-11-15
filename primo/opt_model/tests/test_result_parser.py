@@ -427,6 +427,10 @@ def test_get_efficiency_score_project(get_campaign):
     assert get_campaign.get_efficiency_score_project(2) == 5
 
 
+def test_get_impact_score_project(get_campaign):
+    assert get_campaign.get_impact_score_project(2) == 38.25
+
+
 def test_extract_column_header_for_efficiency_metrics(get_campaign):
     # pylint: disable=protected-access
     assert (
@@ -608,6 +612,7 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
             "Age Range Score [0-10]",
             "Depth Range Score [0-20]",
             "Accessibility Score [0-20]",
+            "Efficiency Score [0-100]",
         ]
         for i in efficiency_metric_output.columns
     )
@@ -629,6 +634,7 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
             "Num Unique Owners Score [0-30]",
             "Age Range Score [0-10]",
             "Depth Range Score [0-20]",
+            "Efficiency Score [0-100]",
         ]
         for i in efficiency_metric_output.columns
     )

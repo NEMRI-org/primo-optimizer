@@ -40,6 +40,7 @@ autofill
 bool
 boolean
 in
+centroid
 checkboxes
 codebase
 codecov
@@ -99,6 +100,7 @@ url
 validator
 waypoint
 waypoints
+wd
 xls
 xlsx
 yml

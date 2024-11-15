@@ -463,6 +463,21 @@ class Campaign:
         """
         return self.projects[project_id].efficiency_score
 
+    def get_impact_score_project(self, project_id: int) -> float:
+        """
+        Returns the impact score of a project in the campaign given its id
+        Parameters
+        ----------
+        project_id : int
+            Project id
+
+        Returns
+        -------
+        float
+            The impact score of the project
+        """
+        return self.projects[project_id].impact_score
+
     def _extract_column_header_for_efficiency_metrics(self, attribute_name: str):
         """
         Returns a string with the appropriate column header
@@ -509,11 +524,27 @@ class Campaign:
                     ]
                 ),
             )
-            data = list(zip(project_column, *attribute_data, accessibility_data))
+            efficiency_scores = [
+                project.efficiency_score for _, project in self.projects.items()
+            ]
+
+            data = list(
+                zip(
+                    project_column,
+                    *attribute_data,
+                    accessibility_data,
+                    efficiency_scores,
+                )
+            )
             header.append(f"Accessibility Score [0-{total_weights[0]}]")
+            header.append("Efficiency Score [0-100]")
         # if there is data for the accessibility score
         else:
-            data = list(zip(project_column, *attribute_data))
+            efficiency_scores = [
+                project.efficiency_score for _, project in self.projects.items()
+            ]
+            header.append("Efficiency Score [0-100]")
+            data = list(zip(project_column, *attribute_data, efficiency_scores))
 
         return pd.DataFrame(data, columns=header)
 
