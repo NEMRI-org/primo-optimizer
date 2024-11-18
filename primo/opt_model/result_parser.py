@@ -431,8 +431,8 @@ class Campaign:
         ax = plt.gca()
         for _, project in self.projects.items():
             ax.scatter(
-                project.well_data[project.col_names.latitude],
                 project.well_data[project.col_names.longitude],
+                project.well_data[project.col_names.latitude],
             )
         plt.title(title)
         plt.xlabel("x-coordinate of wells")
@@ -721,10 +721,18 @@ class EfficiencyCalculator:
                     project,
                     metric.score_attribute,
                     (
-                        (max_value - getattr(project, metric.name))
-                        / (max_value - min_value)
-                    )
-                    * metric.effective_weight,
+                        max(
+                            0,
+                            min(
+                                (
+                                    (max_value - getattr(project, metric.name))
+                                    / (max_value - min_value)
+                                )
+                                * metric.effective_weight,
+                                metric.effective_weight,
+                            ),
+                        ),
+                    ),
                 )
 
             else:
@@ -732,10 +740,16 @@ class EfficiencyCalculator:
                     project,
                     metric.score_attribute,
                     (
-                        (getattr(project, metric.name) - min_value)
-                        / (max_value - min_value)
-                    )
-                    * metric.effective_weight,
+                        max(
+                            0,
+                            min(
+                                (getattr(project, metric.name) - min_value)
+                                / (max_value - min_value)
+                                * metric.effective_weight,
+                                metric.effective_weight,
+                            ),
+                        ),
+                    ),
                 )
 
     def compute_overall_efficiency_scores_project(self, project: Project):
