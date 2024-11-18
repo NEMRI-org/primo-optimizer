@@ -720,36 +720,32 @@ class EfficiencyCalculator:
                 setattr(
                     project,
                     metric.score_attribute,
-                    (
-                        max(
-                            0,
-                            min(
-                                (
-                                    (max_value - getattr(project, metric.name))
-                                    / (max_value - min_value)
-                                )
-                                * metric.effective_weight,
-                                metric.effective_weight,
+                    max(
+                        0,
+                        min(
+                            1,
+                            (
+                                (max_value - getattr(project, metric.name))
+                                / (max_value - min_value)
                             ),
                         ),
-                    ),
+                    )
+                    * metric.effective_weight,
                 )
 
             else:
                 setattr(
                     project,
                     metric.score_attribute,
-                    (
-                        max(
-                            0,
-                            min(
-                                (getattr(project, metric.name) - min_value)
-                                / (max_value - min_value)
-                                * metric.effective_weight,
-                                metric.effective_weight,
-                            ),
+                    max(
+                        0,
+                        min(
+                            1,
+                            (getattr(project, metric.name) - min_value)
+                            / (max_value - min_value),
                         ),
-                    ),
+                    )
+                    * metric.effective_weight,
                 )
 
     def compute_overall_efficiency_scores_project(self, project: Project):
