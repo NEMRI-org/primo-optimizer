@@ -523,7 +523,7 @@ def test_single_well(get_minimal_campaign, get_efficiency_metrics_minimal):
     )
     get_minimal_campaign.set_efficiency_weights(get_efficiency_metrics_minimal)
     get_minimal_campaign.efficiency_calculator.compute_efficiency_scores()
-    assert get_minimal_campaign.projects[3].efficiency_score == 0
+    assert get_minimal_campaign.projects[3].efficiency_score == 100
 
 
 def test_zeros(get_minimal_campaign, get_efficiency_metrics_minimal):

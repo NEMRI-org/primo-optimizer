@@ -278,8 +278,6 @@ class Project:
         value : Union[int, float]
             The value to update the efficiency score with
         """
-        if len(self.well_data) == 1:
-            return
         self.efficiency_score += value
 
     def get_well_info_dataframe(self):
