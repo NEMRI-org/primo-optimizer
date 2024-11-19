@@ -13,7 +13,7 @@
 
 # Standard libs
 import logging
-from typing import List, Union
+from typing import List, Optional, Union
 
 # Installed libs
 import matplotlib.pyplot as plt
@@ -330,6 +330,25 @@ class Campaign:
 
         self.num_projects = len(self.projects)
         self.efficiency_calculator = EfficiencyCalculator(self)
+
+    def get_project_id_by_well_id(self, well_id: str) -> Optional[int]:
+        """
+        Returns the project_id associated with the given well_id.
+
+        Parameters
+        ----------
+        well_id : str
+            The ID of the well.
+
+        Returns
+        -------
+        Optional[int]
+            The project ID if the well exists in any project; otherwise, None.
+        """
+        for project_id, project in self.projects.items():
+            if well_id in project.well_data.data[self.wd.col_names.well_id].values:
+                return project_id
+        return None
 
     def __str__(self) -> str:
         msg = (
@@ -705,6 +724,7 @@ class EfficiencyCalculator:
             assert getattr(project, metric.score_attribute, None) is None
             assert hasattr(project, metric.name)
 
+            # pylint: disable=R0801
             # Check if division by a zero is likely
             if np.isclose(max_value, min_value, rtol=0.001):
                 # All cells in this column have equal value.

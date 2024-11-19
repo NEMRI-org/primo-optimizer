@@ -272,6 +272,20 @@ class WellData:
 
         return None
 
+    def get_high_priority_wells(self, num_wells: int):
+        """Returns the top n wells by priority"""
+
+        if "Priority Score [0-100]" not in self.data.columns:
+            print("Returning None, since priority scores are not available!")
+            return None
+
+        well_list = (
+            self.data.sort_values("Priority Score [0-100]", ascending=False)
+            .head(num_wells)
+            .index.to_list()
+        )
+        return self._construct_sub_data(well_list)
+
     def has_incomplete_data(self, col_name: str):
         """
         Checks if a column contains empty cells.

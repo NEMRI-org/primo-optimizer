@@ -13,7 +13,6 @@
 
 # Standard libs
 import os
-from typing import Dict, Tuple
 
 # Installed libs
 import folium
@@ -22,548 +21,352 @@ import pandas as pd
 from folium.plugins import BeautifyIcon
 
 # User-defined libs
+from primo.data_parser.well_data import WellData
+from primo.opt_model.result_parser import Campaign
 from primo.utils.download_utils import download_file, unzip_file
-from primo.utils.raise_exception import raise_exception
 
 
-def add_shapefile_to_map(
-    map_obj: folium.Map, state_shapefile: gpd.GeoDataFrame
-) -> None:
+class VisualizeData:
     """
-    Add a GeoDataFrame as a GeoJson layer to a folium map.
-
-    Parameters
-    ----------
-    map_obj : folium.Map
-        Folium map object
-
-    state_shapefile : gpd.GeoDataFrame
-        GeoDataFrame containing shapefile data
-
-    Returns
-    -------
-    None
+    Class to visualize well data using folium and geopandas.
     """
 
-    folium.GeoJson(state_shapefile).add_to(map_obj)
+    def __init__(
+        self,
+        well_data: WellData,
+        state_shapefile_url: str,
+        state_shapefile_name: str,
+        shp_name: str,
+    ):
+        """
+        Initialize the VisualizeData class.
 
+        Parameters
+        ----------
+        well_data : WellData
+            Instance of the WellData class containing well-related information.
 
-def add_county_names_to_map(
-    map_obj: folium.Map, state_shapefile: gpd.GeoDataFrame
-) -> None:
-    """
-    Add county names as markers to a folium map.
+        state_shapefile_url : str
+            URL of the state shapefile to download.
 
-    Parameters
-    ----------
-    map_obj : folium.Map
-        Folium map object
+        state_shapefile_name : str
+            Name of the compressed shapefile to download.
 
-    state_shapefile : gpd.GeoDataFrame
-        GeoDataFrame containing shapefile data with county names
+        shp_name : str
+            Name of the shapefile to extract.
+        """
 
-    Returns
-    -------
-    None
-    """
-    for county in state_shapefile.itertuples():
-        # TODO: Need to a more general method for taking the county name when the column is called with names
-        # different from "NAME" and "COUNTY_NAME".
-        try:
-            county_name = county.NAME  # First case
-        except AttributeError:
-            county_name = county.COUNTY_NAM  # Second case
-        # Project county to a flat project before taking centroid
-        centroid = [county.geometry.centroid.y, county.geometry.centroid.x]
-        folium.map.Marker(
-            location=centroid,
-            icon=folium.DivIcon(
-                html=f'<div style="font-size: 11pt; color: black; text-align: center; font-weight: bold;">{county_name}</div>'
+        self.well_data = well_data
+        self.state_shapefile_url = state_shapefile_url
+        self.state_shapefile_name = state_shapefile_name
+        self.shp_name = shp_name
+        self.state_shapefile = self.get_state_shapefile(
+            state_shapefile_name, state_shapefile_url, shp_name
+        )
+        self.df = self.prepare_gdf(self.well_data.data, self.well_data)
+
+    def get_state_shapefile(
+        self, shpfile_name: str, shpfile_url: str, shp_name: str
+    ) -> gpd.GeoDataFrame:
+        """
+        Download, unzip, and load the state shapefile into a GeoDataFrame.
+
+        Parameters
+        ----------
+        shpfile_name : str
+            Name of the shapefile archive.
+
+        shpfile_url : str
+            URL of the shapefile archive.
+
+        shp_name : str
+            Name of the extracted shapefile.
+
+        Returns
+        -------
+        gpd.GeoDataFrame
+            GeoDataFrame of the state shapefile.
+        """
+
+        scratch_dir = os.path.join(os.getcwd(), "temp")
+        if not os.path.exists(scratch_dir):
+            os.mkdir(scratch_dir)
+
+        shapefile = os.path.join(scratch_dir, shpfile_name)
+        download_file(shapefile, shpfile_url)
+        extract_dir = os.path.join(scratch_dir, shp_name)
+        unzip_file(shapefile, extract_dir)
+
+        state_shapefile = gpd.read_file(os.path.join(extract_dir, shp_name))
+        return state_shapefile.to_crs("EPSG:4269")
+
+    @staticmethod
+    def prepare_gdf(df: pd.DataFrame, well_data: WellData) -> gpd.GeoDataFrame:
+        """
+        Prepare a GeoDataFrame from well_data's DataFrame with latitude and longitude.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame containing the well data.
+
+        well_data : WellData
+            Instance of WellData class to fetch column names.
+
+        Returns
+        -------
+        gpd.GeoDataFrame
+            GeoDataFrame with point geometries for well data.
+        """
+
+        gdf = gpd.GeoDataFrame(
+            df,
+            geometry=gpd.points_from_xy(
+                df[well_data.col_names.longitude], df[well_data.col_names.latitude]
             ),
-        ).add_to(map_obj)
+            crs="EPSG:4269",
+        )
+        gdf.index = gdf.index + 1
+        return gdf
 
+    def create_map_with_legend(self, legend=False, map_title: str = None) -> folium.Map:
+        """
+        Create a folium map centered around the region with an optional legend and map title.
 
-def common_visualization(
-    map_obj: folium.Map, state_shapefile: gpd.GeoDataFrame
-) -> None:
-    """
-    Add common visualization elements to the map.
+        Parameters
+        ----------
+        legend : bool, optional
+            Whether to add a legend to the map. Default is False.
 
-    Parameters
-    ----------
-    map_obj : folium.Map
-        Folium map object
+        map_title : str, optional
+            Title of the map. Default is None.
 
-    state_shapefile : gpd.GeoDataFrame
-        GeoDataFrame containing shapefile data
+        Returns
+        -------
+        folium.Map
+            Folium map object centered around the region.
+        """
 
-    Returns
-    -------
-    None
-    """
-
-    add_shapefile_to_map(map_obj, state_shapefile)
-    add_county_names_to_map(map_obj, state_shapefile)
-
-
-def download_and_unzip_shapefile(
-    shpfile_name: str, shpfile_url: str, scratch_dir: str, shp_name: str
-) -> str:
-    """
-    Download and unzip a shapefile.
-
-    Parameters
-    ----------
-    shpfile_name : str
-        Name of the compressed shapefile to download
-
-    shpfile_url : str
-        URL of the shapefile to download
-
-    scratch_dir : str
-        Directory to save and extract the shapefile
-
-    shp_name : str
-        Name of the shapefile directory
-
-    Returns
-    -------
-    str
-        Directory where the shapefile is extracted
-    """
-
-    # Create scratch directory if does not already exist
-    if not os.path.exists(scratch_dir):
-        os.mkdir(scratch_dir)
-
-    shapefile = os.path.join(scratch_dir, shpfile_name)
-    download_file(shapefile, shpfile_url)
-    extract_dir = os.path.join(scratch_dir, shp_name)
-    unzip_file(shapefile, extract_dir)
-    return extract_dir
-
-
-def prepare_gdf(df: pd.DataFrame) -> gpd.GeoDataFrame:
-    """
-    Prepare a GeoDataFrame from a DataFrame with latitude and longitude.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing the data
-
-    Returns
-    -------
-    gpd.GeoDataFrame
-        GeoDataFrame with point geometries
-    """
-
-    gdf = gpd.GeoDataFrame(
-        df,
-        geometry=gpd.points_from_xy(df["Longitude"], df["Latitude"]),
-        crs="EPSG:4269",
-    )
-    gdf.index = gdf.index + 1
-    return gdf
-
-
-def get_mean_centroid(data_frame: gpd.GeoDataFrame) -> tuple[float, float]:
-    """
-    Returns the mean centroid of a Geopandas DataFrame
-
-    Parameters
-    ----------
-    data_frame: gpd.GeoDataFrame
-        GeoDataFrame
-
-    Returns
-    -------
-    tuple[float, float]
-        Returns the mean y and x coordinates of the centroid
-    """
-    if data_frame.crs is None or not data_frame.crs.is_projected:
-        # If a geographic CRS is used, the results from centroid are likely incorrect
-        # Hence convert to a projected CRS (We use cea here) before calculating centroid
-        centroid = data_frame.to_crs("+proj=cea").centroid.to_crs(data_frame.crs)
-    else:
-        centroid = data_frame.centroid
-    return [centroid.y.mean(), centroid.x.mean()]
-
-
-def create_map_with_legend(state_shapefile: gpd.GeoDataFrame) -> folium.Map:
-    """
-    Create a folium map centered around the region with a legend.
-
-    Parameters
-    ----------
-    state_shapefile : gpd.GeoDataFrame
-        GeoDataFrame containing shapefile data
-
-    Returns
-    -------
-    folium.Map
-        Folium map object
-    """
-
-    # map_center = [state_shapefile.centroid.y.mean(), state_shapefile.centroid.x.mean()]
-    map_center = get_mean_centroid(state_shapefile)
-    map_obj = folium.Map(location=map_center, zoom_start=8.2)
-
-    gas_legend = '<i style="color:red">o - Gas Well</i>'
-    oil_legend = '<i style="color:blue">x - Oil Well</i>'
-    legend_html = f"""
-    <div style="position: fixed;
-                 top: 10px; right: 10px; width: 120px; height: 80px;
-                 border:2px solid grey; z-index:9999; font-size:14px;
-                 background-color: white;
-                 ">
-      <center>
-      <br>
-      {gas_legend}<br>
-      {oil_legend}<br>
-      </center>
-    </div>
-    """
-    map_obj.get_root().html.add_child(folium.Element(legend_html))
-    return map_obj
-
-
-def add_well_markers_to_map(
-    gdf: gpd.GeoDataFrame, map_obj: folium.Map, well_type_to_plot: str = None
-) -> None:
-    """
-    Add well markers to a folium map based on well type.
-
-    Parameters
-    ----------
-    gdf : gpd.GeoDataFrame
-        GeoDataFrame containing well data
-
-    map_obj : folium.Map
-        Folium map object
-
-    well_type_to_plot : str
-        The specific well type to plot ("Oil" or "Gas"). If None, both well types
-        are plotted
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    ValueError if well_type_to_plot takes value other than "Oil", "Gas" or None
-    """
-    if well_type_to_plot not in ("Oil", "Gas") and well_type_to_plot is not None:
-        raise_exception(f"Unknown well type: {well_type_to_plot}", ValueError)
-
-    well_type_column_index = gdf.columns.get_loc("Well Type") + 1
-    age_column_index = gdf.columns.get_loc("Age [Years]") + 1
-    depth_column_index = gdf.columns.get_loc("Depth [ft]") + 1
-    try:
-        well_id_index = gdf.columns.get_loc("API Well Number") + 1
-    except KeyError:
-        well_id_index = gdf.columns.get_loc("API") + 1
-
-    total_score_index = None  # Set default value to None
-
-    if "Priority Score [0-100]" in gdf.columns:
-        total_score_index = gdf.columns.get_loc("Priority Score [0-100]") + 1
-    for row in gdf.itertuples():
-        if row.geometry.is_empty:
-            continue
-
-        well_id = row[well_id_index]
-        age = row[age_column_index]
-        depth = row[depth_column_index]
-        well_type = row[well_type_column_index]
-
-        if well_type_to_plot is not None and well_type != well_type_to_plot:
-            # Skip the well type as it is not required to be plotted
-            continue
-
-        if total_score_index is not None:
-            total_score = round(row[total_score_index], 2)
-            popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}<br>Well Type: {well_type}<br>Impact score: {total_score}"
+        if (
+            self.state_shapefile.crs is None
+            or not self.state_shapefile.crs.is_projected
+        ):
+            centroid = self.state_shapefile.to_crs("+proj=cea").centroid.to_crs(
+                self.state_shapefile.crs
+            )
         else:
-            popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}<br>Well Type: {well_type}"
+            centroid = self.state_shapefile.centroid
 
-        if well_type == "Gas":
-            icon = folium.CircleMarker(
-                location=[row.geometry.y, row.geometry.x],
-                radius=5,
-                popup=popup_text,
-                fill=True,
-                color="red",
+        map_center = (centroid.y.mean(), centroid.x.mean())
+        map_obj = folium.Map(location=map_center, zoom_start=8.2)
+        folium.GeoJson(self.state_shapefile).add_to(map_obj)
+
+        # Add county names as markers
+        for county in self.state_shapefile.itertuples():
+            county_name = (
+                getattr(county, "NAME", None)
+                or getattr(county, "County_Nam", None)
+                or getattr(county, "COUNTY_NAM", None)
             )
-            icon.add_to(map_obj)
-        elif well_type == "Oil":
-            icon_cross = BeautifyIcon(
-                icon="times",
-                inner_icon_style="color:blue;font-size:18px;",  # Adjust size here
-                background_color="transparent",
-                border_color="transparent",
-            )
-            icon = folium.Marker(
-                location=[row.geometry.y, row.geometry.x],
-                popup=popup_text,
-                icon=icon_cross,
-            )
-            icon.add_to(map_obj)
+
+            if county_name is None:
+                raise AttributeError("None of the county name attributes are found.")
+
+            centroid = [county.geometry.centroid.y, county.geometry.centroid.x]
+            folium.map.Marker(
+                location=centroid,
+                icon=folium.DivIcon(
+                    html=(
+                        f'<div style="font-size: 11pt; color: black; text-align: center; '
+                        f'font-weight: bold;">{county_name}</div>'
+                    )
+                ),
+            ).add_to(map_obj)
+
+        # Create legend
+        if legend is True:
+            gas_legend = '<i style="color:red">o - Gas Well</i>'
+            oil_legend = '<i style="color:blue">x - Oil Well</i>'
+            legend_html = f"""
+            <div style="position: fixed;
+                        top: 10px; right: 10px; width: 120px; height: 80px;
+                        border:2px solid grey; z-index:9999; font-size:14px;
+                        background-color: white;">
+            <center><br>{gas_legend}<br>{oil_legend}<br></center>
+            </div>
+            """
+            map_obj.get_root().html.add_child(folium.Element(legend_html))
+
+        if map_title is not None:
+            title_html = f'<h1 style="position:absolute;z-index:100000;left:35vw" >{map_title}</h1>'
+            map_obj.get_root().html.add_child(folium.Element(title_html))
+
+        return map_obj
+
+    def add_markers_to_map(
+        self,
+        map_obj: folium.Map,
+        visualize_type: str = None,
+        well_type_to_plot: str = None,
+        campaign: Campaign = None,
+    ) -> None:
+        """
+        Add markers to a folium map based on the visualization type and well type.
+
+        Parameters
+        ----------
+        map_obj : folium.Map
+            Folium map object to add markers to.
+
+        visualize_type : str, optional
+            Type of visualization ('project', or None). Default is None.
+
+        well_type_to_plot : str, optional
+            Type of well to plot ('Gas' or 'Oil'). Default is None.
+
+        campaign : Campaign, optional
+            Campaign instance to map wells to projects when visualize_type is 'project'.
+            Default is None.
+
+        Raises
+        ------
+        ValueError
+            If visualize_type is 'project' but campaign is not provided.
+        """
+
+        # Inline logic for generating cluster or project colors
+        colors = [
+            "red",
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "yellow",
+            "cyan",
+            "magenta",
+            "pink",
+            "brown",
+            "black",
+        ]
+
+        # Marker logic for project visualization
+        if visualize_type == "project":
+            if campaign is None:
+                raise ValueError(
+                    "A Campaign instance must be provided when visualize_type is 'project'."
+                )
+            project_ids = set()  # Use a set to avoid duplicates
+            for row in self.df.itertuples():
+                well_id = row[
+                    self.df.columns.get_loc(self.well_data.col_names.well_id) + 1
+                ]
+                project_id = campaign.get_project_id_by_well_id(well_id)
+                if project_id is not None:
+                    project_ids.add(project_id)
+
+            # Generate color mapping for project IDs
+            project_colors = {
+                project_id: colors[i % len(colors)]
+                for i, project_id in enumerate(project_ids)
+            }
+
+            for row in self.df.itertuples():
+                well_id = row[
+                    self.df.columns.get_loc(self.well_data.col_names.well_id) + 1
+                ]
+                project_id = campaign.get_project_id_by_well_id(well_id)
+
+                if project_id is not None:
+                    popup_text = f"Candidate Project: Project {project_id}"
+                    folium.CircleMarker(
+                        location=[row.geometry.y, row.geometry.x],
+                        radius=5,
+                        popup=popup_text,
+                        fill=True,
+                        color=project_colors.get(project_id, "gray"),
+                    ).add_to(map_obj)
+
+        # Marker logic for well visualization
         else:
-            continue  # Skip points with other well types
+            # Iterate over the rows using itertuples and access columns by index
+            for row in self.df.itertuples():
+                well_id = row[
+                    self.df.columns.get_loc(self.well_data.col_names.well_id) + 1
+                ]
+                age = row[self.df.columns.get_loc(self.well_data.col_names.age) + 1]
+                depth = row[self.df.columns.get_loc(self.well_data.col_names.depth) + 1]
 
+                popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}"
 
-def visualize_data(
-    df: pd.DataFrame,
-    shpfile_name: str,
-    shpfile_url: str,
-    shp_name: str,
-    well_type: str = None,
-) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, folium.Map]:
-    """
-    Visualize data by adding well markers to a folium map.
+                if well_type_to_plot == "Gas":
+                    folium.CircleMarker(
+                        location=[row.geometry.y, row.geometry.x],
+                        radius=5,
+                        popup=popup_text,
+                        fill=True,
+                        color="red",
+                    ).add_to(map_obj)
+                elif well_type_to_plot == "Oil":
+                    icon_cross = BeautifyIcon(
+                        icon="times",
+                        inner_icon_style="color:blue;font-size:18px;",
+                        background_color="transparent",
+                        border_color="transparent",
+                    )
+                    folium.Marker(
+                        location=[row.geometry.y, row.geometry.x],
+                        popup=popup_text,
+                        icon=icon_cross,
+                    ).add_to(map_obj)
+                else:
+                    # Default marker style for other well types
+                    folium.CircleMarker(
+                        location=[row.geometry.y, row.geometry.x],
+                        radius=5,
+                        popup=popup_text,
+                        fill=True,
+                        color="green",
+                    ).add_to(map_obj)
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing the well data
+    # pylint: disable=too-many-arguments
+    def visualize_data(
+        self,
+        visualize_type: str = None,
+        well_type_to_plot: str = None,
+        legend: bool = False,
+        map_title: str = None,
+        campaign: Campaign = None,
+    ) -> folium.Map:
+        """
+        Visualize well data on a folium map.
 
-    shpfile_name : str
-        Name of the compressed shapefile
+        Parameters
+        ----------
+        visualize_type : str, optional
+            Type of visualization ('project', or None). Default is None.
 
-    shpfile_url : str
-        URL to download the shapefile
+        well_type_to_plot : str, optional
+            Type of well to plot ('Gas' or 'Oil'). Default is None.
 
-    shp_name : str
-        Name of the shapefile
+        legend : bool, optional
+            Whether to include a legend on the map. Default is False.
 
-    well_type : str, defaults to None
-        The well_type to be plotted ("Oil" or "Gas"). If None,
-        both well types are plotted
+        map_title : str, optional
+            Title of the map. Default is None.
 
-    Returns
-    -------
-    Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, folium.Map]
-        Tuple containing the state shapefile GeoDataFrame, the well GeoDataFrame, and the folium map
-    """
+        campaign : Campaign, optional
+            Campaign instance to map wells to projects when visualize_type is 'project'.
+            Default is None.
 
-    scratch_dir = os.path.join(os.getcwd(), "temp")
-    extract_dir = download_and_unzip_shapefile(
-        shpfile_name, shpfile_url, scratch_dir, shp_name
-    )
-    state_shapefile = gpd.read_file(os.path.join(extract_dir, shp_name))
-    state_shapefile = state_shapefile.to_crs("EPSG:4269")
-    gdf = prepare_gdf(df)
-    map_obj = create_map_with_legend(state_shapefile)
-    common_visualization(map_obj, state_shapefile)
-    add_well_markers_to_map(gdf, map_obj, well_type)
-    return state_shapefile, gdf, map_obj
+        Returns
+        -------
+        folium.Map
+            Folium map object with visualized well data.
+        """
+        # Initialize the map with legend and state shapefile
+        map_obj = self.create_map_with_legend(legend=legend, map_title=map_title)
 
+        # Add markers to the map based on the visualization type
+        self.add_markers_to_map(map_obj, visualize_type, well_type_to_plot, campaign)
 
-def get_cluster_colors(num_cluster: int, cluster_list: list) -> Dict[int, str]:
-    """
-    Get a color scheme for clusters.
-
-    Parameters
-    ----------
-    num_cluster : int
-        Number of clusters
-
-    Returns
-    -------
-    Dict[int, str]
-        Dictionary mapping cluster numbers to colors
-
-    Raises
-    ------
-    ValueError if value of num_cluster is invalid
-    """
-    if num_cluster <= 0:
-        raise_exception(
-            f"Invalid value: {num_cluster} for number of clusters", ValueError
-        )
-    if num_cluster != len(cluster_list):
-        raise_exception(
-            f"The specified number of clusters does not match the actual number of clusters present in the provided data",
-            ValueError,
-        )
-    colors = [
-        "red",
-        "blue",
-        "green",
-        "orange",
-        "purple",
-        "yellow",
-        "cyan",
-        "magenta",
-        "pink",
-        "brown",
-        "black",
-    ]
-    return {cluster_list[i]: colors[i % len(colors)] for i in range(num_cluster)}
-
-
-def add_cluster_markers_to_map(
-    full_data_points: gpd.GeoDataFrame,
-    map_obj: folium.Map,
-    cluster_colors: Dict[int, str],
-) -> None:
-    """
-    Add cluster markers to a folium map.
-
-    Parameters
-    ----------
-    full_data_points : gpd.GeoDataFrame
-        GeoDataFrame containing well data with clusters
-
-    map_obj : folium.Map
-        Folium map object
-
-    cluster_colors : Dict[int, str]
-        Dictionary mapping clusters to colors
-
-    Returns
-    -------
-    None
-    """
-
-    age_index = full_data_points.columns.get_loc("Age [Years]") + 1
-    depth_index = full_data_points.columns.get_loc("Depth [ft]") + 1
-    try:
-        well_id_index = full_data_points.columns.get_loc("API Well Number") + 1
-    except KeyError:
-        well_id_index = full_data_points.columns.get_loc("API") + 1
-    for row in full_data_points.itertuples():
-        if pd.isna(row.cluster):
-            continue
-        latitude = row.geometry.y
-        longitude = row.geometry.x
-        age = row[age_index]
-        depth = row[depth_index]
-        well_id = row[well_id_index]
-        popup_text = (
-            f"Project: {row.cluster}<br>Well ID: {well_id}<br>Latitude: {latitude}"
-            f"<br>Longitude: {longitude}<br>Depth: {depth}<br>Age: {age}"
-        )
-        color = cluster_colors.get(
-            row.cluster, "gray"
-        )  # Use 'gray' if cluster not in color scheme
-
-        folium.CircleMarker(
-            location=[latitude, longitude],
-            radius=8,
-            popup=popup_text,
-            fill=True,
-            color=color,
-        ).add_to(map_obj)
-
-
-def visualize_data_with_clusters(
-    num_cluster: int, full_data: pd.DataFrame, state_shapefile: gpd.GeoDataFrame
-) -> folium.Map:
-    """
-    Visualize data with clusters by adding cluster markers to a folium map.
-
-    Parameters
-    ----------
-    num_cluster : int
-        Number of clusters already existing in the full_data
-    full_data : pd.DataFrame
-        DataFrame containing the well data
-    state_shapefile : gpd.GeoDataFrame
-        GeoDataFrame containing shapefile data
-
-    Returns
-    -------
-    folium.Map
-        Folium map object.
-    """
-
-    geometry = gpd.points_from_xy(full_data["Longitude"], full_data["Latitude"])
-    full_data_points = gpd.GeoDataFrame(full_data, geometry=geometry, crs="EPSG:4326")
-
-    map_obj = folium.Map(
-        location=get_mean_centroid(state_shapefile),
-        zoom_start=8.2,
-    )
-    common_visualization(map_obj, state_shapefile)
-    cluster_list = pd.unique(full_data["cluster"])
-    cluster_colors = get_cluster_colors(num_cluster, cluster_list)
-    add_cluster_markers_to_map(full_data_points, map_obj, cluster_colors)
-    return map_obj
-
-
-def add_project_markers_to_map(
-    selected: pd.DataFrame, map_obj: folium.Map, cluster_colors: Dict[str, str]
-) -> None:
-    """
-    Add project markers to a folium map.
-
-    Parameters
-    ----------
-    selected : pd.DataFrame
-        DataFrame containing selected project data
-    map_obj : folium.Map
-        Folium map object
-    cluster_colors : Dict[str, str]
-        Dictionary mapping projects to colors
-
-    Returns
-    -------
-    None
-    """
-    gas_index = selected.columns.get_loc("Gas [Mcf/Year]") + 1
-    oil_index = selected.columns.get_loc("Oil [bbl/Year]") + 1
-    score_index = selected.columns.get_loc("Priority Score [0-100]") + 1
-    for row in selected.itertuples():
-        if pd.isna(row.Project):
-            continue
-        gas = row[gas_index]
-        oil = row[oil_index]
-        cluster = "Project: " + str(row.Project)
-        score = row[score_index]
-        popup_text = (
-            f"Oil [bbl/day]: {oil}<br>Gas [Mcf/day]: {gas}<br>"
-            f"Candidate Project: {cluster}<br>Score: {score}<br>"
-        )
-        color = cluster_colors.get(
-            row.Project, "gray"
-        )  # Use 'gray' if cluster not in color scheme
-        folium.CircleMarker(
-            location=[row.Latitude, row.Longitude],
-            radius=5,
-            popup=popup_text,
-            fill=True,
-            color=color,
-        ).add_to(map_obj)
-
-
-def visualize_data_with_projects(
-    selected: pd.DataFrame, state_shapefile: gpd.GeoDataFrame
-) -> folium.Map:
-    """
-    Visualize data with projects by adding project markers to a folium map.
-
-    Parameters
-    ----------
-    selected : pd.DataFrame
-        DataFrame containing selected project data
-    state_shapefile : gpd.GeoDataFrame
-        GeoDataFrame containing shapefile data
-
-    Returns
-    -------
-    folium.Map
-        Folium map object
-    """
-    map_obj = folium.Map(
-        location=get_mean_centroid(state_shapefile),
-        zoom_start=7,
-    )
-    common_visualization(map_obj, state_shapefile)
-    cluster_list = pd.unique(selected["Project"])
-    num_cluster = len(cluster_list)
-    cluster_colors = get_cluster_colors(num_cluster, cluster_list)
-    add_project_markers_to_map(selected, map_obj, cluster_colors)
-    return map_obj
+        return map_obj
