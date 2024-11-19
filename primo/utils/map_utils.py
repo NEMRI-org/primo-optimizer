@@ -13,6 +13,7 @@
 
 # Standard libs
 import os
+from typing import Dict
 
 # Installed libs
 import folium
@@ -203,6 +204,25 @@ class VisualizeData:
 
         return map_obj
 
+    def get_cluster_colors(
+        self, num_cluster: int, cluster_list: list
+    ) -> Dict[int, str]:
+        """Generate a color scheme for clusters."""
+        colors = [
+            "red",
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "yellow",
+            "cyan",
+            "magenta",
+            "pink",
+            "brown",
+            "black",
+        ]
+        return {cluster_list[i]: colors[i % len(colors)] for i in range(num_cluster)}
+
     def add_markers_to_map(
         self,
         map_obj: folium.Map,
@@ -234,21 +254,6 @@ class VisualizeData:
             If visualize_type is 'project' but campaign is not provided.
         """
 
-        # Inline logic for generating cluster or project colors
-        colors = [
-            "red",
-            "blue",
-            "green",
-            "orange",
-            "purple",
-            "yellow",
-            "cyan",
-            "magenta",
-            "pink",
-            "brown",
-            "black",
-        ]
-
         # Marker logic for project visualization
         if visualize_type == "project":
             if campaign is None:
@@ -265,10 +270,9 @@ class VisualizeData:
                     project_ids.add(project_id)
 
             # Generate color mapping for project IDs
-            project_colors = {
-                project_id: colors[i % len(colors)]
-                for i, project_id in enumerate(project_ids)
-            }
+            project_colors = self.get_cluster_colors(
+                len(project_ids), list(project_ids)
+            )
 
             for row in self.df.itertuples():
                 well_id = row[
