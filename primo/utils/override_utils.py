@@ -220,10 +220,12 @@ class OverrideCampaign:
             self.plug_list += well_list
         # prevent duplication in plug_list
         self.plug_list = list(set(self.plug_list))
-        self.wd = self.opt_inputs.config.well_data._construct_sub_data(self.plug_list)
+        self.well_data = self.opt_inputs.config.well_data._construct_sub_data(
+            self.plug_list
+        )
 
         self.feasibility = AssessFeasibility(
-            self.opt_inputs, self.new_campaign, self.wd, self.plug_list
+            self.opt_inputs, self.new_campaign, self.well_data, self.plug_list
         )
 
     def _modify_campaign(self):
@@ -307,7 +309,8 @@ class OverrideCampaign:
         Construct the new Campaign object based on the override selection
         """
         plugging_cost = self.feasibility.campaign_cost_dict
-        return Campaign(self.wd, self.new_campaign, plugging_cost)
+        wd = self.opt_inputs.config.well_data
+        return Campaign(wd, self.new_campaign, plugging_cost)
 
     def recalculate(self):
         """
