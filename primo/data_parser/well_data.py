@@ -275,7 +275,7 @@ class WellData:
     def get_high_priority_wells(self, num_wells: int):
         """Returns the top n wells by priority"""
 
-        if "Priority Score [0-100]" not in self.data.columns:
+        if not hasattr(self._col_names, "priority_score"):
             print("Returning None, since priority scores are not available!")
             return None
 

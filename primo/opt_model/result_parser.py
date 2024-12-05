@@ -724,7 +724,7 @@ class EfficiencyCalculator:
             assert getattr(project, metric.score_attribute, None) is None
             assert hasattr(project, metric.name)
 
-            # pylint: disable=R0801
+            # pylint: disable=duplicate-code
             # Check if division by a zero is likely
             if np.isclose(max_value, min_value, rtol=0.001):
                 # All cells in this column have equal value.

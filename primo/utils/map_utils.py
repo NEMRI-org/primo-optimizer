@@ -18,13 +18,33 @@ from typing import Dict
 # Installed libs
 import folium
 import geopandas as gpd
-import pandas as pd
 from folium.plugins import BeautifyIcon
 
 # User-defined libs
 from primo.data_parser.well_data import WellData
 from primo.opt_model.result_parser import Campaign
+from primo.utils.census_utils import get_data_as_geodataframe
 from primo.utils.download_utils import download_file, unzip_file
+from primo.utils.raise_exception import raise_exception
+
+
+# pylint: disable=duplicate-code
+def get_cluster_colors(num_cluster: int, cluster_list: list) -> Dict[int, str]:
+    """Generate a color scheme for clusters."""
+    colors = [
+        "red",
+        "blue",
+        "green",
+        "orange",
+        "purple",
+        "yellow",
+        "cyan",
+        "magenta",
+        "pink",
+        "brown",
+        "black",
+    ]
+    return {cluster_list[i]: colors[i % len(colors)] for i in range(num_cluster)}
 
 
 class VisualizeData:
@@ -61,12 +81,12 @@ class VisualizeData:
         self.state_shapefile_url = state_shapefile_url
         self.state_shapefile_name = state_shapefile_name
         self.shp_name = shp_name
-        self.state_shapefile = self.get_state_shapefile(
+        self.state_shapefile = self._get_state_shapefile(
             state_shapefile_name, state_shapefile_url, shp_name
         )
-        self.df = self.prepare_gdf(self.well_data.data, self.well_data)
+        self.df = get_data_as_geodataframe(self.well_data)
 
-    def get_state_shapefile(
+    def _get_state_shapefile(
         self, shpfile_name: str, shpfile_url: str, shp_name: str
     ) -> gpd.GeoDataFrame:
         """
@@ -101,36 +121,9 @@ class VisualizeData:
         state_shapefile = gpd.read_file(os.path.join(extract_dir, shp_name))
         return state_shapefile.to_crs("EPSG:4269")
 
-    @staticmethod
-    def prepare_gdf(df: pd.DataFrame, well_data: WellData) -> gpd.GeoDataFrame:
-        """
-        Prepare a GeoDataFrame from well_data's DataFrame with latitude and longitude.
-
-        Parameters
-        ----------
-        df : pd.DataFrame
-            DataFrame containing the well data.
-
-        well_data : WellData
-            Instance of WellData class to fetch column names.
-
-        Returns
-        -------
-        gpd.GeoDataFrame
-            GeoDataFrame with point geometries for well data.
-        """
-
-        gdf = gpd.GeoDataFrame(
-            df,
-            geometry=gpd.points_from_xy(
-                df[well_data.col_names.longitude], df[well_data.col_names.latitude]
-            ),
-            crs="EPSG:4269",
-        )
-        gdf.index = gdf.index + 1
-        return gdf
-
-    def create_map_with_legend(self, legend=False, map_title: str = None) -> folium.Map:
+    def _create_map_with_legend(
+        self, legend=False, map_title: str = None
+    ) -> folium.Map:
         """
         Create a folium map centered around the region with an optional legend and map title.
 
@@ -171,7 +164,9 @@ class VisualizeData:
             )
 
             if county_name is None:
-                raise AttributeError("None of the county name attributes are found.")
+                raise_exception(
+                    "None of the county name attributes are found.", AttributeError
+                )
 
             centroid = [county.geometry.centroid.y, county.geometry.centroid.x]
             folium.map.Marker(
@@ -204,31 +199,10 @@ class VisualizeData:
 
         return map_obj
 
-    def get_cluster_colors(
-        self, num_cluster: int, cluster_list: list
-    ) -> Dict[int, str]:
-        """Generate a color scheme for clusters."""
-        colors = [
-            "red",
-            "blue",
-            "green",
-            "orange",
-            "purple",
-            "yellow",
-            "cyan",
-            "magenta",
-            "pink",
-            "brown",
-            "black",
-        ]
-        return {cluster_list[i]: colors[i % len(colors)] for i in range(num_cluster)}
-
-    def add_markers_to_map(
+    def _add_well_markers(
         self,
         map_obj: folium.Map,
-        visualize_type: str = None,
         well_type_to_plot: str = None,
-        campaign: Campaign = None,
     ) -> None:
         """
         Add markers to a folium map based on the visualization type and well type.
@@ -238,11 +212,64 @@ class VisualizeData:
         map_obj : folium.Map
             Folium map object to add markers to.
 
-        visualize_type : str, optional
-            Type of visualization ('project', or None). Default is None.
-
         well_type_to_plot : str, optional
             Type of well to plot ('Gas' or 'Oil'). Default is None.
+
+        Raises
+        ------
+        ValueError
+            If visualize_type is 'project' but campaign is not provided.
+        """
+
+        for row in self.df.itertuples():
+            well_id = row[self.df.columns.get_loc(self.well_data.col_names.well_id) + 1]
+            age = row[self.df.columns.get_loc(self.well_data.col_names.age) + 1]
+            depth = row[self.df.columns.get_loc(self.well_data.col_names.depth) + 1]
+
+            popup_text = f"Well ID: {well_id}<br>Age: {age}<br>Depth: {depth}"
+
+            if well_type_to_plot == "Gas":
+                folium.CircleMarker(
+                    location=[row.geometry.y, row.geometry.x],
+                    radius=5,
+                    popup=popup_text,
+                    fill=True,
+                    color="red",
+                ).add_to(map_obj)
+            elif well_type_to_plot == "Oil":
+                icon_cross = BeautifyIcon(
+                    icon="times",
+                    inner_icon_style="color:blue;font-size:18px;",
+                    background_color="transparent",
+                    border_color="transparent",
+                )
+                folium.Marker(
+                    location=[row.geometry.y, row.geometry.x],
+                    popup=popup_text,
+                    icon=icon_cross,
+                ).add_to(map_obj)
+            else:
+                # Default marker style for other well types
+                folium.CircleMarker(
+                    location=[row.geometry.y, row.geometry.x],
+                    radius=5,
+                    popup=popup_text,
+                    fill=True,
+                    color="green",
+                ).add_to(map_obj)
+
+    def _add_campaign_markers(
+        self,
+        map_obj: folium.Map,
+        campaign: Campaign = None,
+    ) -> None:
+        """
+        Add markers to a folium map to visualize campaigns.
+
+        Parameters
+        ----------
+        map_obj : folium.Map
+            Folium map object to add markers to.
 
         campaign : Campaign, optional
             Campaign instance to map wells to projects when visualize_type is 'project'.
@@ -254,104 +281,74 @@ class VisualizeData:
             If visualize_type is 'project' but campaign is not provided.
         """
 
-        # Marker logic for project visualization
-        if visualize_type == "project":
-            if campaign is None:
-                raise ValueError(
-                    "A Campaign instance must be provided when visualize_type is 'project'."
-                )
-            project_ids = set()  # Use a set to avoid duplicates
-            for row in self.df.itertuples():
-                well_id = row[
-                    self.df.columns.get_loc(self.well_data.col_names.well_id) + 1
-                ]
-                project_id = campaign.get_project_id_by_well_id(well_id)
-                if project_id is not None:
-                    project_ids.add(project_id)
-
-            # Generate color mapping for project IDs
-            project_colors = self.get_cluster_colors(
-                len(project_ids), list(project_ids)
+        if campaign is None:
+            raise ValueError(
+                "A Campaign instance must be provided when visualize_type is 'project'."
             )
+        project_ids = set()  # Use a set to avoid duplicates
+        for row in self.df.itertuples():
+            well_id = row[self.df.columns.get_loc(self.well_data.col_names.well_id) + 1]
+            project_id = campaign.get_project_id_by_well_id(well_id)
+            if project_id is not None:
+                project_ids.add(project_id)
 
-            for row in self.df.itertuples():
-                well_id = row[
-                    self.df.columns.get_loc(self.well_data.col_names.well_id) + 1
-                ]
-                project_id = campaign.get_project_id_by_well_id(well_id)
+        project_colors = get_cluster_colors(len(project_ids), list(project_ids))
 
-                if project_id is not None:
-                    popup_text = f"Candidate Project: Project {project_id}"
-                    folium.CircleMarker(
-                        location=[row.geometry.y, row.geometry.x],
-                        radius=5,
-                        popup=popup_text,
-                        fill=True,
-                        color=project_colors.get(project_id, "gray"),
-                    ).add_to(map_obj)
+        for row in self.df.itertuples():
+            well_id = row[self.df.columns.get_loc(self.well_data.col_names.well_id) + 1]
+            project_id = campaign.get_project_id_by_well_id(well_id)
 
-        # Marker logic for well visualization
-        else:
-            # Iterate over the rows using itertuples and access columns by index
-            for row in self.df.itertuples():
-                well_id = row[
-                    self.df.columns.get_loc(self.well_data.col_names.well_id) + 1
-                ]
-                age = row[self.df.columns.get_loc(self.well_data.col_names.age) + 1]
-                depth = row[self.df.columns.get_loc(self.well_data.col_names.depth) + 1]
+            if project_id is not None:
+                popup_text = f"Candidate Project: Project {project_id}"
+                folium.CircleMarker(
+                    location=[row.geometry.y, row.geometry.x],
+                    radius=5,
+                    popup=popup_text,
+                    fill=True,
+                    color=project_colors.get(project_id, "gray"),
+                ).add_to(map_obj)
 
-                popup_text = f"API: {well_id}<br>Age: {age}<br>Depth: {depth}"
-
-                if well_type_to_plot == "Gas":
-                    folium.CircleMarker(
-                        location=[row.geometry.y, row.geometry.x],
-                        radius=5,
-                        popup=popup_text,
-                        fill=True,
-                        color="red",
-                    ).add_to(map_obj)
-                elif well_type_to_plot == "Oil":
-                    icon_cross = BeautifyIcon(
-                        icon="times",
-                        inner_icon_style="color:blue;font-size:18px;",
-                        background_color="transparent",
-                        border_color="transparent",
-                    )
-                    folium.Marker(
-                        location=[row.geometry.y, row.geometry.x],
-                        popup=popup_text,
-                        icon=icon_cross,
-                    ).add_to(map_obj)
-                else:
-                    # Default marker style for other well types
-                    folium.CircleMarker(
-                        location=[row.geometry.y, row.geometry.x],
-                        radius=5,
-                        popup=popup_text,
-                        fill=True,
-                        color="green",
-                    ).add_to(map_obj)
-
-    # pylint: disable=too-many-arguments
-    def visualize_data(
+    def visualize_wells(
         self,
-        visualize_type: str = None,
         well_type_to_plot: str = None,
-        legend: bool = False,
-        map_title: str = None,
-        campaign: Campaign = None,
+        legend: bool = True,
+        map_title: str = "All MCWs",
     ) -> folium.Map:
         """
         Visualize well data on a folium map.
 
         Parameters
         ----------
-        visualize_type : str, optional
-            Type of visualization ('project', or None). Default is None.
-
         well_type_to_plot : str, optional
             Type of well to plot ('Gas' or 'Oil'). Default is None.
 
+        legend : bool, optional
+            Whether to include a legend on the map. Default is False.
+
+        map_title : str, optional
+            Title of the map. Default is None.
+
+        Returns
+        -------
+        folium.Map
+            Folium map object with visualized well data.
+        """
+        map_obj = self._create_map_with_legend(legend=legend, map_title=map_title)
+        self._add_well_markers(map_obj, well_type_to_plot)
+
+        return map_obj
+
+    def visualize_campaign(
+        self,
+        legend: bool = False,
+        map_title: str = "Plugging Campaign",
+        campaign: Campaign = None,
+    ) -> folium.Map:
+        """
+        Visualize campaigns on a folium map.
+
+        Parameters
+        ----------
         legend : bool, optional
             Whether to include a legend on the map. Default is False.
 
@@ -365,12 +362,9 @@ class VisualizeData:
         Returns
         -------
         folium.Map
-            Folium map object with visualized well data.
+            Folium map object with visualized campaigns.
         """
-        # Initialize the map with legend and state shapefile
-        map_obj = self.create_map_with_legend(legend=legend, map_title=map_title)
-
-        # Add markers to the map based on the visualization type
-        self.add_markers_to_map(map_obj, visualize_type, well_type_to_plot, campaign)
+        map_obj = self._create_map_with_legend(legend=legend, map_title=map_title)
+        self._add_campaign_markers(map_obj, campaign)
 
         return map_obj
