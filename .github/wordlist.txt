@@ -58,6 +58,7 @@ dtype
 dunder
 env
 fixme
+geopandas
 geopoint
 geospatial
 glpk
@@ -66,6 +67,7 @@ inplace
 ipynb
 ipywidgets
 iterable
+itertuples
 json
 libs
 monkeypatch

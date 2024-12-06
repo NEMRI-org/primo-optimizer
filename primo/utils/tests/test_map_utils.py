@@ -11,133 +11,18 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-# Standard libs
-import os
-
 # Installed libs
 import folium
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import pytest
-from shapely.geometry import Point
+from shapely.geometry import Polygon
 
 # User-defined libs
-from primo.utils.map_utils import (
-    download_and_unzip_shapefile,
-    get_cluster_colors,
-    prepare_gdf,
-    visualize_data,
-    visualize_data_with_clusters,
-    visualize_data_with_projects,
-)
+from primo.data_parser.well_data import WellData
+from primo.utils.map_utils import VisualizeData
 
-
-@pytest.mark.parametrize(
-    "input_dict, status",
-    [  # Case 1: pass case
-        (
-            [
-                {"Latitude": 40.589335, "Longitude": -79.92741},
-                {"Latitude": 40.642804, "Longitude": -79.715295},
-            ],
-            True,
-        ),
-        # Case 2: missing data
-        (
-            [
-                {"Latitude": np.nan, "Longitude": -79.92741},
-                {"Latitude": 40.642804, "Longitude": -79.715295},
-            ],
-            True,
-        ),
-        # Case 3: missing 'Latitude'
-        (
-            [
-                {"Longitude": -79.92741},
-                {"Longitude": -79.715295},
-            ],
-            False,
-        ),
-        # Add more test cases as needed
-    ],
-)
-def test_prepare_gdf(input_dict, status):
-    input_df = pd.DataFrame(input_dict)
-    if status:
-        assert "geometry" in prepare_gdf(input_df)
-    else:
-        with pytest.raises(KeyError):
-            prepare_gdf(input_df)
-
-
-@pytest.mark.parametrize(
-    "number_of_clusters, cluster_list, return_color_list, status",
-    [  # Case 1: pass case
-        (
-            5,
-            [1, 2, 3, 4, 5],
-            {1: "red", 2: "blue", 3: "green", 4: "orange", 5: "purple"},
-            True,
-        ),
-        # Case 2: number of cluster is not valid
-        (
-            -1,
-            [1, 2, 3, 4, 5],
-            "Error",
-            False,
-        ),
-        # Case 3: str for cluster name
-        (
-            5,
-            ["cluster 1", "cluster 2", "cluster 3", "cluster 4", "cluster 5"],
-            {
-                "cluster 1": "red",
-                "cluster 2": "blue",
-                "cluster 3": "green",
-                "cluster 4": "orange",
-                "cluster 5": "purple",
-            },
-            True,
-        ),
-        # Case 4: number of cluster given is greater than the number of cluster in the list
-        (
-            10,
-            ["cluster 1", "cluster 2", "cluster 3", "cluster 4", "cluster 5"],
-            {
-                "cluster 1": "red",
-                "cluster 2": "blue",
-                "cluster 3": "green",
-                "cluster 4": "orange",
-                "cluster 5": "purple",
-            },
-            False,
-        ),
-        # Case 5: number of cluster given is less than the number of cluster in the list
-        (
-            2,
-            ["cluster 1", "cluster 2", "cluster 3", "cluster 4", "cluster 5"],
-            {
-                "cluster 1": "red",
-                "cluster 2": "blue",
-                "cluster 3": "green",
-                "cluster 4": "orange",
-                "cluster 5": "purple",
-            },
-            False,
-        ),
-    ],
-)
-def test_get_cluster_colors(
-    number_of_clusters, cluster_list, return_color_list, status
-):
-    if status:
-        assert get_cluster_colors(number_of_clusters, cluster_list) == return_color_list
-    else:
-        with pytest.raises(ValueError):
-            get_cluster_colors(number_of_clusters, cluster_list)
-
-
+# Sample DataFrame for testing
 DF_BASE = pd.DataFrame(
     [
         {
@@ -147,7 +32,7 @@ DF_BASE = pd.DataFrame(
             "Well Type": "Oil",
             "Latitude": 42.07661,
             "Longitude": -77.88081,
-            "cluster": 1,
+            "Project": 1,
         },
         {
             "API Well Number": "31003043620000",
@@ -156,421 +41,229 @@ DF_BASE = pd.DataFrame(
             "Well Type": "Gas",
             "Latitude": 42.07983,
             "Longitude": -77.76817,
-            "cluster": 2,
+            "Project": 2,
         },
     ],
 )
-DF_PRIORITY_SCORE = pd.DataFrame(
-    [
-        {
-            "API Well Number": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Priority Score [0-100]": 50,
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-        },
-        {
-            "API Well Number": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Priority Score [0-100]": 0,
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-        },
-    ],
-)
-DF_API = pd.DataFrame(
-    [
-        {
-            "API": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "cluster": "cluster 1",
-        },
-        {
-            "API": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "cluster": "cluster 1",
-        },
-    ],
-)
-SHP_FILE_NAME = "NYS_Civil_Boundaries.shp.zip"
-SHP_FILE_URL = (
-    "https://gisdata.ny.gov/GISData/State/Civil_Boundaries/NYS_Civil_Boundaries.shp.zip"
-)
-SHP_NAME = "Counties_Shoreline.shp"
-
-SHP_FILE_NAME_WRONG = "Civil_Boundaries.zip"
-SHP_FILE_URL_WRONG = (
-    "https://gisdata.ny.gov/GISData/State/Civil_Boundaries/Civil_Boundaries.shp.zip"
-)
-SHP_NAME_WRONG = "Counties_Shoreli.shp"
-
-
-SHP_FILE_NAME_COUNTY_NAME = "PaCounty2024_05.zip"
-SHP_FILE_URL_COUNTY_NAME = (
-    "https://www.pasda.psu.edu/download/padot/boundary_layers/PaCounty2024_05.zip"
-)
-SHP_NAME_COUNTY_NAME = "PaCounty2024_05.shp"
-
-
-@pytest.mark.parametrize(
-    "df, shpfile_name, shpfile_url, shp_name, well_type, status",
-    [
-        (
-            DF_BASE,
-            SHP_FILE_NAME,
-            SHP_FILE_URL,
-            SHP_NAME,
-            "Gas",
-            True,
-        ),  # Case 1: pass case with well type specified where the column name for
-        # county_name is NAME
-        (
-            DF_BASE,
-            SHP_FILE_NAME,
-            SHP_FILE_URL,
-            SHP_NAME,
-            None,
-            True,
-        ),  # Case 2: pass case without well type specified
-        (
-            DF_BASE,
-            SHP_FILE_NAME,
-            SHP_FILE_URL,
-            SHP_NAME,
-            "Deep",
-            False,
-        ),  # Case 3: wrong well type called
-        (
-            DF_PRIORITY_SCORE,
-            SHP_FILE_NAME,
-            SHP_FILE_URL,
-            SHP_NAME,
-            None,
-            True,
-        ),  # Case 4: pass case with priority score
-        (
-            DF_API,
-            SHP_FILE_NAME,
-            SHP_FILE_URL,
-            SHP_NAME,
-            None,
-            True,
-        ),  # Case 5: pass case with well number being called as API
-        (
-            DF_BASE,
-            SHP_FILE_NAME_WRONG,
-            SHP_FILE_URL_WRONG,
-            SHP_NAME_WRONG,
-            "Gas",
-            False,
-        ),  # Case 6: fail case with wrong shape file name and url
-        (
-            DF_BASE,
-            SHP_FILE_NAME_COUNTY_NAME,
-            SHP_FILE_URL_COUNTY_NAME,
-            SHP_NAME_COUNTY_NAME,
-            "Gas",
-            True,
-        ),  # Case 7: pass case where the column name for county_name is COUNTY_NAME
-    ],
-)
-def test_visualize_data(df, shpfile_name, shpfile_url, shp_name, well_type, status):
-    if status:
-        state_shapefile, gdf, map_object = visualize_data(
-            df, shpfile_name, shpfile_url, shp_name, well_type
-        )
-        assert isinstance(state_shapefile, gpd.GeoDataFrame)
-        assert isinstance(gdf, gpd.GeoDataFrame)
-        assert isinstance(map_object, folium.Map)
-        assert isinstance(state_shapefile["geometry"], gpd.GeoSeries)
-        assert isinstance(gdf["geometry"], gpd.GeoSeries)
-    else:
-        with pytest.raises(Exception):
-            visualize_data(df, shpfile_name, shpfile_url, shp_name, well_type)
 
 
 @pytest.fixture
-def state_shapefile():
-    scratch_dir = os.path.join(os.getcwd(), "temp")
-    extract_dir = download_and_unzip_shapefile(
-        SHP_FILE_NAME, SHP_FILE_URL, scratch_dir, SHP_NAME
+def visualize_data_fixture():
+    """Fixture to initialize the VisualizeData class."""
+    # Mock data setup for WellData
+    data = [
+        {"lat": 40.7749, "lon": -74.4194, "id": "Well1", "cluster": "Cluster1"},
+        {"lat": 40.6428, "lon": -74.2437, "id": "Well2", "cluster": "Cluster2"},
+        {"lat": 40.7128, "lon": -74.0060, "id": "Well3", "cluster": "Cluster3"},
+    ]
+
+    column_names = {
+        "latitude": "lat",
+        "longitude": "lon",
+        "well_id": "id",
+        "cluster": "cluster",
+    }
+    well_data_instance = WellData(data, column_names)
+
+    return VisualizeData(
+        well_data=well_data_instance,
+        state_shapefile_url=(
+            "https://gisdata.ny.gov/GISData/State/Civil_Boundaries/"
+            "NYS_Civil_Boundaries.shp.zip"
+        ),
+        state_shapefile_name="NYS_Civil_Boundaries.shp.zip",
+        shp_name="Counties_Shoreline.shp",
     )
-    state_shapefile = gpd.read_file(os.path.join(extract_dir, SHP_NAME))
-    state_shapefile = state_shapefile.to_crs("EPSG:4269")
-
-    return state_shapefile
 
 
-STATE_SHAPEFILE_WRONG = gpd.GeoSeries([Point(1, 1), Point(2, 2), Point(3, 3)])
+@pytest.mark.integration
+def test_integration_visualize_data(visualize_fixture):
+    """Integration test for the end-to-end functionality of VisualizeData methods."""
+    # Prepare and visualize data
+    shapefile, gdf, map_object = visualize_fixture.visualize_data(
+        DF_BASE, well_type="Gas"
+    )
+
+    # Check that shapefile and well data were properly integrated
+    assert isinstance(
+        shapefile, gpd.GeoDataFrame
+    ), "Shapefile data should be a GeoDataFrame."
+    assert isinstance(
+        gdf, gpd.GeoDataFrame
+    ), "Well data should be transformed into a GeoDataFrame."
+    assert isinstance(
+        map_object, folium.Map
+    ), "The final output should be a folium Map instance."
 
 
-@pytest.mark.parametrize(
-    "num_cluster, full_data, status",
-    [
-        (
-            2,
-            DF_BASE,
-            True,
-        ),  # Case 1: pass case
-        (
-            1,
-            DF_BASE,
-            False,
-        ),  # Case 2: fail case with wrong number of cluster given
-        (
-            1,
-            DF_PRIORITY_SCORE,
-            None,
-        ),  # Case 3: fail case where cluster information is missing in the data input
-        (
-            1,
-            DF_API,
-            True,
-        ),  # Case 4: pass case with well number being called as API
-    ],
-)
-@pytest.mark.parametrize(
-    "num_cluster_wrong_shapefile, full_data_wrong_shapefile, state_shapefile_wrong_shapefile",
-    [
-        (
-            2,
-            DF_BASE,
-            STATE_SHAPEFILE_WRONG,
-        ),  # Case 5: fail case with wrong state_shapefile
-    ],
-)
-def test_visualize_data_with_clusters(
-    num_cluster,
-    full_data,
-    status,
-    state_shapefile,
-    num_cluster_wrong_shapefile,
-    full_data_wrong_shapefile,
-    state_shapefile_wrong_shapefile,
-):
-    if status:
-        map_object = visualize_data_with_clusters(
-            num_cluster,
-            full_data,
-            state_shapefile,
-        )
-        assert isinstance(map_object, folium.Map)
-    elif status is None:
-        with pytest.raises(KeyError):
-            visualize_data_with_clusters(num_cluster, full_data, state_shapefile)
-    else:
-        with pytest.raises(ValueError):
-            visualize_data_with_clusters(num_cluster, full_data, state_shapefile)
+@pytest.mark.integration
+def test_integration_create_map_with_legend_and_markers(visualize_data):
+    """Integration test to check map creation with legends and markers."""
+    clusters = {"Cluster1": "blue", "Cluster2": "green", "Cluster3": "red"}
 
-    with pytest.raises(ValueError):
-        visualize_data_with_clusters(
-            num_cluster_wrong_shapefile,
-            full_data_wrong_shapefile,
-            state_shapefile_wrong_shapefile,
-        )
+    # Create map with legend and verify that legend appears with expected clusters
+    map_obj = visualize_data.create_map_with_legend(clusters=clusters)
+    # pylint: disable=protected-access
+    legend_html = map_obj.get_root().html._children["legend"].render()
+    for cluster, color in clusters.items():
+        assert cluster in legend_html, f"Legend for {cluster} is missing."
+        assert (
+            color in legend_html
+        ), f"Color {color} is missing for cluster {cluster} in legend."
+
+    # Add markers and verify marker data
+    well_data = [
+        {"lat": 40.7749, "lon": -74.4194, "id": "Well1", "color": "blue"},
+        {"lat": 40.6428, "lon": -74.2437, "id": "Well2", "color": "green"},
+    ]
+    map_obj = visualize_data.add_markers_to_map(well_data=well_data)
+    # pylint: disable=protected-access
+    marker_html = map_obj.get_root().html._children["marker"].render()
+    for well in well_data:
+        assert well["id"] in marker_html, f"Marker for {well['id']} is missing."
+        assert (
+            well["color"] in marker_html
+        ), f"Color {well['color']} for {well['id']} is missing."
 
 
-SELECTED_BASE = pd.DataFrame(
-    [
-        {
-            "API Well Number": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Priority Score [0-100]": 50,
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "Project": 1,
-            "Gas [Mcf/Year]": 0,
-            "Oil [bbl/Year]": 1000,
-        },
-        {
-            "API Well Number": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Priority Score [0-100]": 0,
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "Project": 1,
-            "Gas [Mcf/Year]": 1000,
-            "Oil [bbl/Year]": 0,
-        },
-    ],
-)
-SELECTED_MISSING_PRIORITY = pd.DataFrame(
-    [
-        {
-            "API Well Number": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "Project": 1,
-            "Gas [Mcf/Year]": 0,
-            "Oil [bbl/Year]": 1000,
-        },
-        {
-            "API Well Number": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "Project": 2,
-            "Gas [Mcf/Year]": 1000,
-            "Oil [bbl/Year]": 0,
-        },
-    ],
-)
-SELECTED_API = pd.DataFrame(
-    [
-        {
-            "API": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Priority Score [0-100]": 50,
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "Project": "Project 1",
-            "Gas [Mcf/Year]": 0,
-            "Oil [bbl/Year]": 1000,
-        },
-        {
-            "API": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Priority Score [0-100]": 0,
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "Project": "Project 1",
-            "Gas [Mcf/Year]": 1000,
-            "Oil [bbl/Year]": 0,
-        },
-    ],
-)
-SELECTED_MISSING_DATA = pd.DataFrame(
-    [
-        {
-            "API Well Number": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Priority Score [0-100]": 50,
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "Project": 1,
-            "Gas [Mcf/Year]": 0,
-            "Oil [bbl/Year]": 1000,
-        },
-        {
-            "API Well Number": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Priority Score [0-100]": 0,
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "Project": 2,
-            "Gas [Mcf/Year]": np.nan,
-            "Oil [bbl/Year]": 0,
-        },
-    ],
-)
-SELECTED_MISSING_PROJECT = pd.DataFrame(
-    [
-        {
-            "API Well Number": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Priority Score [0-100]": 50,
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "Project": 1,
-            "Gas [Mcf/Year]": 0,
-            "Oil [bbl/Year]": 1000,
-        },
-        {
-            "API Well Number": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Priority Score [0-100]": 0,
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "Project": np.nan,
-            "Gas [Mcf/Year]": np.nan,
-            "Oil [bbl/Year]": 0,
-        },
-    ],
-)
+@pytest.mark.integration
+def test_integration_get_state_shapefile(visualize_data, mocker):
+    """Integration test for loading and handling of the state shapefile."""
+    # Mocking shapefile download and reading
+    mock_shapefile = gpd.GeoDataFrame({"geometry": [Polygon([(0, 0), (1, 1), (1, 0)])]})
+    mocker.patch("geopandas.read_file", return_value=mock_shapefile)
+
+    shapefile = visualize_data.get_state_shapefile()
+    assert isinstance(
+        shapefile, gpd.GeoDataFrame
+    ), "Shapefile should load as a GeoDataFrame."
+    assert not shapefile.empty, "Shapefile should contain data."
+    assert "geometry" in shapefile.columns, "Shapefile must include a geometry column."
 
 
-@pytest.mark.parametrize(
-    "selected, status",
-    [
-        (
-            SELECTED_BASE,
-            True,
-        ),  # Case 1: pass case
-        (
-            SELECTED_MISSING_PRIORITY,
-            False,
-        ),  # Case 2: fail case where the 'priority score' column is missing
-        (
-            SELECTED_API,
-            True,
-        ),  # Case 3: pass case with well number being called as API and str as project name
-        (
-            SELECTED_MISSING_DATA,
-            True,
-        ),  # Case 4: pass case with missing data
-        (
-            SELECTED_MISSING_PROJECT,
-            True,
-        ),  # Case 5: fail case with missing data in 'project'
-    ],
-)
-@pytest.mark.parametrize(
-    "selected_wrong_shapefile, state_shapefile_wong_shapefile",
-    [
-        (
-            SELECTED_BASE,
-            STATE_SHAPEFILE_WRONG,
-        ),  # Case 6: fail case with wrong state_shapefile
-    ],
-)
-def test_visualize_data_with_projects(
-    selected,
-    state_shapefile,
-    status,
-    selected_wrong_shapefile,
-    state_shapefile_wong_shapefile,
-):
-    if status:
-        map_object = visualize_data_with_projects(selected, state_shapefile)
-        assert isinstance(map_object, folium.Map)
-    else:
-        with pytest.raises(KeyError):
-            visualize_data_with_projects(selected, state_shapefile)
+@pytest.mark.integration
+def test_filter_well_data_by_type(visualize_fixture):
+    """Test that well data can be filtered correctly by well type."""
+    well_data = DF_BASE.copy()
+    filtered_data = visualize_fixture.filter_data_by_type(well_data, well_type="Gas")
+    assert not filtered_data.empty, "Filtered data should not be empty."
+    assert (
+        filtered_data["Well Type"] == "Gas"
+    ).all(), "All rows must have the specified well type."
 
-    with pytest.raises(ValueError):
-        visualize_data_with_projects(
-            selected_wrong_shapefile, state_shapefile_wong_shapefile
-        )
+
+@pytest.mark.integration
+def test_initialize_map(visualize_fixture):
+    """Test that the map initializes with correct bounds and layers."""
+    map_obj = visualize_fixture.initialize_map(
+        center=[40.7128, -74.0060], zoom_start=10
+    )
+    assert isinstance(
+        map_obj, folium.Map
+    ), "Map object should be a folium.Map instance."
+    assert map_obj.location == [40.7128, -74.0060], "Map center location is incorrect."
+    assert map_obj.options["zoom"] == 10, "Map zoom level is incorrect."
+
+
+@pytest.mark.integration
+def test_add_clusters_to_map(visualize_fixture):
+    """Test adding clusters to the map."""
+    clusters = {
+        "Cluster1": {"lat": 40.7749, "lon": -74.4194, "color": "blue"},
+        "Cluster2": {"lat": 40.6428, "lon": -74.2437, "color": "green"},
+    }
+    map_obj = visualize_fixture.add_clusters_to_map(clusters)
+    assert isinstance(map_obj, folium.Map), "Map should be a folium Map instance."
+    # pylint: disable=protected-access
+    assert (
+        len(map_obj._children) > 0
+    ), "Map should contain child elements (e.g., clusters)."
+
+
+@pytest.mark.integration
+def test_add_project_data(visualize_fixture):
+    """Test that project data can be added to the visualization."""
+    project_data = [
+        {"id": 1, "project": "Project A"},
+        {"id": 2, "project": "Project B"},
+    ]
+    updated_data = visualize_fixture.add_project_data(DF_BASE, project_data)
+    assert (
+        "project" in updated_data.columns
+    ), "Project column should be added to the data."
+    assert len(updated_data) == len(DF_BASE), "Number of rows should remain consistent."
+
+
+# pylint: disable=R0903
+@pytest.mark.integration
+def test_download_shapefile(visualize_fixture, monkeypatch):
+    """Test downloading a shapefile."""
+
+    def mock_requests_get():
+        class MockResponse:
+            """Mock class to test shapefile function"""
+
+            content = b"Fake shapefile content"
+
+        return MockResponse()
+
+    monkeypatch.setattr("requests.get", mock_requests_get)
+    shapefile_path = visualize_fixture.download_shapefile()
+    assert shapefile_path.endswith(
+        ".zip"
+    ), "Downloaded shapefile should be a .zip file."
+
+
+@pytest.mark.integration
+def test_extract_shapefile(visualize_fixture, tmpdir):
+    """Test extracting a shapefile."""
+    zip_path = tmpdir.join("shapefile.zip")
+    extracted_path = visualize_fixture.extract_shapefile(zip_path)
+    assert extracted_path.exists(), "Extracted shapefile directory should exist."
+
+
+@pytest.mark.integration
+def test_handle_missing_coordinates(visualize_fixture):
+    """Test that rows with missing or invalid coordinates are removed."""
+    data = DF_BASE.copy()
+    data.loc[0, "Latitude"] = None
+    cleaned_data = visualize_fixture.handle_missing_coordinates(data)
+    assert (
+        cleaned_data["Latitude"].notnull().all()
+    ), "All rows must have valid latitude values."
+    assert (
+        cleaned_data["Longitude"].notnull().all()
+    ), "All rows must have valid longitude values."
+
+
+@pytest.mark.integration
+def test_generate_legend_html(visualize_fixture):
+    """Test that the legend HTML is generated correctly."""
+    clusters = {"Cluster1": "blue", "Cluster2": "green"}
+    legend_html = visualize_fixture.generate_legend_html(clusters)
+    assert "Cluster1" in legend_html, "Legend should include 'Cluster1'."
+    assert "blue" in legend_html, "Legend should include the color 'blue'."
+
+
+@pytest.mark.integration
+def test_handle_empty_data(visualize_fixture):
+    """Test that methods handle empty well data gracefully."""
+    empty_data = pd.DataFrame()
+    with pytest.raises(ValueError, match="Input data is empty."):
+        visualize_fixture.visualize_data(empty_data)
+
+
+@pytest.mark.integration
+def test_state_shapefile_integration(visualize_fixture, monkeypatch):
+    """Test integration of state shapefile with well data."""
+
+    def mock_read_file():
+        return gpd.GeoDataFrame({"geometry": [Polygon([(0, 0), (1, 1), (1, 0)])]})
+
+    monkeypatch.setattr("geopandas.read_file", mock_read_file)
+
+    shapefile = visualize_fixture.get_state_shapefile()
+    integrated_map = visualize_fixture.integrate_shapefile_and_data(shapefile, DF_BASE)
+    assert isinstance(
+        integrated_map, folium.Map
+    ), "Integrated map should be a folium.Map instance."
