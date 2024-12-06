@@ -279,8 +279,8 @@ def or_infeasible_distance_selection_fixture():
     """
     project_remove = [13]
     well_remove = {1: [851]}
-    well_add_existing_cluster = {1: [851]}
-    well_add_new_cluster = {11: [851]}
+    well_add_existing_cluster = {1: [851, 807]}
+    well_add_new_cluster = {11: [851], 36: [807]}
     project_lock = []
     well_lock = {}
     remove_widget_return = OverrideRemoveLockInfo(project_remove, well_remove)
@@ -294,8 +294,9 @@ def or_infeasible_distance_selection_fixture():
 
 def test_infeasible_distance(or_feasible_distance_selection, get_model):
     """
-    Test the override campaign class where the new projects violate
-    the distance constraint after the override step
+    Test the override campaign class where (1) the new projects violate
+    the distance constraint after the override step (2) A well is not removed
+    from the recommended projects before being reassigned to another project
     """
     opt_campaign, opt_mdl_inputs, eff_metrics = get_model
     or_selection = or_feasible_distance_selection
@@ -303,6 +304,10 @@ def test_infeasible_distance(or_feasible_distance_selection, get_model):
     or_camp_class = OverrideCampaign(
         or_selection, opt_mdl_inputs, opt_campaign.clusters_dict, eff_metrics
     )
+
+    # Test if there is any duplication in the plug_list
+    assert 807 in or_camp_class.plug_list
+    assert or_camp_class.plug_list.count(807) == 1
 
     assert not or_camp_class.feasibility.assess_feasibility()
     assert or_camp_class.feasibility.assess_budget() < 0

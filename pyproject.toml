@@ -119,7 +119,7 @@ platforms = ["windows", "linux"]
 py-modules = ["stagedfright"]
 
 [tool.setuptools.dynamic]
-version = {attr = "primo.VERSION"}
+version = {attr = "primo.RELEASE"}
 
 [tool.setuptools.packages.find]
 #where = [".", ".stagedfright"]

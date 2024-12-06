@@ -471,7 +471,6 @@ def test_user_selection(
 
     # Withdraw None
     or_wid_class.add_widget._text = ""
-    page_session.get_by_label("Add Well").fill("")
     with pytest.raises(ValueError, match="Nothing selected, cannot remove from list"):
         or_wid_class.add_widget._remove(None)
 
@@ -487,6 +486,16 @@ def test_user_selection(
     or_wid_class.add_widget._remove("69254")
     assert or_wid_class.add_widget.selected_list == ["94343"]
     assert or_wid_class.add_widget.re_cluster_dict == {1: [80], 6: []}
+
+    # Add well 69687, index 807, which has been selected
+    or_wid_class.add_widget._text = "69687"
+    with pytest.raises(
+        ValueError,
+        match="The well is already assigned to a project. "
+        "It must be removed from the current project before it can be "
+        "assigned to another one.",
+    ):
+        or_wid_class.add_widget._add(None)
 
     # Lock project 19
     page_session.wait_for_timeout(2000)

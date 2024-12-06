@@ -15,7 +15,6 @@
 import json
 import logging
 import os
-import typing
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
@@ -24,6 +23,7 @@ import ipywidgets as widgets
 from IPython.display import clear_output, display
 
 # User-defined libs
+# from primo.data_parser.well_data import WellData
 from primo.utils.raise_exception import raise_exception
 
 LOGGER = logging.getLogger(__name__)
@@ -557,8 +557,8 @@ class BaseSelectWidget:
 
     Parameters
     ----------
-    choices: typing.Iterable[str]
-        Full collection of choices
+    choices: List[int]
+        A list of collection of choices
 
     button_description: str
         The description to be displayed on the button_add
@@ -591,7 +591,7 @@ class BaseSelectWidget:
 
     def __init__(
         self,
-        choices: typing.Iterable[str],
+        choices: List[int],
         button_description: str,
         type_description: str,
     ):
@@ -699,8 +699,8 @@ class SubSelectWidget(BaseSelectWidget):
 
     Parameters
     ----------
-    cluster_choices : typing.Iterable[str]
-        Collection of cluster choices for the SelectWidget
+    cluster_choices : List[int]
+         list of collection of cluster choices for the SelectWidget
 
     button_description_cluster : str
         Description for the cluster selection button
@@ -714,7 +714,7 @@ class SubSelectWidget(BaseSelectWidget):
 
     def __init__(
         self,
-        cluster_choices: typing.Iterable[str],
+        cluster_choices: List[int],
         button_description_cluster: str,
         button_description_well: str,
         well_data,
@@ -754,8 +754,8 @@ class SelectWidgetAdd(SelectWidget):
 
     Parameters
     ----------
-    well_choices : typing.Iterable[str]
-        Collection of well choices
+    well_choices : WellData
+        The WellData object for wells that are candidates for the add widget
 
     button_description : str
         Description for the add button
@@ -792,7 +792,7 @@ class SelectWidgetAdd(SelectWidget):
 
     def __init__(
         self,
-        well_choices: typing.Iterable[str],
+        well_choices,
         button_description: str,
         type_description: str,
     ):
@@ -834,6 +834,12 @@ class SelectWidgetAdd(SelectWidget):
                 ]  # Update to the cluster of the selected well
 
     def _add(self, _) -> None:
+        if self._text not in self.wd.data[self.wd._col_names.well_id].values:
+            raise_exception(
+                "The well is already assigned to a project. It must be removed "
+                "from the current project before it can be assigned to another one.",
+                ValueError,
+            )
         super()._add(_)
         well_index = self.wd.data[
             self.wd.data[self.wd._col_names.well_id] == self._text

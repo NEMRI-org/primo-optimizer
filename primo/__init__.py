@@ -11,5 +11,5 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
-RELEASE = "0.1.dev0"
-VERSION = "0.1"
+RELEASE = "0.2.0rc1"
+VERSION = "0.2.0"
