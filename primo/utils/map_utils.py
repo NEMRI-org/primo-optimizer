@@ -81,9 +81,7 @@ class VisualizeData:
         self.state_shapefile_url = state_shapefile_url
         self.state_shapefile_name = state_shapefile_name
         self.shp_name = shp_name
-        self.state_shapefile = self._get_state_shapefile(
-            state_shapefile_name, state_shapefile_url, shp_name
-        )
+        self.state_shapefile = None
         self.df = get_data_as_geodataframe(self.well_data)
 
     def _get_state_shapefile(
@@ -122,7 +120,10 @@ class VisualizeData:
         return state_shapefile.to_crs("EPSG:4269")
 
     def _create_map_with_legend(
-        self, legend=False, map_title: str = None
+        self,
+        legend=False,
+        map_title: str = None,
+        shapefile=True,
     ) -> folium.Map:
         """
         Create a folium map centered around the region with an optional legend and map title.
@@ -135,49 +136,69 @@ class VisualizeData:
         map_title : str, optional
             Title of the map. Default is None.
 
+        shapefile: bool, optional
+            Whether to include a shapefile on the map or not. Default is True
+
         Returns
         -------
         folium.Map
             Folium map object centered around the region.
         """
-
-        if (
-            self.state_shapefile.crs is None
-            or not self.state_shapefile.crs.is_projected
-        ):
-            centroid = self.state_shapefile.to_crs("+proj=cea").centroid.to_crs(
-                self.state_shapefile.crs
+        if shapefile and self.state_shapefile is None:
+            self.state_shapefile = self._get_state_shapefile(
+                self.state_shapefile_name, self.state_shapefile_url, self.shp_name
             )
+
+        if self.state_shapefile is not None:
+            if (
+                self.state_shapefile.crs is None
+                or not self.state_shapefile.crs.is_projected
+            ):
+                centroid = self.state_shapefile.to_crs("+proj=cea").centroid.to_crs(
+                    self.state_shapefile.crs
+                )
+            else:
+                centroid = self.state_shapefile.centroid
         else:
-            centroid = self.state_shapefile.centroid
+            centroid = None
 
-        map_center = (centroid.y.mean(), centroid.x.mean())
-        map_obj = folium.Map(location=map_center, zoom_start=8.2)
-        folium.GeoJson(self.state_shapefile).add_to(map_obj)
-
-        # Add county names as markers
-        for county in self.state_shapefile.itertuples():
-            county_name = (
-                getattr(county, "NAME", None)
-                or getattr(county, "County_Nam", None)
-                or getattr(county, "COUNTY_NAM", None)
+        if centroid is not None:
+            map_center = (centroid.y.mean(), centroid.x.mean())
+        else:
+            first_well = self.well_data.data.iloc[0]
+            map_center = (
+                first_well[self.well_data.col_names.latitude],
+                first_well[self.well_data.col_names.longitude],
             )
 
-            if county_name is None:
-                raise_exception(
-                    "None of the county name attributes are found.", AttributeError
+        map_obj = folium.Map(location=map_center, zoom_start=8.2)
+
+        if shapefile and self.state_shapefile is None:
+            folium.GeoJson(self.state_shapefile).add_to(map_obj)
+
+            # Add county names as markers
+            for county in self.state_shapefile.itertuples():
+                county_name = (
+                    getattr(county, "NAME", None)
+                    or getattr(county, "County_Nam", None)
+                    or getattr(county, "COUNTY_NAM", None)
                 )
 
-            centroid = [county.geometry.centroid.y, county.geometry.centroid.x]
-            folium.map.Marker(
-                location=centroid,
-                icon=folium.DivIcon(
-                    html=(
-                        f'<div style="font-size: 11pt; color: black; text-align: center; '
-                        f'font-weight: bold;">{county_name}</div>'
+                if county_name is None:
+                    raise_exception(
+                        "None of the county name attributes are found.", AttributeError
                     )
-                ),
-            ).add_to(map_obj)
+
+                centroid = [county.geometry.centroid.y, county.geometry.centroid.x]
+                folium.map.Marker(
+                    location=centroid,
+                    icon=folium.DivIcon(
+                        html=(
+                            f'<div style="font-size: 11pt; color: black; text-align: center; '
+                            f'font-weight: bold;">{county_name}</div>'
+                        )
+                    ),
+                ).add_to(map_obj)
 
         # Create legend
         if legend is True:
@@ -313,6 +334,7 @@ class VisualizeData:
         well_type_to_plot: str = None,
         legend: bool = True,
         map_title: str = "All MCWs",
+        shapefile: bool = True,
     ) -> folium.Map:
         """
         Visualize well data on a folium map.
@@ -328,12 +350,17 @@ class VisualizeData:
         map_title : str, optional
             Title of the map. Default is None.
 
+        shapefile: bool, optional
+            Whether to include a shapefile on the map or not. Default is True
+
         Returns
         -------
         folium.Map
             Folium map object with visualized well data.
         """
-        map_obj = self._create_map_with_legend(legend=legend, map_title=map_title)
+        map_obj = self._create_map_with_legend(
+            legend=legend, map_title=map_title, shapefile=shapefile
+        )
         self._add_well_markers(map_obj, well_type_to_plot)
 
         return map_obj
@@ -343,6 +370,7 @@ class VisualizeData:
         legend: bool = False,
         map_title: str = "Plugging Campaign",
         campaign: Campaign = None,
+        shapefile: bool = True,
     ) -> folium.Map:
         """
         Visualize campaigns on a folium map.
@@ -359,12 +387,17 @@ class VisualizeData:
             Campaign instance to map wells to projects when visualize_type is 'project'.
             Default is None.
 
+        shapefile: bool, optional
+            Whether to include a shapefile on the map or not. Default is True
+
         Returns
         -------
         folium.Map
             Folium map object with visualized campaigns.
         """
-        map_obj = self._create_map_with_legend(legend=legend, map_title=map_title)
+        map_obj = self._create_map_with_legend(
+            legend=legend, map_title=map_title, shapefile=shapefile
+        )
         self._add_campaign_markers(map_obj, campaign)
 
         return map_obj

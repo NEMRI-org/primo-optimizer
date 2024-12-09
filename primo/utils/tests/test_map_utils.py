@@ -11,259 +11,191 @@
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
 
+# Standard libs
+import os
+from unittest.mock import MagicMock, patch
+
 # Installed libs
 import folium
 import geopandas as gpd
-import pandas as pd
-import pytest
-from shapely.geometry import Polygon
+from shapely.geometry import Point
 
 # User-defined libs
-from primo.data_parser.well_data import WellData
-from primo.utils.map_utils import VisualizeData
-
-# Sample DataFrame for testing
-DF_BASE = pd.DataFrame(
-    [
-        {
-            "API Well Number": "31003007660000",
-            "Age [Years]": 0,
-            "Depth [ft]": 0,
-            "Well Type": "Oil",
-            "Latitude": 42.07661,
-            "Longitude": -77.88081,
-            "Project": 1,
-        },
-        {
-            "API Well Number": "31003043620000",
-            "Age [Years]": 61,
-            "Depth [ft]": 2483,
-            "Well Type": "Gas",
-            "Latitude": 42.07983,
-            "Longitude": -77.76817,
-            "Project": 2,
-        },
-    ],
-)
+from primo.utils.map_utils import VisualizeData, get_cluster_colors
 
 
-@pytest.fixture
-def visualize_data_fixture():
-    """Fixture to initialize the VisualizeData class."""
-    # Mock data setup for WellData
-    data = [
-        {"lat": 40.7749, "lon": -74.4194, "id": "Well1", "cluster": "Cluster1"},
-        {"lat": 40.6428, "lon": -74.2437, "id": "Well2", "cluster": "Cluster2"},
-        {"lat": 40.7128, "lon": -74.0060, "id": "Well3", "cluster": "Cluster3"},
-    ]
+def test_get_cluster_colors():
+    """
+    Test the get_cluster_colors function to ensure it returns the correct color mapping
+    for the provided clusters.
 
-    column_names = {
-        "latitude": "lat",
-        "longitude": "lon",
-        "well_id": "id",
-        "cluster": "cluster",
-    }
-    well_data_instance = WellData(data, column_names)
+    It tests the function with 3 clusters and validates if the colors are assigned
+    correctly based on the expected output.
+    """
+    num_cluster = 3
+    cluster_list = [1, 2, 3]
 
-    return VisualizeData(
-        well_data=well_data_instance,
-        state_shapefile_url=(
-            "https://gisdata.ny.gov/GISData/State/Civil_Boundaries/"
-            "NYS_Civil_Boundaries.shp.zip"
-        ),
-        state_shapefile_name="NYS_Civil_Boundaries.shp.zip",
-        shp_name="Counties_Shoreline.shp",
-    )
+    expected_output = {1: "red", 2: "blue", 3: "green"}
+
+    result = get_cluster_colors(num_cluster, cluster_list)
+    assert result == expected_output
 
 
-@pytest.mark.integration
-def test_integration_visualize_data(visualize_fixture):
-    """Integration test for the end-to-end functionality of VisualizeData methods."""
-    # Prepare and visualize data
-    shapefile, gdf, map_object = visualize_fixture.visualize_data(
-        DF_BASE, well_type="Gas"
-    )
-
-    # Check that shapefile and well data were properly integrated
-    assert isinstance(
-        shapefile, gpd.GeoDataFrame
-    ), "Shapefile data should be a GeoDataFrame."
-    assert isinstance(
-        gdf, gpd.GeoDataFrame
-    ), "Well data should be transformed into a GeoDataFrame."
-    assert isinstance(
-        map_object, folium.Map
-    ), "The final output should be a folium Map instance."
-
-
-@pytest.mark.integration
-def test_integration_create_map_with_legend_and_markers(visualize_data):
-    """Integration test to check map creation with legends and markers."""
-    clusters = {"Cluster1": "blue", "Cluster2": "green", "Cluster3": "red"}
-
-    # Create map with legend and verify that legend appears with expected clusters
-    map_obj = visualize_data.create_map_with_legend(clusters=clusters)
+def test_get_state_shapefile():
+    """
+    Test the _get_state_shapefile method by mocking file handling and shapefile operations
+    to avoid local file creation.
+    """
     # pylint: disable=protected-access
-    legend_html = map_obj.get_root().html._children["legend"].render()
-    for cluster, color in clusters.items():
-        assert cluster in legend_html, f"Legend for {cluster} is missing."
+    # Mock dependencies
+    mock_download_file = MagicMock()
+    mock_unzip_file = MagicMock()
+
+    # Create a mocked GeoDataFrame with a geometry column and CRS
+    mock_gdf = gpd.GeoDataFrame({"geometry": [Point(0, 0)]}, crs="EPSG:4269")
+
+    with (
+        patch("primo.utils.map_utils.download_file", mock_download_file),
+        patch("primo.utils.map_utils.unzip_file", mock_unzip_file),
+        patch("geopandas.read_file", MagicMock(return_value=mock_gdf)),
+    ):
+
+        shpfile_name = "test_shapefile.zip"
+        shpfile_url = "http://example.com/shapefile.zip"
+        shp_name = "shapefile.shp"
+
+        well_data = MagicMock()
+        visualize_data = VisualizeData(well_data, "", "", "")
+
+        result = visualize_data._get_state_shapefile(
+            shpfile_name, shpfile_url, shp_name
+        )
+
+        # Assertions
+        mock_download_file.assert_called_with(
+            os.path.join(os.getcwd(), "temp", shpfile_name), shpfile_url
+        )
+        mock_unzip_file.assert_called()
+        assert isinstance(result, gpd.GeoDataFrame)
+        assert not result.empty
         assert (
-            color in legend_html
-        ), f"Color {color} is missing for cluster {cluster} in legend."
+            result.crs.to_string() == "EPSG:4269"
+        )  # Check that the CRS is set correctly
 
-    # Add markers and verify marker data
-    well_data = [
-        {"lat": 40.7749, "lon": -74.4194, "id": "Well1", "color": "blue"},
-        {"lat": 40.6428, "lon": -74.2437, "id": "Well2", "color": "green"},
-    ]
-    map_obj = visualize_data.add_markers_to_map(well_data=well_data)
+
+def test_create_map_with_legend():
+    """
+    Test the _create_map_with_legend method to verify it creates a folium map with
+    a title and optional legend, without requiring a shapefile.
+    """
     # pylint: disable=protected-access
-    marker_html = map_obj.get_root().html._children["marker"].render()
-    for well in well_data:
-        assert well["id"] in marker_html, f"Marker for {well['id']} is missing."
-        assert (
-            well["color"] in marker_html
-        ), f"Color {well['color']} for {well['id']} is missing."
+    # Mock dependencies
+    mock_gdf = MagicMock(spec=gpd.GeoDataFrame)
+    mock_crs = MagicMock()
+    mock_crs.is_projected = False
+    mock_gdf.crs = mock_crs
+    mock_centroid = MagicMock()
+    mock_centroid.y = 10.0
+    mock_centroid.x = 20.0
+    mock_gdf.centroid = MagicMock(return_value=mock_centroid)
+
+    with (
+        patch("primo.utils.map_utils.get_data_as_geodataframe", return_value=mock_gdf),
+        patch("os.makedirs"),
+        patch("os.path.exists", return_value=True),
+    ):
+        well_data = MagicMock()
+        visualize_data = VisualizeData(
+            well_data,
+            state_shapefile_url="mock_url",
+            state_shapefile_name="mock_name",
+            shp_name="mock_shp",
+        )
+
+        map_obj = visualize_data._create_map_with_legend(
+            legend=True, map_title="Test Map", shapefile=False
+        )
+
+        assert isinstance(map_obj, folium.Map)  # Ensure it returns a folium map
+        rendered_html = map_obj.get_root().html.render()
+
+        # Check that the map title is correctly included
+        assert "<h1" in rendered_html
+        assert "Test Map" in rendered_html
+
+        # Check that the legend is correctly included
+        assert "o - Gas Well" in rendered_html
+        assert "x - Oil Well" in rendered_html
 
 
-@pytest.mark.integration
-def test_integration_get_state_shapefile(visualize_data, mocker):
-    """Integration test for loading and handling of the state shapefile."""
-    # Mocking shapefile download and reading
-    mock_shapefile = gpd.GeoDataFrame({"geometry": [Polygon([(0, 0), (1, 1), (1, 0)])]})
-    mocker.patch("geopandas.read_file", return_value=mock_shapefile)
-
-    shapefile = visualize_data.get_state_shapefile()
-    assert isinstance(
-        shapefile, gpd.GeoDataFrame
-    ), "Shapefile should load as a GeoDataFrame."
-    assert not shapefile.empty, "Shapefile should contain data."
-    assert "geometry" in shapefile.columns, "Shapefile must include a geometry column."
-
-
-@pytest.mark.integration
-def test_filter_well_data_by_type(visualize_fixture):
-    """Test that well data can be filtered correctly by well type."""
-    well_data = DF_BASE.copy()
-    filtered_data = visualize_fixture.filter_data_by_type(well_data, well_type="Gas")
-    assert not filtered_data.empty, "Filtered data should not be empty."
-    assert (
-        filtered_data["Well Type"] == "Gas"
-    ).all(), "All rows must have the specified well type."
-
-
-@pytest.mark.integration
-def test_initialize_map(visualize_fixture):
-    """Test that the map initializes with correct bounds and layers."""
-    map_obj = visualize_fixture.initialize_map(
-        center=[40.7128, -74.0060], zoom_start=10
-    )
-    assert isinstance(
-        map_obj, folium.Map
-    ), "Map object should be a folium.Map instance."
-    assert map_obj.location == [40.7128, -74.0060], "Map center location is incorrect."
-    assert map_obj.options["zoom"] == 10, "Map zoom level is incorrect."
-
-
-@pytest.mark.integration
-def test_add_clusters_to_map(visualize_fixture):
-    """Test adding clusters to the map."""
-    clusters = {
-        "Cluster1": {"lat": 40.7749, "lon": -74.4194, "color": "blue"},
-        "Cluster2": {"lat": 40.6428, "lon": -74.2437, "color": "green"},
-    }
-    map_obj = visualize_fixture.add_clusters_to_map(clusters)
-    assert isinstance(map_obj, folium.Map), "Map should be a folium Map instance."
+def test_add_well_markers():
+    """
+    Test the _add_well_markers method to ensure it adds markers for wells of the specified
+    type (e.g., Gas) to a folium map.
+    """
     # pylint: disable=protected-access
-    assert (
-        len(map_obj._children) > 0
-    ), "Map should contain child elements (e.g., clusters)."
+    well_data = MagicMock()
+    visualize_data = VisualizeData(well_data, "", "", "")
 
-
-@pytest.mark.integration
-def test_add_project_data(visualize_fixture):
-    """Test that project data can be added to the visualization."""
-    project_data = [
-        {"id": 1, "project": "Project A"},
-        {"id": 2, "project": "Project B"},
+    map_obj = folium.Map(location=[0, 0], zoom_start=8)
+    visualize_data.well_data.data = MagicMock()
+    visualize_data.well_data.data.itertuples.return_value = [
+        MagicMock(
+            **{
+                "geometry.y": 1.0,
+                "geometry.x": 1.0,
+            }
+        )
     ]
-    updated_data = visualize_fixture.add_project_data(DF_BASE, project_data)
-    assert (
-        "project" in updated_data.columns
-    ), "Project column should be added to the data."
-    assert len(updated_data) == len(DF_BASE), "Number of rows should remain consistent."
+    visualize_data._add_well_markers(map_obj, well_type_to_plot="Gas")
+    assert len(map_obj._children) > 0  # Check if markers are added to the map
 
 
-# pylint: disable=R0903
-@pytest.mark.integration
-def test_download_shapefile(visualize_fixture, monkeypatch):
-    """Test downloading a shapefile."""
+def test_add_campaign_markers():
+    """
+    Test the _add_campaign_markers method to verify it adds markers for wells belonging to
+    specific campaigns to a folium map.
+    """
+    # pylint: disable=protected-access
+    well_data = MagicMock()
+    visualize_data = VisualizeData(well_data, "", "", "")
+    map_obj = folium.Map(location=[0, 0], zoom_start=8)
 
-    def mock_requests_get():
-        class MockResponse:
-            """Mock class to test shapefile function"""
+    visualize_data.well_data.data = MagicMock()
+    visualize_data.well_data.data.itertuples.return_value = [
+        MagicMock(
+            **{
+                "geometry.y": 1.0,
+                "geometry.x": 1.0,
+            }
+        )
+    ]
 
-            content = b"Fake shapefile content"
+    campaign = MagicMock()
+    campaign.get_project_id_by_well_id.return_value = 1
 
-        return MockResponse()
+    visualize_data._add_campaign_markers(map_obj, campaign)
 
-    monkeypatch.setattr("requests.get", mock_requests_get)
-    shapefile_path = visualize_fixture.download_shapefile()
-    assert shapefile_path.endswith(
-        ".zip"
-    ), "Downloaded shapefile should be a .zip file."
-
-
-@pytest.mark.integration
-def test_extract_shapefile(visualize_fixture, tmpdir):
-    """Test extracting a shapefile."""
-    zip_path = tmpdir.join("shapefile.zip")
-    extracted_path = visualize_fixture.extract_shapefile(zip_path)
-    assert extracted_path.exists(), "Extracted shapefile directory should exist."
-
-
-@pytest.mark.integration
-def test_handle_missing_coordinates(visualize_fixture):
-    """Test that rows with missing or invalid coordinates are removed."""
-    data = DF_BASE.copy()
-    data.loc[0, "Latitude"] = None
-    cleaned_data = visualize_fixture.handle_missing_coordinates(data)
-    assert (
-        cleaned_data["Latitude"].notnull().all()
-    ), "All rows must have valid latitude values."
-    assert (
-        cleaned_data["Longitude"].notnull().all()
-    ), "All rows must have valid longitude values."
+    assert len(map_obj._children) > 0  # Check if markers are added to the map
 
 
-@pytest.mark.integration
-def test_generate_legend_html(visualize_fixture):
-    """Test that the legend HTML is generated correctly."""
-    clusters = {"Cluster1": "blue", "Cluster2": "green"}
-    legend_html = visualize_fixture.generate_legend_html(clusters)
-    assert "Cluster1" in legend_html, "Legend should include 'Cluster1'."
-    assert "blue" in legend_html, "Legend should include the color 'blue'."
+def test_visualize_wells():
+    """
+    Test the visualize_wells method to verify it generates a folium map with well markers
+    for a specified well type (e.g., Gas).
+    """
+    well_data = MagicMock()
+    visualize_data = VisualizeData(well_data, "", "", "")
 
+    visualize_data.well_data.data = MagicMock()
+    visualize_data.well_data.data.itertuples.return_value = [
+        MagicMock(
+            **{
+                "geometry.y": 1.0,
+                "geometry.x": 1.0,
+            }
+        )
+    ]
 
-@pytest.mark.integration
-def test_handle_empty_data(visualize_fixture):
-    """Test that methods handle empty well data gracefully."""
-    empty_data = pd.DataFrame()
-    with pytest.raises(ValueError, match="Input data is empty."):
-        visualize_fixture.visualize_data(empty_data)
-
-
-@pytest.mark.integration
-def test_state_shapefile_integration(visualize_fixture, monkeypatch):
-    """Test integration of state shapefile with well data."""
-
-    def mock_read_file():
-        return gpd.GeoDataFrame({"geometry": [Polygon([(0, 0), (1, 1), (1, 0)])]})
-
-    monkeypatch.setattr("geopandas.read_file", mock_read_file)
-
-    shapefile = visualize_fixture.get_state_shapefile()
-    integrated_map = visualize_fixture.integrate_shapefile_and_data(shapefile, DF_BASE)
-    assert isinstance(
-        integrated_map, folium.Map
-    ), "Integrated map should be a folium.Map instance."
+    map_obj = visualize_data.visualize_wells(well_type_to_plot="Gas", shapefile=False)
+    assert isinstance(map_obj, folium.Map)  # Check if a folium map is returned
