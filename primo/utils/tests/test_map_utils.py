@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 # Installed libs
 import folium
 import geopandas as gpd
+import pytest
 from shapely.geometry import Point
 
 # User-defined libs
@@ -198,4 +199,30 @@ def test_visualize_wells():
     ]
 
     map_obj = visualize_data.visualize_wells(well_type_to_plot="Gas", shapefile=False)
+    assert isinstance(map_obj, folium.Map)  # Check if a folium map is returned
+
+
+def test_visualize_campaign():
+    """
+    Test the visualize_campaign method to ensure it generates a folium map displaying well
+    markers and campaign data.
+    """
+    well_data = MagicMock()
+    campaign = MagicMock()
+    visualize_data = VisualizeData(well_data, "", "", "")
+
+    visualize_data.well_data.data = MagicMock()
+    visualize_data.well_data.data.itertuples.return_value = [
+        MagicMock(
+            **{
+                "geometry.y": 1.0,
+                "geometry.x": 1.0,
+            }
+        )
+    ]
+
+    with pytest.raises(ValueError):
+        visualize_data.visualize_campaign(campaign=None, shapefile=False)
+
+    map_obj = visualize_data.visualize_campaign(campaign=campaign, shapefile=False)
     assert isinstance(map_obj, folium.Map)  # Check if a folium map is returned
