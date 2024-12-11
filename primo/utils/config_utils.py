@@ -266,7 +266,7 @@ class CheckBoxWidget:
         The horizontal box that contains the checkbox and slider appended together
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=[too-many-arguments,too-many-positional-arguments]
         self,
         description: str,
         default: int,
@@ -675,11 +675,11 @@ class BaseSelectWidget:
         vbox.layout.align_items = "flex-end"
         return vbox, self.output
 
-    def return_selections(self) -> List[int]:
+    def return_selections(self):
         """
         Return the list of selections made by the user
         """
-        return [int(item) for item in self.selected_list]
+        return self.selected_list
 
     def _pass_current_selection(self):
         """
@@ -865,7 +865,7 @@ class SelectWidgetAdd(SelectWidget):
         vbox = widgets.HBox([vbox_left, vbox_right])
         return vbox, self.output
 
-    def return_selections(self) -> List[int]:
+    def return_selections(self):
         """
         Return the list of selections made by a user
         """
