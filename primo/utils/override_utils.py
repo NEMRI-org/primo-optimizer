@@ -112,6 +112,13 @@ class AssessFeasibility:
         Returns list of owners and wells selected for each for whom the owner
         well count constraint is violated
         """
+        opt_inputs = self.opt_inputs.config
+        max_wells_per_owner = opt_inputs.max_wells_per_owner
+        if max_wells_per_owner is None:
+            # When the user does not have owner information
+            # or does not wish to prioritize
+            # this constraint becomes meaningless
+            return 0
         violated_operators = {}
         for operator, groups in self.wd.data.groupby(self.wd._col_names.operator_name):
             n_wells = len(groups)
