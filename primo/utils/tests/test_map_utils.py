@@ -33,12 +33,11 @@ def test_get_cluster_colors():
     It tests the function with 3 clusters and validates if the colors are assigned
     correctly based on the expected output.
     """
-    num_cluster = 3
     cluster_list = [1, 2, 3]
 
     expected_output = {1: "red", 2: "blue", 3: "green"}
 
-    result = get_cluster_colors(num_cluster, cluster_list)
+    result = get_cluster_colors(cluster_list)
     assert result == expected_output
 
 

@@ -463,6 +463,22 @@ def test_both_production_type(
     assert len(gas_oil_wells) == 2
 
 
+def test_get_high_priority_wells(get_column_names):
+    """Test the get_high_priority_wells method"""
+    filename, col_names = get_column_names
+    col_names.priority_score = "Priority Score [0-100]"
+    df = pd.read_csv(filename)
+    df[col_names.priority_score] = np.linspace(100, 0, len(df))
+    wd = WellData(data=df, column_names=col_names)
+    top_wells = wd.get_high_priority_wells(5)
+
+    assert top_wells is not None
+    assert top_wells.data.shape[0] == 5
+    assert top_wells.data[col_names.priority_score].tolist() == sorted(
+        top_wells.data[col_names.priority_score], reverse=True
+    )
+
+
 def test_well_partitioning(
     tmp_path, get_column_names
 ):  # pylint: disable=too-many-statements
