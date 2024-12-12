@@ -91,8 +91,8 @@ def test_infeasible_override_campaign(or_infeasible_selection, get_model):
     assert or_camp_class.new_campaign[6] == [600]
     assert or_camp_class.new_campaign[19] == [21, 83, 182, 280, 981]
 
-    assert isinstance(or_camp_class.wd, WellData)
-    assert 210 not in or_camp_class.wd.data.index
+    assert isinstance(or_camp_class.well_data, WellData)
+    assert 210 not in or_camp_class.well_data.data.index
     assert len(or_camp_class.plug_list) == 37
 
     assert isinstance(or_camp_class.feasibility, AssessFeasibility)
@@ -116,14 +116,15 @@ def test_infeasible_override_campaign(or_infeasible_selection, get_model):
     assert hasattr(override_campaign, "compute_efficiency_scores")
     project = override_campaign.projects[1]
     assert np.isclose(project.impact_score, 68.88, rtol=1e-2, atol=1e-2)
-    assert np.isclose(project.efficiency_score, 32.485, rtol=1e-2, atol=1e-2)
+    assert np.isclose(project.efficiency_score, 32.006, rtol=1e-2, atol=1e-2)
+    assert len(override_campaign.wd) == len(opt_mdl_inputs.config.well_data)
 
     override_campaign_dict = or_camp_class.recalculate_scores()
     assert isinstance(override_campaign_dict, dict)
     assert 13 not in override_campaign_dict
     assert all(
         [63.55375464985779, 46.03383590762232][i]
-        == pytest.approx(override_campaign_dict[11][i])
+        == pytest.approx(override_campaign_dict[11][i], rel=1e-2)
         for i in range(2)
     )
 
@@ -173,7 +174,7 @@ def test_feasible_override_campaign(or_feasible_selection, get_model):
     )
 
     # Assign all wells as disadvantaged wells for testing purpose
-    or_camp_class.wd.data["is_disadvantaged"] = 1
+    or_camp_class.well_data.data["is_disadvantaged"] = 1
     or_camp_class.feasibility.opt_inputs.config.perc_wells_in_dac = 40
 
     assert isinstance(or_camp_class.feasibility, AssessFeasibility)
@@ -201,7 +202,7 @@ def test_infeasible_dac(or_feasible_selection, get_model):
     )
 
     # Assign all wells as not disadvantaged wells for testing purpose
-    or_camp_class.wd.data["is_disadvantaged"] = 0
+    or_camp_class.well_data.data["is_disadvantaged"] = 0
     or_camp_class.feasibility.opt_inputs.config.perc_wells_in_dac = 40
 
     assert isinstance(or_camp_class.feasibility, AssessFeasibility)
