@@ -28,8 +28,7 @@ from primo.utils.download_utils import download_file, unzip_file
 from primo.utils.raise_exception import raise_exception
 
 
-# pylint: disable=duplicate-code
-def get_cluster_colors(num_cluster: int, cluster_list: list) -> Dict[int, str]:
+def get_cluster_colors(cluster_list: list) -> Dict[int, str]:
     """Generate a color scheme for clusters."""
     colors = [
         "red",
@@ -44,7 +43,7 @@ def get_cluster_colors(num_cluster: int, cluster_list: list) -> Dict[int, str]:
         "brown",
         "black",
     ]
-    return {cluster_list[i]: colors[i % len(colors)] for i in range(num_cluster)}
+    return {cluster_list[i]: colors[i % len(colors)] for i in range(len(cluster_list))}
 
 
 class VisualizeData:
@@ -313,7 +312,7 @@ class VisualizeData:
             if project_id is not None:
                 project_ids.add(project_id)
 
-        project_colors = get_cluster_colors(len(project_ids), list(project_ids))
+        project_colors = get_cluster_colors(list(project_ids))
 
         for row in self.df.itertuples():
             well_id = row[self.df.columns.get_loc(self.well_data.col_names.well_id) + 1]

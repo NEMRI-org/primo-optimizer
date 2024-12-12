@@ -276,7 +276,7 @@ class WellData:
         """Returns the top n wells by priority"""
 
         if not hasattr(self._col_names, "priority_score"):
-            print("Returning None, since priority scores are not available!")
+            LOGGER.warning("Returning None, since priority scores are not available!")
             return None
 
         well_list = (
