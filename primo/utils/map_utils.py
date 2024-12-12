@@ -172,7 +172,7 @@ class VisualizeData:
 
         map_obj = folium.Map(location=map_center, zoom_start=8.2)
 
-        if shapefile and self.state_shapefile is None:
+        if shapefile and self.state_shapefile is not None:
             folium.GeoJson(self.state_shapefile).add_to(map_obj)
 
             # Add county names as markers
