@@ -21,5 +21,5 @@ from primo.utils import setup_logger
 from primo.utils.config_utils import UserSelection
 from primo.utils.override_utils import OverrideCampaign
 
-RELEASE = "0.2.0rc1"
+RELEASE = "0.2.0rc2"
 VERSION = "0.2.0"
