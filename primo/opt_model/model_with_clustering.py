@@ -21,7 +21,6 @@ from pyomo.environ import (
     Binary,
     ConcreteModel,
     Constraint,
-    Expression,
     NonNegativeReals,
     Objective,
     Param,
@@ -31,7 +30,10 @@ from pyomo.environ import (
 )
 
 # User-defined libs
-from primo.opt_model.efficiency import build_efficiency_model
+from primo.opt_model.efficiency import (
+    build_max_scaling_efficiency_model,
+    build_zone_efficiency_model,
+)
 from primo.opt_model.result_parser import Campaign
 
 LOGGER = logging.getLogger(__name__)
@@ -316,6 +318,8 @@ class PluggingCampaignModel(ConcreteModel):
         )
 
         # Define essential variables and constraints for each cluster
+        # pylint: disable=undefined-variable
+        # ClusterBlock is defined dynamically at run time
         self.cluster = ClusterBlock(self.set_clusters, rule=build_cluster_model)
 
         # Define slack variable for unutilized budget
@@ -340,9 +344,14 @@ class PluggingCampaignModel(ConcreteModel):
         )
 
         if model_inputs.config.objective_type in ["Efficiency", "Combined"]:
-            LOGGER.info("Building the efficiency model.")
-            for c in self.set_clusters:
-                build_efficiency_model(self.cluster[c], cluster=c)
+            if model_inputs.config.efficiency_formulation == "Max Scaling":
+                LOGGER.info("Building the max scaling efficiency model.")
+                for c in self.set_clusters:
+                    build_max_scaling_efficiency_model(self.cluster[c], cluster=c)
+            if model_inputs.config.efficiency_formulation == "Zone":
+                LOGGER.info("Building the zone efficiency model.")
+                for c in self.set_clusters:
+                    build_zone_efficiency_model(self.cluster[c], cluster=c)
         # Add a constraint to calculate the unutilized amount of budget
         self.budget_constraint_slack = Constraint(
             expr=(

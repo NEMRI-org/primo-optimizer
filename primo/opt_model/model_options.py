@@ -87,6 +87,14 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
+        "efficiency_formulation",
+        ConfigValue(
+            default="Max Scaling",
+            domain=In(["Max Scaling", "Zone"]),
+            doc="Efficiency Formulation",
+        ),
+    )
+    config.declare(
         "objective_weight_impact",
         ConfigValue(
             default=100,
