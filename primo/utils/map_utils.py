@@ -181,6 +181,7 @@ class VisualizeData:
                     getattr(county, "NAME", None)
                     or getattr(county, "County_Nam", None)
                     or getattr(county, "COUNTY_NAM", None)
+                    or getattr(county, "COUNTY", None)
                 )
 
                 if county_name is None:
