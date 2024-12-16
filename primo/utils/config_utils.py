@@ -549,6 +549,7 @@ class UserPriorities:
         return self.priorities_, self.sub_priorities_
 
 
+# pylint: disable = too-many-instance-attributes
 class BaseSelectWidget:
     """
     A base class for displaying an autofill widget in Jupyter Notebook to select multiple
@@ -565,6 +566,9 @@ class BaseSelectWidget:
 
     type_description: str
         The type of object (project or well) to be selected, displayed on the widget
+
+    max_options_displayed: int
+        The max number of options displayed for the override widgets
 
     Attributes
     ----------
@@ -587,6 +591,7 @@ class BaseSelectWidget:
 
     _text : str
         The current selection of the widget
+
     """
 
     def __init__(
@@ -594,8 +599,10 @@ class BaseSelectWidget:
         choices: List[int],
         button_description: str,
         type_description: str,
+        max_options_displayed: int,
     ):
         self.choices = [str(choice) for choice in choices]
+        self.max_options_displayed = max_options_displayed
 
         # Initialize text
         self._text = ""
@@ -628,7 +635,18 @@ class BaseSelectWidget:
         """
         self._text = data["new"]
 
-        self.widget.options = self.choices
+        if self.max_options_displayed is None:
+
+            self.widget.options = self.choices
+
+        else:
+            filtered = [well for well in self.choices if self._text in str(well)]
+
+            # Limit the number of displayed options (e.g., to the first 50)
+            limited_values = filtered[: self.max_options_displayed]
+
+            # Set the options of the Combobox to the limited list of matching well choices
+            self.widget.options = limited_values
 
     def _add(self, _) -> None:
         """
@@ -710,19 +728,29 @@ class SubSelectWidget(BaseSelectWidget):
 
     well_data : pd.DataFrame
         Data containing well information
+
+    max_options_displayed: int
+        The max number of options displayed for the override widgets
     """
 
+    # pylint: disable = too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         cluster_choices: List[int],
         button_description_cluster: str,
         button_description_well: str,
         well_data,
+        max_options_displayed: int,
     ):
-        super().__init__(cluster_choices, button_description_well, "Well")
+        super().__init__(
+            cluster_choices, button_description_well, "Well", max_options_displayed
+        )
         # set the widget for selecting clusters
         self.cluster_widget = SelectWidget(
-            cluster_choices, button_description_cluster, "Project"
+            cluster_choices,
+            button_description_cluster,
+            "Project",
+            max_options_displayed,
         )
         self.wd = well_data
 
@@ -763,6 +791,9 @@ class SelectWidgetAdd(SelectWidget):
     type_description : str
         Type of object to be selected
 
+    max_options_displayed: int
+        The max number of options displayed for the override widgets
+
     Attributes
     ----------
 
@@ -786,6 +817,7 @@ class SelectWidgetAdd(SelectWidget):
 
     selected_list : List[str]
         List containing all projects or wells selected by the user
+
     """
 
     # pylint: disable=protected-access
@@ -795,6 +827,7 @@ class SelectWidgetAdd(SelectWidget):
         well_choices,
         button_description: str,
         type_description: str,
+        max_options_displayed: int,
     ):
         self.wd = well_choices
         col_names = self.wd._col_names
@@ -802,6 +835,7 @@ class SelectWidgetAdd(SelectWidget):
             self.wd.data[self.wd._col_names.well_id],
             button_description,
             type_description,
+            max_options_displayed,
         )
 
         self.re_cluster = widgets.BoundedIntText(
@@ -883,13 +917,22 @@ class UserSelection:
 
     model_inputs: OptModelInputs
         Object containing the necessary inputs for the optimization model
+
+    max_options_displayed: int
+        The max number of options displayed for the override widgets
     """
 
     # pylint: disable=too-many-instance-attributes,protected-access
 
-    def __init__(self, opt_campaign: dict, model_inputs: object):
+    def __init__(
+        self,
+        opt_campaign: dict,
+        model_inputs: object,
+        max_options_displayed: int = None,
+    ):
         self.wd = model_inputs.config.well_data
         self.opt_campaign = opt_campaign
+        self.max_options_displayed = max_options_displayed
         self.well_selected_list = [
             well for wells in opt_campaign.values() for well in wells
         ]
@@ -904,10 +947,13 @@ class UserSelection:
             "Select projects to manually remove",
             "Select wells to manually remove",
             self.well_selected,
+            self.max_options_displayed,
         )
 
-        self.add_widget = SelectWidgetAdd(self.wd, "", "")
-        self.lock_widget = SubSelectWidget([], "", "", self.wd)
+        self.add_widget = SelectWidgetAdd(self.wd, "", "", self.max_options_displayed)
+        self.lock_widget = SubSelectWidget(
+            [], "", "", self.wd, self.max_options_displayed
+        )
 
         # Confirm button
         layout = widgets.Layout(width="auto", height="50%")
@@ -980,7 +1026,10 @@ class UserSelection:
         well_add_candidate = self.wd._construct_sub_data(well_add_candidate_list)
 
         self.add_widget = SelectWidgetAdd(
-            well_add_candidate, "Select wells to manually add", "Add Well"
+            well_add_candidate,
+            "Select wells to manually add",
+            "Add Well",
+            self.max_options_displayed,
         )
 
     def _set_lock_widget(self, remove_selections_cluster, remove_selections_well):
@@ -1003,6 +1052,7 @@ class UserSelection:
             "Select projects to manually lock",
             "Select wells to manually lock",
             self.well_lock_choice,
+            self.max_options_displayed,
         )
 
     def _display_all_widgets(self):
