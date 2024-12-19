@@ -640,7 +640,7 @@ class BaseSelectWidget:
             self.widget.options = self.choices
 
         else:
-            filtered = [well for well in self.choices if self._text in str(well)]
+            filtered = [choice for choice in self.choices if self._text in str(choice)]
 
             # Limit the number of displayed options (e.g., to the first 50)
             limited_values = filtered[: self.max_options_displayed]
