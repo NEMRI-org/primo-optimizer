@@ -118,7 +118,7 @@ class AssessFeasibility:
             # When the user does not have owner information
             # or does not wish to prioritize
             # this constraint becomes meaningless
-            return 0
+            return {}
         violated_operators = {}
         for operator, groups in self.wd.data.groupby(self.wd._col_names.operator_name):
             n_wells = len(groups)
