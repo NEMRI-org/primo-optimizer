@@ -200,9 +200,6 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
                 cluster: list(wd.data[wd[col_names.cluster] == cluster].index)
                 for cluster in set_clusters
             }
-            self.pairwise_distance = self._pairwise_matrix(metric="distance")
-            self.pairwise_age_difference = self._pairwise_matrix(metric="age")
-            self.pairwise_depth_difference = self._pairwise_matrix(metric="depth")
 
         else:
             logging.info("Skipping clustering step in Opt Model Inputs")
@@ -216,12 +213,6 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             cluster_col_values = [cluster for _, cluster in well_cluster_map.items()]
             wd.data["Clusters"] = cluster_col_values
             col_names.register_new_columns({"cluster": "Clusters"})
-
-            self.pairwise_distance = {}
-            self.pairwise_age_difference = {}
-            self.pairwise_depth_difference = {}
-        # Step 3: Construct pairwise-metrics between wells in each cluster.
-        # Structure: {cluster: {(index_1, index_2): distance_12, ...}...}
 
         # Construct owner well count data
         if wd.config.verify_operator_name:
@@ -273,22 +264,6 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         """Returns the solver object"""
         return self._solver
 
-    def _pairwise_matrix(self, metric: str):
-        wd = self.config.well_data  # WellData object
-        # distance_matrix returns a numpy array.
-        metric_array = distance_matrix(wd, {metric: 1})
-
-        # NOTE: Storing the entire matrix may require a lot of memory.
-        # So, constructing the following dict of dicts
-        # {cluster: {(w1, w2): metric, (w1, w3): metric,...}, ...}
-        return {
-            cluster: {
-                (w1, w2): metric_array.loc[w1, w2]
-                for w1, w2 in combinations(well_list, 2)
-            }
-            for cluster, well_list in self.campaign_candidates.items()
-        }
-
     def build_optimization_model(self, override_dict=None):
         """Builds the optimization model"""
         LOGGER.info("Beginning to construct the optimization model.")
@@ -304,22 +279,13 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         pool_search_mode = kwargs.pop("pool_search_mode", 0)
         pool_size = kwargs.pop("pool_size", 10)
 
-        # If a solver is specified, use it.
-        if "solver" in kwargs:
-            solver = get_solver(**kwargs)
-            solver_name = kwargs["solver"]
-        else:
-            # Otherwise, auto-detect solver in order of priority
-            for solver_name in ("gurobi_persistent", "gurobi", "scip", "glpk", "highs"):
-                if SolverFactory(solver_name).available(exception_flag=False):
-                    LOGGER.info(
-                        f"Optimization solver is not specified. "
-                        f"Using {solver_name} as the optimization solver."
-                    )
-                    solver = get_solver(solver=solver_name, **kwargs)
-                    break
-
+        solver = get_solver(**kwargs)
         self._solver = solver
+
+        # Name attribute is not defined for HiGHS. But it works for all
+        # other supported solvers. So, set name as highs, if it does not exist
+        solver_name = getattr(solver, "name", "highs")
+
         if solver_name == "gurobi_persistent":
             # For persistent solvers, model instance need to be set manually
             solver.set_instance(self._opt_model)
@@ -327,7 +293,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             solver.set_gurobi_param("PoolSolutions", pool_size)
 
         # Solve the optimization problem
-        solver.solve(self._opt_model)
+        solver.solve(self._opt_model, tee=kwargs.get("stream_output", True))
 
         # Return the solution pool, if it is requested
         if solver_name == "gurobi_persistent" and pool_search_mode == 2:
@@ -371,6 +337,3 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
                     self.owner_well_count[
                         wd.data.loc[well, col_names.operator_name]
                     ].append((new_cluster, well))
-
-            # Update pairwise distances based on the new well data
-            self.pairwise_distance = self._pairwise_matrix(metric="distance")
