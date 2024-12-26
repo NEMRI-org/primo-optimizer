@@ -171,8 +171,34 @@ class WellData:
         """Returns number of wells in the dataset"""
         return len(self.data)
 
+    def __str__(self):
+        return self.data.__str__()
+
+    def __repr__(self):
+        return self.data.__repr__()
+
+    def _repr_html_(self):
+        """Nicely formats the data in Jupyter notebook"""
+        # Printing columns of interest, if they exist
+        cn = self._col_names
+        cols = [
+            col
+            for col in [
+                cn.well_id,
+                cn.operator_name,
+                cn.latitude,
+                cn.longitude,
+                cn.age,
+                cn.depth,
+            ]
+            if col is not None
+        ] + self.get_priority_score_columns
+
+        # pylint: disable = protected-access
+        return self.data[cols]._repr_html_()
+
     @property
-    def col_names(self) -> WellDataColumnNames:
+    def column_names(self) -> WellDataColumnNames:
         """
         Returns the WellDataColumnNames object associated with the current object
         """
@@ -272,19 +298,35 @@ class WellData:
 
         return None
 
-    def get_high_priority_wells(self, num_wells: int):
-        """Returns the top n wells by priority"""
+    def get_high_priority_wells(self, num_wells: int, sort: bool = True):
+        """
+        Returns the top n wells by priority
 
-        if not hasattr(self._col_names, "priority_score"):
+        Parameters
+        ----------
+        num_wells : int
+            Returns the top `num_wells` number of wells
+
+        sort : bool, default = True
+            If True, arranges the wells in descending order of priority.
+            If False, the wells are arranged as per their index.
+        """
+
+        cn = getattr(self._col_names, "priority_score", None)
+        if cn is None:
             LOGGER.warning("Returning None, since priority scores are not available!")
             return None
 
-        well_list = (
-            self.data.sort_values("Priority Score [0-100]", ascending=False)
-            .head(num_wells)
-            .index.to_list()
+        hp_wells = self._construct_sub_data(
+            self.data.sort_values(cn, ascending=False).head(num_wells).index.to_list()
         )
-        return self._construct_sub_data(well_list)
+
+        if sort:
+            # Constructed sub-data is ordered as per index, not priority.
+            # So, sorting the data again
+            hp_wells.data = hp_wells.data.sort_values(cn, ascending=False)
+
+        return hp_wells
 
     def has_incomplete_data(self, col_name: str):
         """
@@ -519,8 +561,12 @@ class WellData:
 
         Parameters
         ----------
-        col_name : list(str)
-            List of 2 strings: the column variable name, the column header for the data
+        column_var_name : str
+            This string will be set as the attribute name in WellDataColumnNames
+
+        column_header_name : str
+            This string will be set as the column header in the DataFrame
+
         values : np.array, pd.DataFrame, list
             The values for the column
         """
@@ -918,7 +964,7 @@ class WellData:
         self.add_new_column_ordered("fed_dac", "Federal DAC Data", fed_dac_data)
 
         # Assume disadvantaged score of 0 for rows where value was not found
-        self.fill_incomplete_data(self.col_names.fed_dac, 0, "fed_dac_flag")
+        self.fill_incomplete_data(self._col_names.fed_dac, 0, "fed_dac_flag")
 
     def _set_metric(self, metrics: SetOfMetrics):
         """
@@ -989,7 +1035,7 @@ class WellData:
         self._append_fed_dac_data()
         metric = self.config.impact_metrics.fed_dac
         weight = metric.effective_weight
-        metric.data_col_name = self.col_names.fed_dac
+        metric.data_col_name = self._col_names.fed_dac
         self.data[metric.score_col_name] = (
             self.data[metric.data_col_name] * weight / 100
         )

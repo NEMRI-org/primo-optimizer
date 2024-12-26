@@ -191,35 +191,43 @@ def test_well_data(caplog, get_column_names):
         f"Removed wells because {col_names.well_id} "
         f"information is not available for them."
     ) in caplog.text
-    assert wd._removed_rows["well_id"] == INCOMPLETE_ROWS["API Well Number"]
+    assert (
+        wd.get_removed_wells_with_reason["well_id"]
+        == INCOMPLETE_ROWS["API Well Number"]
+    )
 
     # Latitude checks
     assert (
         f"Removed wells because {col_names.latitude} "
         f"information is not available for them."
     ) in caplog.text
-    assert wd._removed_rows["latitude"] == INCOMPLETE_ROWS["x"]
+    assert wd.get_removed_wells_with_reason["latitude"] == INCOMPLETE_ROWS["x"]
 
     # Longitude checks
     assert (
         f"Removed wells because {col_names.longitude} "
         f"information is not available for them."
     ) in caplog.text
-    assert wd._removed_rows["longitude"] == INCOMPLETE_ROWS["y"]
+    assert wd.get_removed_wells_with_reason["longitude"] == INCOMPLETE_ROWS["y"]
 
     # Operator name checks
     assert (
         f"Removed wells because {col_names.operator_name} "
         f"information is not available for them."
     ) in caplog.text
-    assert wd._removed_rows["operator_name"] == INCOMPLETE_ROWS["Operator"]
+    assert (
+        wd.get_removed_wells_with_reason["operator_name"] == INCOMPLETE_ROWS["Operator"]
+    )
 
     assert (
         "Owner name for some wells is listed as unknown."
         "Treating these wells as if the owner name is not provided, "
         "so removing them from the dataset."
     ) in caplog.text
-    assert wd._removed_rows["unknown_owner"] == INCOMPLETE_ROWS["Unknown Operator"]
+    assert (
+        wd.get_removed_wells_with_reason["unknown_owner"]
+        == INCOMPLETE_ROWS["Unknown Operator"]
+    )
 
     # Age checks
     assert "Found empty cells in column Age [Years]" in caplog.text
@@ -228,7 +236,7 @@ def test_well_data(caplog, get_column_names):
     ) in caplog.text
 
     # Ensure that wells are not deleted because of missing age
-    assert "age" not in wd._removed_rows
+    assert "age" not in wd.get_removed_wells_with_reason
     for row in wd:
         if row in INCOMPLETE_ROWS["Age"]:
             assert wd.data.loc[row, "age_flag"] == 1
@@ -243,7 +251,7 @@ def test_well_data(caplog, get_column_names):
     ) in caplog.text
 
     # Ensure that wells are not deleted because of missing depth
-    assert "depth" not in wd._removed_rows
+    assert "depth" not in wd.get_removed_wells_with_reason
     for row in wd:
         if row in INCOMPLETE_ROWS["Depth"]:
             assert wd.data.loc[row, "depth_flag"] == 1
@@ -260,7 +268,7 @@ def test_well_data(caplog, get_column_names):
         wd.data.loc[INCOMPLETE_ROWS["Life Oil Fill"], col_names.life_oil_production]
         == 1.5
     ).all()  # Check if the missing data is filled correctly
-    assert wd._removed_rows["production_volume"] == (
+    assert wd.get_removed_wells_with_reason["production_volume"] == (
         INCOMPLETE_ROWS["Life Gas Remove"] + INCOMPLETE_ROWS["Life Oil Remove"]
     )
     assert (
@@ -390,13 +398,13 @@ def test_age_depth_remove(caplog, get_column_names):
         f"Removed wells because {col_names.age} "
         f"information is not available for them."
     ) in caplog.text
-    assert wd._removed_rows["age"] == INCOMPLETE_ROWS["Age"]
+    assert wd.get_removed_wells_with_reason["age"] == INCOMPLETE_ROWS["Age"]
 
     assert (
         f"Removed wells because {col_names.depth} "
         f"information is not available for them."
     ) in caplog.text
-    assert wd._removed_rows["depth"] == INCOMPLETE_ROWS["Depth"]
+    assert wd.get_removed_wells_with_reason["depth"] == INCOMPLETE_ROWS["Depth"]
 
 
 def test_age_depth_estimation(caplog, get_column_names):
@@ -463,20 +471,33 @@ def test_both_production_type(
     assert len(gas_oil_wells) == 2
 
 
-def test_get_high_priority_wells(get_column_names):
+def test_get_high_priority_wells(get_column_names, caplog):
     """Test the get_high_priority_wells method"""
     filename, col_names = get_column_names
-    col_names.priority_score = "Priority Score [0-100]"
     df = pd.read_csv(filename)
-    df[col_names.priority_score] = np.linspace(100, 0, len(df))
     wd = WellData(data=df, column_names=col_names)
+    wd.add_new_column_ordered(
+        "priority_score", "Priority Score [0-100]", np.linspace(100, 0, len(wd))
+    )
     top_wells = wd.get_high_priority_wells(5)
 
     assert top_wells is not None
-    assert top_wells.data.shape[0] == 5
-    assert top_wells.data[col_names.priority_score].tolist() == sorted(
-        top_wells.data[col_names.priority_score], reverse=True
+    assert isinstance(top_wells, WellData)
+    assert len(top_wells) == 5
+    assert (
+        top_wells[col_names.priority_score].tolist()
+        == sorted(wd[col_names.priority_score], reverse=True)[:5]
     )
+
+    assert "Returning None, since priority scores are not available!" not in caplog.text
+
+    # Test the warning
+    delattr(col_names, "priority_score")
+    wd = WellData(data=df, column_names=col_names)
+    top_wells = wd.get_high_priority_wells(5)
+
+    assert top_wells is None
+    assert "Returning None, since priority scores are not available!" in caplog.text
 
 
 def test_well_partitioning(
@@ -762,10 +783,11 @@ def test_compute_priority_scores(
         wd.compute_priority_scores()
 
     # Error raised when the data for an unsupported metric is missing
-    im_metrics.register_new_metric("my_metric", 5, "My Custom Metric")
+    im_metrics.register_new_metric("my_metric", "My Custom Metric")
     im_metrics.dac_impact.weight = 0
     im_metrics.fed_dac.weight = 0
     im_metrics.well_age.weight = 15
+    im_metrics.my_metric.weight = 5
     wd_df = pd.read_csv(
         filename, usecols=[col for col in col_names.values() if "Priority" not in col]
     )
