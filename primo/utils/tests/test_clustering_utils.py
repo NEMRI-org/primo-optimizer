@@ -10,8 +10,9 @@
 # reproduce, distribute copies to the public, prepare derivative works, and
 # perform publicly and display publicly, and to permit others to do so.
 #################################################################################
-# Standard lib
+
 # Standard libs
+from itertools import combinations
 import os
 
 # Installed libs
@@ -22,7 +23,7 @@ import pytest
 # User-defined libs
 from primo.data_parser import WellDataColumnNames
 from primo.data_parser.well_data import WellData
-from primo.utils.clustering_utils import distance_matrix, perform_clustering
+from primo.utils.clustering_utils import distance_matrix, get_pairwise_metrics, perform_clustering
 
 
 # Sample data for testing
@@ -175,3 +176,28 @@ def test_perform_clustering(caplog):
         "different name for the attribute cluster while instantiating the "
         "WellDataColumnNames object."
     ) in caplog.text
+
+
+def test_get_pairwise_metrics():
+    """Tests the get_pairwise_metrics function"""
+    filename = os.path.dirname(os.path.realpath(__file__))[:-12]  # Primo folder
+    filename += "//data_parser//tests//random_well_data.csv"
+
+    col_names = WellDataColumnNames(
+        well_id="API Well Number",
+        latitude="x",
+        longitude="y",
+        operator_name="Operator Name",
+        age="Age [Years]",
+        depth="Depth [ft]",
+    )
+
+    wd = WellData(data=filename, column_names=col_names)
+    well_list = wd.data.head(4).index.to_list()  # Retaining only three wells
+
+    pair_metrics = get_pairwise_metrics(wd, well_list)
+    assert len(pair_metrics) == 6
+    assert "distance" in pair_metrics.columns
+    assert "age_range" in pair_metrics.columns
+    assert "depth_range" in pair_metrics.columns
+    assert list(pair_metrics.index) == list(combinations(well_list, 2))

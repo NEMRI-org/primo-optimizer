@@ -186,7 +186,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             )
             raise_exception(msg, ValueError)
 
-        col_names = wd.col_names
+        col_names = wd.column_names
         if cluster_mapping is None:
             logging.info("Clustering Data in Opt Model Inputs")
             # Construct campaign candidates
@@ -238,7 +238,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         # build_optimization_model and solve_model methods, respectively.
         self._opt_model = None
         self._solver = None
-        LOGGER.info("Finished optimization model inputs.")
+        LOGGER.info("Finished processing optimization model inputs.")
 
     @property
     def get_total_budget(self):
@@ -278,17 +278,12 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         # distance_matrix returns a numpy array.
         metric_array = distance_matrix(wd, {metric: 1})
 
-        # DataFrame index -> metric_array index map
-        df_to_array = {
-            df_index: array_index for array_index, df_index in enumerate(wd.data.index)
-        }
-
         # NOTE: Storing the entire matrix may require a lot of memory.
         # So, constructing the following dict of dicts
         # {cluster: {(w1, w2): metric, (w1, w3): metric,...}, ...}
         return {
             cluster: {
-                (w1, w2): metric_array[df_to_array[w1], df_to_array[w2]]
+                (w1, w2): metric_array.loc[w1, w2]
                 for w1, w2 in combinations(well_list, 2)
             }
             for cluster, well_list in self.campaign_candidates.items()
@@ -355,7 +350,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
         existing_clusters = add_widget_return.existing_clusters
         new_clusters = add_widget_return.new_clusters
         wd = self.config.well_data
-        col_names = wd.col_names
+        col_names = wd.column_names
 
         if existing_clusters != new_clusters:
             # Remove wells from existing clusters and update owner well counts
