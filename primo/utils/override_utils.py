@@ -134,14 +134,10 @@ class AssessFeasibility:
         # Assign weight for distance as 1 to ensure the distance matrix returns physical
         # distance between two well pairs
         metric_array = distance_matrix(self.wd, {"distance": 1})
-        df_to_array = {
-            df_index: array_index
-            for array_index, df_index in enumerate(self.wd.data.index)
-        }
 
         for cluster, well_list in self.new_campaign.items():
             for w1, w2 in combinations(well_list, 2):
-                well_distance = metric_array[df_to_array[w1], df_to_array[w2]]
+                well_distance = metric_array.loc[w1, w2]
                 if well_distance > distance_threshold:
                     distance_violation.setdefault("Project", []).append(cluster)
                     distance_violation.setdefault("Well 1", []).append(

@@ -12,8 +12,8 @@
 #################################################################################
 
 # Standard libs
-from itertools import combinations
 import os
+from itertools import combinations
 
 # Installed libs
 import numpy as np
@@ -23,7 +23,11 @@ import pytest
 # User-defined libs
 from primo.data_parser import WellDataColumnNames
 from primo.data_parser.well_data import WellData
-from primo.utils.clustering_utils import distance_matrix, get_pairwise_metrics, perform_clustering
+from primo.utils.clustering_utils import (
+    distance_matrix,
+    get_pairwise_metrics,
+    perform_clustering,
+)
 
 
 # Sample data for testing

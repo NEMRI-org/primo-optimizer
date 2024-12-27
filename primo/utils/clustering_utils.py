@@ -12,8 +12,8 @@
 #################################################################################
 
 # Standard libs
-from itertools import combinations
 import logging
+from itertools import combinations
 from typing import Optional
 
 # Installed libs

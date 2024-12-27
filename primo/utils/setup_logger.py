@@ -85,7 +85,9 @@ def setup_logger(
 
     else:
         # Show detailed log messages only in debug mode
-        logger_format = "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s"
+        logger_format = (
+            "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s"
+        )
         logger_date = "%d-%b-%y %H:%M:%S"
 
     logging.basicConfig(
