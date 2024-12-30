@@ -298,7 +298,7 @@ class WellData:
 
         return None
 
-    def get_high_priority_wells(self, num_wells: int, sort: bool = True):
+    def get_high_priority_wells(self, num_wells: int, sort_by_priority: bool = True):
         """
         Returns the top n wells by priority
 
@@ -307,7 +307,7 @@ class WellData:
         num_wells : int
             Returns the top `num_wells` number of wells
 
-        sort : bool, default = True
+        sort_by_priority : bool, default = True
             If True, arranges the wells in descending order of priority.
             If False, the wells are arranged as per their index.
         """
@@ -321,7 +321,7 @@ class WellData:
             self.data.sort_values(cn, ascending=False).head(num_wells).index.to_list()
         )
 
-        if sort:
+        if sort_by_priority:
             # Constructed sub-data is ordered as per index, not priority.
             # So, sorting the data again
             hp_wells.data = hp_wells.data.sort_values(cn, ascending=False)

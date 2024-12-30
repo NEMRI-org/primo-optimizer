@@ -51,7 +51,7 @@ def distance_matrix(
 
     Returns
     -------
-    np.ndarray
+    pd.DataFrame
         Distance matrix to be used for the agglomerative
         clustering method
 
@@ -110,6 +110,9 @@ def perform_clustering(wd: WellData, distance_threshold: float = 10.0):
 
     Parameters
     ----------
+    wd : WellData
+        Object containing the information on all wells
+
     distance_threshold : float, default = 10.0
         Threshold distance for breaking clusters
 
@@ -152,7 +155,8 @@ def perform_clustering(wd: WellData, distance_threshold: float = 10.0):
 
 def get_pairwise_metrics(wd: WellData, list_wells: list) -> pd.DataFrame:
     """
-    Returns pairwise metric values for all well pairs in each clusters
+    Returns pairwise metric values for all possible pairs of wells in
+    `list_wells`.
 
     Parameters
     ----------
