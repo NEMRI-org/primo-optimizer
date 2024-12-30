@@ -32,7 +32,11 @@ from pyomo.environ import SolverFactory
 from primo.data_parser.well_data import WellData
 from primo.opt_model.model_with_clustering import PluggingCampaignModel
 from primo.utils import get_solver
-from primo.utils.clustering_utils import distance_matrix, perform_clustering
+from primo.utils.clustering_utils import (
+    distance_matrix,
+    perform_agglomerative_clustering,
+    perform_louvain_clustering,
+)
 from primo.utils.domain_validators import InRange, validate_mobilization_cost
 from primo.utils.raise_exception import raise_exception
 
@@ -122,6 +126,30 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
+        "cluster_formulation",
+        ConfigValue(
+            default="Agglomerative",
+            domain=In(["Agglomerative", "Louvain"]),
+            doc="Formulation used for clustering the wells",
+        ),
+    )
+    config.declare(
+        "cluster_threshold",
+        ConfigValue(
+            default=300,
+            domain=NonNegativeInt,
+            doc="Maximum size of clusters for Louvain clustering",
+        ),
+    )
+    config.declare(
+        "nearest_neighbors",
+        ConfigValue(
+            default=10,
+            domain=NonNegativeInt,
+            doc="Nearest neighbors while constructing graph for Louvain clustering",
+        ),
+    )
+    config.declare(
         "lazy_constraints",
         ConfigValue(
             default=False,
@@ -191,8 +219,17 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             logging.info("Clustering Data in Opt Model Inputs")
             # Construct campaign candidates
             # Step 1: Perform clustering, Should distance_threshold be a user argument?
-            perform_clustering(wd, distance_threshold=10.0)
-
+            if self.config.cluster_formulation == "Agglomerative":
+                perform_agglomerative_clustering(
+                    wd, distance_threshold=self.config.threshold_distance
+                )
+            else:
+                perform_louvain_clustering(
+                    wd,
+                    distance_threshold=self.config.threshold_distance,
+                    cluster_threshold=self.config.cluster_threshold,
+                    nearest_neighbors=self.config.nearest_neighbors,
+                )
             # Step 2: Identify list of wells belonging to each cluster
             # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}
             set_clusters = set(wd[col_names.cluster])
