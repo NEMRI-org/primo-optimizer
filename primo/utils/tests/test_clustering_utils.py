@@ -154,12 +154,13 @@ def test_perform_agglomerative_clustering(caplog):
     assert "Clusters" not in wd
     assert not hasattr(col_names, "cluster")
 
-    num_clusters = perform_agglomerative_clustering(wd)
+    clusters = perform_agglomerative_clustering(wd)
+    num_clusters = len(set(clusters.keys()))
     assert "Clusters" in wd
     assert hasattr(col_names, "cluster")
     assert num_clusters == 16
     assert num_clusters == len(set(wd.data["Clusters"]))
-
+    # pylint: disable=duplicate-code
     assert (
         "Found cluster attribute in the WellDataColumnNames object."
         "Assuming that the data is already clustered. If the corresponding "
@@ -169,9 +170,10 @@ def test_perform_agglomerative_clustering(caplog):
     ) not in caplog.text
 
     # Capture the warning if the data has already been clustered
-    num_clusters = perform_agglomerative_clustering(wd)
+    clusters = perform_agglomerative_clustering(wd)
+    num_clusters = len(set(clusters.keys()))
     assert num_clusters == 16
-
+    # pylint: disable=duplicate-code
     assert (
         "Found cluster attribute in the WellDataColumnNames object."
         "Assuming that the data is already clustered. If the corresponding "
@@ -201,12 +203,15 @@ def test_perform_louvain_clustering(caplog):
     assert "Clusters" not in wd
     assert not hasattr(col_names, "cluster")
 
-    num_clusters = perform_louvain_clustering(wd)
+    clusters = perform_louvain_clustering(
+        wd, distance_threshold=10, cluster_threshold=300, nearest_neighbors=10
+    )
+    num_clusters = len(set(clusters.keys()))
     assert "Clusters" in wd
     assert hasattr(col_names, "cluster")
-    assert num_clusters == 16
+    assert num_clusters == 14
     assert num_clusters == len(set(wd.data["Clusters"]))
-
+    # pylint: disable=duplicate-code
     assert (
         "Found cluster attribute in the WellDataColumnNames object."
         "Assuming that the data is already clustered. If the corresponding "
@@ -216,9 +221,12 @@ def test_perform_louvain_clustering(caplog):
     ) not in caplog.text
 
     # Capture the warning if the data has already been clustered
-    num_clusters = perform_louvain_clustering(wd)
-    assert num_clusters == 16
-
+    clusters = perform_louvain_clustering(
+        wd, distance_threshold=10, cluster_threshold=300, nearest_neighbors=10
+    )
+    num_clusters = len(set(clusters.keys()))
+    assert num_clusters == 14
+    # pylint: disable=duplicate-code
     assert (
         "Found cluster attribute in the WellDataColumnNames object."
         "Assuming that the data is already clustered. If the corresponding "

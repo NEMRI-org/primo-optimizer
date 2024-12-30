@@ -128,9 +128,25 @@ def model_config() -> ConfigDict:
     config.declare(
         "cluster_formulation",
         ConfigValue(
-            default="Louvain",
+            default="Agglomerative",
             domain=In(["Agglomerative", "Louvain"]),
             doc="Formulation used for clustering the wells",
+        ),
+    )
+    config.declare(
+        "cluster_threshold",
+        ConfigValue(
+            default=300,
+            domain=NonNegativeInt,
+            doc="Maximum size of clusters for Louvain clustering",
+        ),
+    )
+    config.declare(
+        "nearest_neighbors",
+        ConfigValue(
+            default=10,
+            domain=NonNegativeInt,
+            doc="Nearest neighbors while constructing graph for Louvain clustering",
         ),
     )
     config.declare(
@@ -204,10 +220,15 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             # Construct campaign candidates
             # Step 1: Perform clustering, Should distance_threshold be a user argument?
             if self.config.cluster_formulation == "Agglomerative":
-                perform_agglomerative_clustering(wd, distance_threshold=10.0)
+                perform_agglomerative_clustering(
+                    wd, distance_threshold=self.config.threshold_distance
+                )
             else:
                 perform_louvain_clustering(
-                    wd, distance_threshold=10.0, cluster_threshold=300
+                    wd,
+                    distance_threshold=self.config.threshold_distance,
+                    cluster_threshold=self.config.cluster_threshold,
+                    nearest_neighbors=self.config.nearest_neighbors,
                 )
             # Step 2: Identify list of wells belonging to each cluster
             # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}

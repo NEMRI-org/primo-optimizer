@@ -63,7 +63,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "primo/utils/setup_arg_parser.py": 9,
     "primo/utils/setup_logger.py": 3,
     "primo/utils/tests/test_config_utils.py": 195,
-    "primo/utils/tests/test_clustering_utils.py": 44,
+    "primo/utils/tests/test_clustering_utils.py": 50,
     "primo/utils/tests/test_demo_utils.py": 92,
     "primo/utils/tests/test_domain_validators.py": 18,
     "primo/utils/tests/test_elevation_utils.py": 35,
