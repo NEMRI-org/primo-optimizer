@@ -13,7 +13,6 @@
 
 # Standard libs
 import logging
-from itertools import combinations
 
 # Installed libs
 from pyomo.common.config import (
@@ -26,13 +25,12 @@ from pyomo.common.config import (
     NonNegativeInt,
     document_kwargs_from_configdict,
 )
-from pyomo.environ import SolverFactory
 
 # User-defined libs
 from primo.data_parser.well_data import WellData
 from primo.opt_model.model_with_clustering import PluggingCampaignModel
 from primo.utils import get_solver
-from primo.utils.clustering_utils import distance_matrix, perform_clustering
+from primo.utils.clustering_utils import perform_clustering
 from primo.utils.domain_validators import InRange, validate_mobilization_cost
 from primo.utils.raise_exception import raise_exception
 
@@ -188,7 +186,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
 
         col_names = wd.column_names
         if cluster_mapping is None:
-            logging.info("Clustering Data in Opt Model Inputs")
+            LOGGER.info("Clustering Data in OptModelInputs")
             # Construct campaign candidates
             # Step 1: Perform clustering, Should distance_threshold be a user argument?
             perform_clustering(wd, distance_threshold=10.0)
@@ -202,17 +200,17 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             }
 
         else:
-            logging.info("Skipping clustering step in Opt Model Inputs")
+            LOGGER.info("Skipping clustering step in OptModelInputs")
             self.campaign_candidates = cluster_mapping
-            well_cluster_map = {index: "" for index in wd.data.index}
+            well_cluster_map = {index: "" for index in wd}
             for cluster, wells in self.campaign_candidates.items():
                 for well in wells:
                     well_cluster_map[well] = cluster
-            for _, value in well_cluster_map.items():
-                assert value != ""
-            cluster_col_values = [cluster for _, cluster in well_cluster_map.items()]
-            wd.data["Clusters"] = cluster_col_values
-            col_names.register_new_columns({"cluster": "Clusters"})
+
+            assert "" not in well_cluster_map.values()
+            wd.add_new_column_ordered(
+                "cluster", "Clusters", list(well_cluster_map.values())
+            )
 
         # Construct owner well count data
         if wd.config.verify_operator_name:

@@ -79,8 +79,11 @@ def distance_matrix(
         raise_exception("Feature weights do not add up to 1.", ValueError)
 
     # Construct the matrices only if the weights are non-zero
-    data = wd.data if list_wells is None else wd.data.loc[list_wells]
+    # Converting list_wells to a list to handle non-list instances,
+    # such as Pyomo Set, tuple, etc.
+    data = wd.data if list_wells is None else wd.data.loc[list(list_wells)]
     cn = wd.column_names  # Column names
+
     coordinates = list(zip(data[cn.latitude], data[cn.longitude]))
     dist_matrix = wt_dist * (
         haversine_vector(coordinates, coordinates, unit=Unit.MILES, comb=True)

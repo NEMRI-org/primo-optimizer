@@ -186,6 +186,9 @@ def test_well_data(caplog, get_column_names):
         threshold_depth=2000,
     )
 
+    # Test column_names alias
+    assert wd.col_names is wd.column_names
+
     # Well ID checks
     assert (
         f"Removed wells because {col_names.well_id} "

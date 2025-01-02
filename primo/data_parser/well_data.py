@@ -204,6 +204,9 @@ class WellData:
         """
         return self._col_names
 
+    # Defining an alias for backward-compatibility
+    col_names = column_names
+
     @property
     def get_removed_wells(self):
         """Returns the list of wells removed from the data set"""
