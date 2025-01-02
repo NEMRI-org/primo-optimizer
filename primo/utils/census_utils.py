@@ -142,7 +142,7 @@ def identify_state(data) -> str:
     -------
     Two-digit code identifying the state for which the data belongs
     """
-    wcn = data.col_names
+    wcn = data.column_names
     lat = data.data[wcn.latitude].iloc[0]
     long = data.data[wcn.longitude].iloc[0]
     fips_code = get_fips_code(lat, long)
@@ -164,7 +164,7 @@ def get_data_as_geodataframe(data) -> gpd.GeoDataFrame:
     gpd.GeoDataFrame
         A Geopandas GeoDataFrame object
     """
-    wcn = data.col_names
+    wcn = data.column_names
     gdf = gpd.GeoDataFrame(
         data.data,
         geometry=gpd.points_from_xy(data[wcn.longitude], data[wcn.latitude]),

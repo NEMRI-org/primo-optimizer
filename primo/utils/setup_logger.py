@@ -20,9 +20,6 @@ import sys
 # User-defined libs
 from primo.utils.raise_exception import raise_exception
 
-LOGGER_FORMAT = "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s"
-LOGGER_DATE = "%d-%b-%y %H:%M:%S"
-
 
 def setup_logger(
     log_level: int = 2,
@@ -81,9 +78,28 @@ def setup_logger(
         file_handler = logging.FileHandler(log_file)
         handlers.append(file_handler)
 
+    if log_level in [0, 1, 2]:
+        # Show a simple logger for general purposes
+        logger_format = "primo: %(levelname)s: %(message)s"
+        logger_date = None
+
+    else:
+        # Show detailed log messages only in debug mode
+        logger_format = (
+            "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s"
+        )
+        logger_date = "%d-%b-%y %H:%M:%S"
+
     logging.basicConfig(
         level=supported_log_levels[log_level],
-        format=LOGGER_FORMAT,
-        datefmt=LOGGER_DATE,
+        format=logger_format,
+        datefmt=logger_date,
         handlers=handlers,
     )
+
+    # Prevents double log output when the solver is called
+    logger = logging.getLogger("gurobipy")
+    logger.propagate = False
+
+    logger = logging.getLogger("pyomo.contrib.appsi.solvers.highs")
+    logger.propagate = False

@@ -42,3 +42,15 @@ def test_get_solver(solver, stream_output, mip_gap, time_limit, solver_options):
     else:
         get_solver(solver, stream_output, mip_gap, time_limit, solver_options)
         assert True, "Solver object successfully created"
+
+
+def test_unspecified_get_solver(caplog):
+    """Test auto-detection of the solver"""
+    _ = get_solver()
+
+    assert "Optimization solver is not specified. " in caplog.text
+
+
+def test_highs_solver_options():
+    """Tests setting additional solver options for highs"""
+    _ = get_solver(solver="appsi_highs", solver_options={"mip_gap": 0.0001})

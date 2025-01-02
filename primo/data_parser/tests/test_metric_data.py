@@ -13,6 +13,7 @@
 
 # Standard libs
 import logging
+from types import SimpleNamespace
 
 # Installed libs
 import pytest
@@ -134,9 +135,10 @@ def test_submetric_class():
 def test_set_of_metrics_class():
     z = SetOfMetrics()
 
-    z.register_new_metric("met_1", 33, "Metric One")
-    z.register_new_metric("met_2", 33, "Metric Two")
-    z.register_new_metric("met_3", 34, "Metric Three")
+    z.register_new_metric("met_1", "Metric One")
+    z.register_new_metric("met_2", "Metric Two")
+    z.register_new_metric("met_3", "Metric Three")
+    z.set_weight({"met_1": 33, "met_2": 33, "met_3": 34})
 
     print_format = (
         "        Metric Name  Metric weight\n"
@@ -147,11 +149,18 @@ def test_set_of_metrics_class():
     )
 
     assert str(z) == print_format
+    weights = z.get_weights
+    assert weights.met_1 == 33
+    assert weights.met_2 == 33
+    assert weights.met_3 == 34
 
-    z.register_new_submetric("sub_met_1_1", z.met_1, 50, "Sub Metric One-One")
-    z.register_new_submetric("sub_met_1_2", z.met_1, 50, "Sub Metric One-Two")
-    z.register_new_submetric("sub_met_3_1", z.met_3, 25, "Sub Metric Three-One")
-    z.register_new_submetric("sub_met_3_2", z.met_3, 75, "Sub Metric Three-Two")
+    z.register_new_submetric("sub_met_1_1", z.met_1, "Sub Metric One-One")
+    z.register_new_submetric("sub_met_1_2", z.met_1, "Sub Metric One-Two")
+    z.register_new_submetric("sub_met_3_1", z.met_3, "Sub Metric Three-One")
+    z.register_new_submetric("sub_met_3_2", z.met_3, "Sub Metric Three-Two")
+    z.set_weight(
+        {"sub_met_1_1": 50, "sub_met_1_2": 50, "sub_met_3_1": 25, "sub_met_3_2": 75}
+    )
 
     print_format = (
         "        Metric Name  Metric weight\n"
@@ -174,6 +183,15 @@ def test_set_of_metrics_class():
     )
 
     assert str(z) == print_format
+    weights = z.get_weights
+    assert isinstance(weights, SimpleNamespace)
+    assert weights.sub_met_1_1 == 16.5
+    assert weights.sub_met_1_2 == 16.5
+    assert weights.met_2 == 33
+    assert weights.sub_met_3_1 == 8.5
+    assert weights.sub_met_3_2 == 25.5
+    assert not hasattr(weights, "met_1")
+    assert not hasattr(weights, "met_3")
 
     assert z.check_validity() is None
     assert isinstance(z.met_1, Metric)

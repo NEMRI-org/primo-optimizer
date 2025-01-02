@@ -45,9 +45,6 @@ def build_cluster_model(model_block, cluster):
     params = model_block.parent_block().model_inputs
     wd = params.config.well_data
     well_index = params.campaign_candidates[cluster]
-    pairwise_distance = params.pairwise_distance[cluster]
-    # pairwise_age_range = params.pairwise_age_range[c]
-    # pairwise_depth_range = params.pairwise_depth_range[c]
 
     # Get well pairs which violate the distance threshold
     well_dac = []
@@ -56,13 +53,6 @@ def build_cluster_model(model_block, cluster):
         for well in well_index:
             if wd.data.loc[well, "is_disadvantaged"]:
                 well_dac.append(well)
-
-    well_pairs_remove = [
-        key
-        for key, val in pairwise_distance.items()
-        if val > params.config.threshold_distance
-    ]
-    well_pairs_keep = [key for key in pairwise_distance if key not in well_pairs_remove]
 
     # Essential model sets
     model_block.set_wells = Set(
@@ -74,11 +64,11 @@ def build_cluster_model(model_block, cluster):
         doc="Set of wells that are in disadvantaged communities",
     )
     model_block.set_well_pairs_remove = Set(
-        initialize=well_pairs_remove,
+        initialize=[],
         doc="Well-pairs which cannot be a part of the project",
     )
     model_block.set_well_pairs_keep = Set(
-        initialize=well_pairs_keep,
+        initialize=[],
         doc="Well-pairs which can be a part of the project",
     )
 

@@ -18,6 +18,7 @@ IntSlider
 Iterable
 Jupyter
 LLC
+MIP
 Mcf
 Namespace
 NaN
@@ -64,6 +65,8 @@ geopoint
 geospatial
 glpk
 gpd
+gurobi
+highs
 inplace
 ipynb
 ipywidgets
@@ -85,8 +88,10 @@ pathlib
 pre
 primo
 pyo
+pyomo
 quickstart
 scikit
+scip
 shapefile
 shapefiles
 stacktrace

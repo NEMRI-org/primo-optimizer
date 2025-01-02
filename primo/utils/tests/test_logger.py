@@ -30,3 +30,11 @@ def test_logger(tmp_path):
     # Catch the log file exists error
     with pytest.raises(ValueError):
         setup_logger(2, True, d)
+
+
+def test_debug_logger():
+    """
+    Runs the if-condition corresponding to debug mode for
+    code coverage.
+    """
+    setup_logger(3, True)

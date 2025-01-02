@@ -261,7 +261,7 @@ def get_eff_metrics_accessibility_fixture():
 
 
 def test_check_column_exists(get_project):
-    get_project.col_names.hospitals = None
+    get_project.column_names.hospitals = None
     with pytest.raises(ValueError):
         print(get_project.num_wells_near_hospitals)
 
@@ -287,7 +287,7 @@ def test_project_attributes(get_project):
     assert project.avg_dist_to_road == 1.5
     assert project.num_unique_owners == 2
     assert project.impact_score == 38.25
-    delattr(project.col_names, "priority_score")
+    delattr(project.column_names, "priority_score")
     with pytest.raises(AttributeError):
         project.impact_score += 2.0
 
@@ -305,7 +305,7 @@ def test_project_attributes_minimal(get_minimal_campaign):
 
 def test_max_val_col(get_project):
     project = get_project
-    assert project.get_max_val_col(project.col_names.age) == 2
+    assert project.get_max_val_col(project.column_names.age) == 2
 
 
 def test_update_efficiency_score(get_project):
@@ -323,7 +323,7 @@ def test_get_well_info_data_frame(get_project):
     for col in project.essential_cols:
         assert col in well_data.columns
     assert (
-        "Violation [Yes/No]" == project.col_names.violation
+        "Violation [Yes/No]" == project.column_names.violation
         and "Violation [Yes/No]" not in well_data.columns
     )
     assert len(well_data) == 2
@@ -363,7 +363,7 @@ def test_project_str(get_project):
     assert (
         str(project)
         == "Number of wells in project 2\t\t: 2\n"
-        + "Estimated Project Cost\t\t\t: $10000000\n"
+        + "Estimated Project Cost\t\t\t: $10,000,000\n"
         + "Impact Score [0-100]\t\t\t: 38.25\n"
         + "Efficiency Score [0-100]\t\t: 0.00\n"
     )
@@ -379,7 +379,7 @@ def test_campaign_attributes(get_campaign):
     # already tested the project string function
     msg = (
         "The optimal campaign has 3 projects.\n"
-        "The total cost of the campaign is $45000000\n\n"
+        "The total cost of the campaign is $45,000,000\n\n"
     )
     for project in campaign.projects.values():
         msg += str(project)
