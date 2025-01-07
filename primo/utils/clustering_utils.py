@@ -133,7 +133,7 @@ def _check_existing_cluster(wd: WellData):
             "different name for the attribute cluster while instantiating the "
             "WellDataColumnNames object."
         )
-        return _well_clusters(wd)
+        return True
     return False
 
 
@@ -151,16 +151,8 @@ def perform_agglomerative_clustering(wd: WellData, distance_threshold: float = 1
     dict
         Dictionary of lists of wells contained in each cluster
     """
-    if hasattr(wd.col_names, "cluster"):
-        # Clustering has already been performed, so return.
-        # Return number of cluster.
-        LOGGER.warning(
-            "Found cluster attribute in the WellDataColumnNames object."
-            "Assuming that the data is already clustered. If the corresponding "
-            "column does not correspond to clustering information, please use a "
-            "different name for the attribute cluster while instantiating the "
-            "WellDataColumnNames object."
-        )
+
+    if _check_existing_cluster(wd):
         return _well_clusters(wd)
 
     # Hard-coding the weights data since this should not be a tunable parameter
@@ -188,11 +180,12 @@ def perform_agglomerative_clustering(wd: WellData, distance_threshold: float = 1
 
 def perform_louvain_clustering(
     wd: WellData,
-    distance_threshold: float,
+    threshold_distance: float,
     cluster_threshold: int,
     nearest_neighbors: int,
     seed: int = 4242,
-    resolution: float = -1,
+    resolution: float = None,
+    max_resolution: float = 10.0,
 ) -> dict:
     """
     Partitions the data into smaller clusters using the Louvain community detection method,
@@ -204,7 +197,7 @@ def perform_louvain_clustering(
     wd : WellData
         Object containing well data
 
-    distance_threshold : float
+    threshold_distance : float
         Threshold distance (in miles) for breaking clusters
 
     cluster_threshold : int
@@ -213,6 +206,15 @@ def perform_louvain_clustering(
     nearest_neighbors : int
         nearest neighbors to consider when constructing graph for Louvain clustering
 
+    seed : int
+        random seed for Louvain communities function
+
+    resolution : float
+        resolution for Louvain communities function
+
+    max_resolution : float
+        maximum resolution for Louvain communities function
+
     Returns
     -------
     dict
@@ -220,17 +222,7 @@ def perform_louvain_clustering(
     """
     # pylint: disable=too-many-locals
     # pylint: disable=too-many-arguments
-    if hasattr(wd.col_names, "cluster"):
-        # Clustering has already been performed, so return.
-        # Return number of cluster.
-        # pylint: disable=duplicate-code
-        LOGGER.warning(
-            "Found cluster attribute in the WellDataColumnNames object."
-            "Assuming that the data is already clustered. If the corresponding "
-            "column does not correspond to clustering information, please use a "
-            "different name for the attribute cluster while instantiating the "
-            "WellDataColumnNames object."
-        )
+    if _check_existing_cluster(wd):
         return _well_clusters(wd)
 
     coordinates = list(
@@ -253,13 +245,13 @@ def perform_louvain_clustering(
             well_id_2 = well_ids[neighbors[j]]
             if not well_graph.has_edge(well_id_1, well_id_2):
                 distance = distances[i][j] * EARTH_RADIUS  # Convert to distance
-                if distance <= distance_threshold:
+                if distance <= threshold_distance:
                     well_graph.add_edge(
-                        well_id_1, well_id_2, weight=distance_threshold - distance
+                        well_id_1, well_id_2, weight=threshold_distance - distance
                     )
 
     # Louvain clustering
-    if resolution != -1:
+    def _get_clusters(seed: int, resolution: float):
         communities = nx.community.louvain_communities(
             well_graph, seed=seed, resolution=resolution
         )
@@ -268,68 +260,47 @@ def perform_louvain_clustering(
             for cluster_id, community in enumerate(communities)
             for well in community
         }
-        wd.data["Clusters"] = [well_cluster_map[well] for well in well_ids]
-        wd.col_names.register_new_columns({"cluster": "Clusters"})
-
-        LOGGER.info(f"The resolution parameter is set to {resolution}.")
+        _cluster_list = [well_cluster_map[well] for well in well_ids]
+        _max_cluster_size = max(len(community) for community in communities)
         LOGGER.debug(
-            f"There are {len(communities)} clusters with "
-            f"the largest cluster containing "
-            f"{max(len(community) for community in communities)} wells."
+            f"For resolution={resolution}, the max. cluster size = {max_cluster_size}"
         )
-        return _well_clusters(wd)
 
-    communities = nx.community.louvain_communities(well_graph, seed=seed, resolution=1)
-    well_cluster_map = {
-        well: cluster_id
-        for cluster_id, community in enumerate(communities)
-        for well in community
-    }
-    wd.data["Clusters"] = [well_cluster_map[well] for well in well_ids]
-    wd.col_names.register_new_columns({"cluster": "Clusters"})
+        return _cluster_list, _max_cluster_size
 
-    LOGGER.debug("The resolution parameter is set to 1.")
-    LOGGER.debug(
-        f"There are {len(communities)} clusters with "
-        f"the largest cluster containing "
-        f"{max(len(community) for community in communities)} wells."
-    )
-    community_sizes = [len(community) for community in communities]
-    max_cluster_size = max(community_sizes)
+    max_cluster_size = len(well_ids)  # Set a large number
+    cluster_list = None
+
+    # If length of data is less than cluster_threshold, assign all wells to one cluster
     if max_cluster_size <= cluster_threshold:
-        return _well_clusters(wd)
-
-    resolution = 1.5
-    while max_cluster_size > cluster_threshold:
-        communities = nx.community.louvain_communities(
-            well_graph, seed=4242, resolution=resolution
+        cluster_list = np.ones(len(wd.data))
+        LOGGER.info(
+            "The size of the data is less than the cluster threshold. "
+            "Assigning all wells to the same cluster."
         )
-        well_cluster_map = {
-            well: cluster_id
-            for cluster_id, community in enumerate(communities)
-            for well in community
-        }
 
-        wd.data["Clusters"] = [well_cluster_map[well] for well in well_ids]
-        max_cluster_size = max(len(community) for community in communities)
+    elif resolution is not None:
+        # Using user-specified resolution for clustering
+        cluster_list, max_cluster_size = _get_clusters(seed=seed, resolution=resolution)
 
-        community_sizes = [len(community) for community in communities]
-        LOGGER.debug(
-            f"Resolution: {resolution}, "
-            f"Max cluster size: {max_cluster_size}, "
-            f"Number of clusters: {len(community_sizes)}"
-        )
-        # Added temporary termination criteria to avoid running the loop indefinitely
-        if resolution == 10:
-            raise_exception("Could not reach desired cluster sizes", RuntimeError)
-        if max_cluster_size > cluster_threshold:
-            resolution += 0.5
+    else:
+        # Adaptively adjust resolution to control the cluster size
+        resolution = 0.5  # Initial resolution
+        while max_cluster_size > cluster_threshold:
+            resolution += 0.5  # increase resolution--> starts from 1; increases in every iteration
+            cluster_list, max_cluster_size = _get_clusters(
+                seed=seed, resolution=resolution
+            )
+            if resolution == max_resolution:
+                raise_exception("Could not reach desired cluster sizes", RuntimeError)
+
+    wd.col_names.register_new_columns({"cluster": "Clusters"})
+    wd.data["Clusters"] = cluster_list
 
     LOGGER.info(f"The resolution parameter is set to {resolution}.")
     LOGGER.info(
-        f"There are {len(communities)} clusters with "
-        f"the largest cluster containing "
-        f"{max(len(community) for community in communities)} wells."
+        f"There are {len(wd.data["Clusters"].unique())} clusters with "
+        f"the largest cluster containing {max_cluster_size} wells."
     )
 
     return _well_clusters(wd)

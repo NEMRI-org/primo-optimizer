@@ -134,7 +134,7 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "cluster_threshold",
+        "threshold_cluster_size",
         ConfigValue(
             default=300,
             domain=NonNegativeInt,
@@ -142,11 +142,19 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "nearest_neighbors",
+        "num_nearest_neighbors",
         ConfigValue(
             default=10,
             domain=NonNegativeInt,
             doc="Nearest neighbors while constructing graph for Louvain clustering",
+        ),
+    )
+    config.declare(
+        "max_resolution",
+        ConfigValue(
+            default=10,
+            domain=NonNegativeFloat,
+            doc="Maximum resolution for Louvain clustering",
         ),
     )
     config.declare(
@@ -226,9 +234,10 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             else:
                 perform_louvain_clustering(
                     wd,
-                    distance_threshold=self.config.threshold_distance,
-                    cluster_threshold=self.config.cluster_threshold,
-                    nearest_neighbors=self.config.nearest_neighbors,
+                    threshold_distance=self.config.threshold_distance,
+                    cluster_threshold=self.config.threshold_cluster_size,
+                    nearest_neighbors=self.config.num_nearest_neighbors,
+                    max_resolution=self.config.max_resolution,
                 )
             # Step 2: Identify list of wells belonging to each cluster
             # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}

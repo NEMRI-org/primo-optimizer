@@ -138,6 +138,14 @@ def test_perform_agglomerative_clustering(caplog):
     """
     Tests for perform_clustering method
     """
+    # pylint: disable=duplicate-code
+    warning_message = (
+        "Found cluster attribute in the WellDataColumnNames object. "
+        "Assuming that the data is already clustered. If the corresponding "
+        "column does not correspond to clustering information, please use a "
+        "different name for the attribute cluster while instantiating the "
+        "WellDataColumnNames object."
+    )
     filename = os.path.dirname(os.path.realpath(__file__))[:-12]  # Primo folder
     filename += "//data_parser//tests//random_well_data.csv"
 
@@ -160,33 +168,29 @@ def test_perform_agglomerative_clustering(caplog):
     assert hasattr(col_names, "cluster")
     assert num_clusters == 16
     assert num_clusters == len(set(wd.data["Clusters"]))
-    # pylint: disable=duplicate-code
-    assert (
-        "Found cluster attribute in the WellDataColumnNames object."
-        "Assuming that the data is already clustered. If the corresponding "
-        "column does not correspond to clustering information, please use a "
-        "different name for the attribute cluster while instantiating the "
-        "WellDataColumnNames object."
-    ) not in caplog.text
+    assert warning_message not in caplog.text
 
     # Capture the warning if the data has already been clustered
     clusters = perform_agglomerative_clustering(wd)
     num_clusters = len(set(clusters.keys()))
     assert num_clusters == 16
-    # pylint: disable=duplicate-code
-    assert (
-        "Found cluster attribute in the WellDataColumnNames object."
-        "Assuming that the data is already clustered. If the corresponding "
-        "column does not correspond to clustering information, please use a "
-        "different name for the attribute cluster while instantiating the "
-        "WellDataColumnNames object."
-    ) in caplog.text
+    assert warning_message in caplog.text
+
+    print(caplog.text)
 
 
 def test_perform_louvain_clustering(caplog):
     """
     Tests for perform_clustering method
     """
+    # pylint: disable=duplicate-code
+    warning_message = (
+        "Found cluster attribute in the WellDataColumnNames object. "
+        "Assuming that the data is already clustered. If the corresponding "
+        "column does not correspond to clustering information, please use a "
+        "different name for the attribute cluster while instantiating the "
+        "WellDataColumnNames object."
+    )
     filename = os.path.dirname(os.path.realpath(__file__))[:-12]  # Primo folder
     filename += "//data_parser//tests//random_well_data.csv"
 
@@ -199,38 +203,40 @@ def test_perform_louvain_clustering(caplog):
         depth="Depth [ft]",
     )
 
+    # Test the case where length of data is smaller than the max_cluster_threshold
     wd = WellData(data=filename, column_names=col_names)
     assert "Clusters" not in wd
     assert not hasattr(col_names, "cluster")
 
     clusters = perform_louvain_clustering(
-        wd, distance_threshold=10, cluster_threshold=300, nearest_neighbors=10
+        wd, threshold_distance=10, cluster_threshold=300, nearest_neighbors=10
+    )
+    num_clusters = len(set(clusters.keys()))
+    assert "Clusters" in wd
+    assert hasattr(col_names, "cluster")
+    assert num_clusters == 1
+    assert num_clusters == len(set(wd.data["Clusters"]))
+    assert warning_message not in caplog.text
+
+    # Test the case where length of data is greater than the max_cluster_threshold
+    wd.data.drop(columns=["Clusters"], inplace=True)
+    delattr(col_names, "cluster")
+    assert "Clusters" not in wd
+    assert not hasattr(col_names, "cluster")
+
+    clusters = perform_louvain_clustering(
+        wd, threshold_distance=10, cluster_threshold=100, nearest_neighbors=10
     )
     num_clusters = len(set(clusters.keys()))
     assert "Clusters" in wd
     assert hasattr(col_names, "cluster")
     assert num_clusters == 14
     assert num_clusters == len(set(wd.data["Clusters"]))
-    # pylint: disable=duplicate-code
-    assert (
-        "Found cluster attribute in the WellDataColumnNames object."
-        "Assuming that the data is already clustered. If the corresponding "
-        "column does not correspond to clustering information, please use a "
-        "different name for the attribute cluster while instantiating the "
-        "WellDataColumnNames object."
-    ) not in caplog.text
 
     # Capture the warning if the data has already been clustered
     clusters = perform_louvain_clustering(
-        wd, distance_threshold=10, cluster_threshold=300, nearest_neighbors=10
+        wd, threshold_distance=10, cluster_threshold=100, nearest_neighbors=10
     )
     num_clusters = len(set(clusters.keys()))
     assert num_clusters == 14
-    # pylint: disable=duplicate-code
-    assert (
-        "Found cluster attribute in the WellDataColumnNames object."
-        "Assuming that the data is already clustered. If the corresponding "
-        "column does not correspond to clustering information, please use a "
-        "different name for the attribute cluster while instantiating the "
-        "WellDataColumnNames object."
-    ) in caplog.text
+    assert warning_message in caplog.text

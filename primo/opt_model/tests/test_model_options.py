@@ -351,8 +351,6 @@ def test_incremental_formulation(get_column_names):
     assert np.isclose(opt_mdl.unused_budget_scaling.value, 0)
     assert not budget_sufficient
 
-    # TODO: Confirm degeneracy
-
     assert len(opt_campaign.projects) > 0
 
     # Check if the required constraints are defined
