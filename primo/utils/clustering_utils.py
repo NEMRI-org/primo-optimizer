@@ -101,7 +101,19 @@ def distance_matrix(wd: WellData, weights: dict) -> np.ndarray:
 
 
 def _well_clusters(wd: WellData) -> dict:
-    """Returns well clusters"""
+    """
+    Returns well clusters
+
+    Parameters
+    ----------
+    wd : WellData
+        The WellData object to return well clusters.
+
+    Returns
+    -------
+    dict
+        Dictionary of lists of wells contained in each cluster
+    """
     col_names = wd.col_names
     return (
         wd.data.groupby(wd[col_names.cluster])
@@ -121,8 +133,8 @@ def _check_existing_cluster(wd: WellData):
 
     Returns
     -------
-    int or None
-        Number of clusters if clustering exists, otherwise None.
+    Bool
+        True if clustering exists, otherwise False.
     """
     if hasattr(wd.col_names, "cluster"):
         # Clustering has already been performed, so return the number of clusters.
@@ -137,13 +149,13 @@ def _check_existing_cluster(wd: WellData):
     return False
 
 
-def perform_agglomerative_clustering(wd: WellData, distance_threshold: float = 10.0):
+def perform_agglomerative_clustering(wd: WellData, threshold_distance: float = 10.0):
     """
-    Partitions the data into smaller clusters.
+    Partitions the data into smaller clusters using agglomerative clustering.
 
     Parameters
     ----------
-    distance_threshold : float, default = 10.0
+    threshold_distance : float, default = 10.0
         Threshold distance for breaking clusters
 
     Returns
@@ -166,7 +178,7 @@ def perform_agglomerative_clustering(wd: WellData, distance_threshold: float = 1
         n_clusters=None,
         metric="precomputed",
         linkage="complete",
-        distance_threshold=distance_threshold,
+        distance_threshold=threshold_distance,
     ).fit(distance_metric)
 
     wd.data["Clusters"] = clustered_data.labels_
@@ -181,7 +193,7 @@ def perform_agglomerative_clustering(wd: WellData, distance_threshold: float = 1
 def perform_louvain_clustering(
     wd: WellData,
     threshold_distance: float,
-    cluster_threshold: int,
+    threshold_cluster_size: int,
     nearest_neighbors: int,
     seed: int = 4242,
     resolution: float = None,
@@ -189,8 +201,9 @@ def perform_louvain_clustering(
 ) -> dict:
     """
     Partitions the data into smaller clusters using the Louvain community detection method,
-    limiting each well to connect only with its 10 closest neighbors within a threshold distance.
-    Dynamically adjusts the resolution parameter to ensure no cluster exceeds the size threshold.
+    limiting each well to connect only with its nearest_neighbors within a threshold distance.
+    Dynamically adjusts the resolution parameter from 1 to max_resolution with 0.5 increments,
+    to ensure no cluster exceeds the size threshold if resolution parameter is not provided.
 
     Parameters
     ----------
@@ -200,7 +213,7 @@ def perform_louvain_clustering(
     threshold_distance : float
         Threshold distance (in miles) for breaking clusters
 
-    cluster_threshold : int
+    threshold_cluster_size : int
         cluster size of the largest cluster
 
     nearest_neighbors : int
@@ -213,7 +226,7 @@ def perform_louvain_clustering(
         resolution for Louvain communities function
 
     max_resolution : float
-        maximum resolution for Louvain communities function
+        maximum resolution while dynamically setting the resolution for Louvain communities function
 
     Returns
     -------
@@ -263,7 +276,7 @@ def perform_louvain_clustering(
         _cluster_list = [well_cluster_map[well] for well in well_ids]
         _max_cluster_size = max(len(community) for community in communities)
         LOGGER.debug(
-            f"For resolution={resolution}, the max. cluster size = {max_cluster_size}"
+            f"For resolution={resolution}, the maximum cluster size = {max_cluster_size}"
         )
 
         return _cluster_list, _max_cluster_size
@@ -272,7 +285,7 @@ def perform_louvain_clustering(
     cluster_list = None
 
     # If length of data is less than cluster_threshold, assign all wells to one cluster
-    if max_cluster_size <= cluster_threshold:
+    if max_cluster_size <= threshold_cluster_size:
         cluster_list = np.ones(len(wd.data))
         LOGGER.info(
             "The size of the data is less than the cluster threshold. "
@@ -286,7 +299,7 @@ def perform_louvain_clustering(
     else:
         # Adaptively adjust resolution to control the cluster size
         resolution = 0.5  # Initial resolution
-        while max_cluster_size > cluster_threshold:
+        while max_cluster_size > threshold_cluster_size:
             resolution += 0.5  # increase resolution--> starts from 1; increases in every iteration
             cluster_list, max_cluster_size = _get_clusters(
                 seed=seed, resolution=resolution

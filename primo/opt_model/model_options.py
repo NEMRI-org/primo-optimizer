@@ -229,13 +229,13 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             # Step 1: Perform clustering, Should distance_threshold be a user argument?
             if self.config.cluster_formulation == "Agglomerative":
                 perform_agglomerative_clustering(
-                    wd, distance_threshold=self.config.threshold_distance
+                    wd, threshold_distance=self.config.threshold_distance
                 )
             else:
                 perform_louvain_clustering(
                     wd,
                     threshold_distance=self.config.threshold_distance,
-                    cluster_threshold=self.config.threshold_cluster_size,
+                    threshold_cluster_size=self.config.threshold_cluster_size,
                     nearest_neighbors=self.config.num_nearest_neighbors,
                     max_resolution=self.config.max_resolution,
                 )

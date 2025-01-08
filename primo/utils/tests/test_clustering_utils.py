@@ -209,7 +209,7 @@ def test_perform_louvain_clustering(caplog):
     assert not hasattr(col_names, "cluster")
 
     clusters = perform_louvain_clustering(
-        wd, threshold_distance=10, cluster_threshold=300, nearest_neighbors=10
+        wd, threshold_distance=10, threshold_cluster_size=300, nearest_neighbors=10
     )
     num_clusters = len(set(clusters.keys()))
     assert "Clusters" in wd
@@ -225,7 +225,7 @@ def test_perform_louvain_clustering(caplog):
     assert not hasattr(col_names, "cluster")
 
     clusters = perform_louvain_clustering(
-        wd, threshold_distance=10, cluster_threshold=100, nearest_neighbors=10
+        wd, threshold_distance=10, threshold_cluster_size=100, nearest_neighbors=10
     )
     num_clusters = len(set(clusters.keys()))
     assert "Clusters" in wd
@@ -235,7 +235,7 @@ def test_perform_louvain_clustering(caplog):
 
     # Capture the warning if the data has already been clustered
     clusters = perform_louvain_clustering(
-        wd, threshold_distance=10, cluster_threshold=100, nearest_neighbors=10
+        wd, threshold_distance=10, threshold_cluster_size=100, nearest_neighbors=10
     )
     num_clusters = len(set(clusters.keys()))
     assert num_clusters == 14
