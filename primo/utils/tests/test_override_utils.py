@@ -36,12 +36,55 @@ from primo.utils.tests.test_config_utils import (  # pylint: disable=unused-impo
 )
 
 
+@pytest.fixture(name="get_model_no_max_owc")
+def get_model_fixture_no_max_owc(get_column_names, eff_metric):
+    """
+    Pytest fixture for constructing an optimization model and obtain
+    the optimization results.
+    """
+    im_metrics, col_names, filename = get_column_names
+    eff_metrics = eff_metric
+
+    # Create the well data object
+    wd = WellData(
+        data=filename,
+        column_names=col_names,
+        impact_metrics=im_metrics,
+        efficiency_metrics=eff_metrics,
+    )
+
+    # Partition the wells as gas/oil
+    gas_oil_wells = wd.get_gas_oil_wells
+    wd_gas = gas_oil_wells["gas"]
+
+    # Mobilization cost
+    mobilization_cost = {1: 120000, 2: 210000, 3: 280000, 4: 350000}
+    for n_wells in range(5, len(wd_gas) + 1):
+        mobilization_cost[n_wells] = n_wells * 84000
+
+    wd_gas.compute_priority_scores()
+
+    # Formulate the optimization problem
+    opt_mdl_inputs = OptModelInputs(
+        well_data=wd_gas,
+        total_budget=3210000,  # 3.25 million USD
+        mobilization_cost=mobilization_cost,
+        threshold_distance=10,
+    )
+
+    opt_mdl_inputs.build_optimization_model()
+    opt_campaign = opt_mdl_inputs.solve_model(solver="highs")
+
+    return opt_campaign, opt_mdl_inputs, eff_metrics
+
+
 @pytest.fixture(name="or_infeasible_selection")
 def or_infeasible_selection_fixture():
     """
     Pytest fixture for constructing an override selection return which
     will lead to infeasible P&A projects.
     """
+
     project_remove = [13]
     well_remove = {1: [851, 858]}
     well_add_existing_cluster = {
@@ -217,6 +260,26 @@ def test_infeasible_dac(or_feasible_selection, get_model):
     assert violation_info_dict["Project Status:"] == "INFEASIBLE"
     key_list = list(violation_info_dict.keys())
     assert isinstance(violation_info_dict[key_list[1]], str)
+
+
+def test_override_campaign_no_owc(or_feasible_selection, get_model_no_max_owc):
+    """
+    Test to make sure that when a user leaves
+    max_owner_well_count ==None that we skip that
+    override check by setting the return to an empty Dict.
+    """
+    opt_campaign, opt_mdl_inputs, eff_metrics = get_model_no_max_owc
+    or_selection = or_feasible_selection
+
+    or_camp_class = OverrideCampaign(
+        or_selection, opt_mdl_inputs, opt_campaign.clusters_dict, eff_metrics
+    )
+
+    # Assign all wells as disadvantaged wells for testing purpose
+    or_camp_class.well_data.data["is_disadvantaged"] = 1
+    or_camp_class.feasibility.opt_inputs.config.perc_wells_in_dac = 40
+
+    assert not or_camp_class.feasibility.assess_owner_well_count()
 
 
 @pytest.fixture(name="or_infeasible_owc_selection")

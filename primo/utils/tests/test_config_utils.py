@@ -369,6 +369,10 @@ def test_user_selection(
     """
     opt_campaign, opt_mdl_inputs, _ = get_model
 
+    or_wid_class_display_max_set = UserSelection(
+        opt_campaign.clusters_dict, opt_mdl_inputs, max_options_displayed=3
+    )
+
     or_wid_class = UserSelection(opt_campaign.clusters_dict, opt_mdl_inputs)
 
     # Test the structure of the override widget
@@ -385,6 +389,11 @@ def test_user_selection(
     assert isinstance(or_wid_class.lock_widget, SubSelectWidget)
     assert hasattr(or_wid_class.add_widget, "re_cluster")
     assert isinstance(or_wid_class.add_widget.re_cluster, widgets.BoundedIntText)
+
+    # When max_options_displayed is set to 3
+    assert 3 >= len(or_wid_class_display_max_set.add_widget.widget.options)
+    assert 3 >= len(or_wid_class_display_max_set.remove_widget.widget.options)
+    assert 3 >= len(or_wid_class_display_max_set.lock_widget.widget.options)
 
     or_wid_class.display()
 

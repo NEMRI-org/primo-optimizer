@@ -185,9 +185,6 @@ def test_opt_model_inputs(get_column_names, cluster_method, num_projects):
     assert hasattr(opt_mdl_inputs, "config")
     assert "Clusters" in wd_gas  # Column is added after clustering
     assert hasattr(opt_mdl_inputs, "campaign_candidates")
-    assert hasattr(opt_mdl_inputs, "pairwise_distance")
-    assert hasattr(opt_mdl_inputs, "pairwise_age_difference")
-    assert hasattr(opt_mdl_inputs, "pairwise_depth_difference")
     assert hasattr(opt_mdl_inputs, "owner_well_count")
 
     assert opt_mdl_inputs.get_max_cost_project is None
@@ -480,7 +477,6 @@ def test_override_re_optimization(get_column_names):
         opt_mdl_inputs.campaign_candidates == initial_opt_mdl_inputs.campaign_candidates
     )
     assert opt_mdl_inputs.owner_well_count == initial_opt_mdl_inputs.owner_well_count
-    assert opt_mdl_inputs.pairwise_distance == initial_opt_mdl_inputs.pairwise_distance
 
     # Build the new optimization model based on the override selection
     or_opt_mdl = opt_mdl_inputs.build_optimization_model(override_dict)
@@ -563,8 +559,6 @@ def test_re_cluster(get_column_names):
     assert 981 in opt_mdl_inputs.campaign_candidates[10]
     assert (10, 981) in opt_mdl_inputs.owner_well_count["Owner 104"]
     assert (19, 981) not in opt_mdl_inputs.owner_well_count["Owner 104"]
-    assert any(981 in key for key in opt_mdl_inputs.pairwise_distance[10])
-    assert not any(981 in key for key in opt_mdl_inputs.pairwise_distance[19])
 
 
 def test_dictionary_instantiation(get_column_names):

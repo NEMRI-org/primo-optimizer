@@ -40,6 +40,7 @@ INCOMPLETE_ROWS = {
 }
 
 
+# pylint: disable = missing-function-docstring
 @pytest.fixture(name="get_well_data_from_csv", scope="function")
 def get_well_data_from_csv_fixture():
     """Returns well data from a csv file"""
@@ -80,7 +81,7 @@ def test_excel_reader(tmp_path, get_well_data_from_csv):
     # Read the excel file from the temp folder
     wd_xlsx = WellData(
         data=str(filename),
-        column_names=wd_csv._col_names,
+        column_names=wd_csv.column_names,
         preliminary_data_check=False,
     )
 
@@ -103,18 +104,19 @@ def test_unsupported_file_error():
         TypeError,
         match="Unsupported input file format. Only .xlsx, .xls, and .csv are supported.",
     ):
-        wd = WellData(data="file.foo", column_names=col_names)
+        WellData(data="file.foo", column_names=col_names)
 
     with pytest.raises(TypeError, match="Unknown variable type for input data"):
-        wd = WellData(data=5, column_names=col_names)
+        WellData(data=5, column_names=col_names)
 
 
 # Test dunder methods
 def test_dunder_methods(get_well_data_from_csv):
     wd = get_well_data_from_csv
+    col_names = wd.column_names
 
     # Testing the __contains__ dunder method
-    for col in wd.col_names.values():
+    for col in col_names.values():
         assert col in wd
 
     # The data file has two additional columns. Ensure that
@@ -127,14 +129,22 @@ def test_dunder_methods(get_well_data_from_csv):
     assert list(wd) == list(range(2, 52))
 
     # Testing the __getitem__ dunder method
-    assert wd[wd.col_names.age] is wd.data[wd.col_names.age]
-    assert wd[wd.col_names.depth] is wd.data[wd.col_names.depth]
+    assert wd[col_names.age] is wd.data[col_names.age]
+    assert wd[col_names.depth] is wd.data[col_names.depth]
+
+    # Testing the __str__, __repr__, and _repr_html_ methods
+    # These methods are well tested in pandas, so just calling
+    # the method for code coverage
+    assert isinstance(str(wd), str)
+    assert isinstance(repr(wd), str)
+    # pylint: disable = protected-access
+    assert isinstance(wd._repr_html_(), str)
 
 
 def test_has_incomplete_data(caplog, get_well_data_from_csv):
     """Tests the has_incomplete_data method"""
     wd = get_well_data_from_csv
-    col_names = wd._col_names
+    col_names = wd.column_names
 
     # Test has_incomplete_data method
     flag, empty_cells = wd.has_incomplete_data(col_names.well_id)
@@ -156,7 +166,7 @@ def test_has_incomplete_data(caplog, get_well_data_from_csv):
 def test_drop_incomplete_data(caplog, get_well_data_from_csv):
     """Tests drop_incomplete_data method"""
     wd = get_well_data_from_csv
-    col_names = wd._col_names
+    col_names = wd.column_names
 
     wd.drop_incomplete_data(col_names.well_id, "well_id")
     for i in INCOMPLETE_ROWS["API Well Number"]:
@@ -171,14 +181,17 @@ def test_drop_incomplete_data(caplog, get_well_data_from_csv):
         f"is not available for them."
     ) in caplog.text
 
-    assert wd._removed_rows["well_id"] == INCOMPLETE_ROWS["API Well Number"]
+    assert (
+        wd.get_removed_wells_with_reason["well_id"]
+        == INCOMPLETE_ROWS["API Well Number"]
+    )
     assert wd.get_removed_wells == INCOMPLETE_ROWS["API Well Number"]
     assert wd.get_removed_wells_with_reason == {
         "well_id": INCOMPLETE_ROWS["API Well Number"]
     }
 
     # Test existing dict_key when removing rows
-    wd._removed_rows["x"] = []
+    wd.get_removed_wells_with_reason["x"] = []
 
     wd.drop_incomplete_data(col_names.latitude, "x")
     for i in INCOMPLETE_ROWS["x"]:
@@ -190,7 +203,7 @@ def test_drop_incomplete_data(caplog, get_well_data_from_csv):
     ) in caplog.text
 
     # Row 5 has already been removed before, so the list will only have 3 elements
-    assert wd._removed_rows["x"] == [2, 3, 4]
+    assert wd.get_removed_wells_with_reason["x"] == [2, 3, 4]
 
     removed_wells = list(set(INCOMPLETE_ROWS["API Well Number"] + INCOMPLETE_ROWS["x"]))
     removed_wells.sort()
@@ -206,7 +219,7 @@ def test_drop_incomplete_data(caplog, get_well_data_from_csv):
         f"Removed a few wells because {col_names.operator_name} information "
         f"is not available for them."
     ) not in caplog.text
-    assert "operator_name" not in wd._removed_rows
+    assert "operator_name" not in wd.get_removed_wells_with_reason
 
     assert wd.get_removed_wells == removed_wells
     assert wd.get_removed_wells_with_reason == {
@@ -221,7 +234,7 @@ def test_fill_incomplete_data(caplog, get_well_data_from_csv):
     This test also covers the flag_wells_method, and is_data_numeric method.
     """
     wd = get_well_data_from_csv
-    col_names = wd._col_names
+    col_names = wd.column_names
 
     flag, non_numeric_rows = wd.is_data_numeric(col_names.ann_gas_production)
     assert not flag
@@ -311,7 +324,7 @@ def test_fill_incomplete_data(caplog, get_well_data_from_csv):
 
 def test_replace_data(caplog, get_well_data_from_csv):
     wd = get_well_data_from_csv
-    col_names = wd._col_names
+    col_names = wd.column_names
 
     flag, non_numeric_rows = wd.is_data_numeric(col_names.leak)
     assert not flag
@@ -344,7 +357,7 @@ def test_replace_data(caplog, get_well_data_from_csv):
 
 def test_convert_data_to_binary(caplog, get_well_data_from_csv):
     wd = get_well_data_from_csv
-    col_names = wd._col_names
+    col_names = wd.column_names
 
     # Fill incomplete cells
     wd.fill_incomplete_data(col_names.leak, False, "leak_flag")
@@ -376,7 +389,7 @@ def test_convert_data_to_binary(caplog, get_well_data_from_csv):
 
 def test_check_data_in_range(get_well_data_from_csv):
     wd = get_well_data_from_csv
-    col_names = wd._col_names
+    col_names = wd.column_names
 
     wd.fill_incomplete_data(col_names.age, wd.config.fill_age, "age_flag")
     with pytest.raises(

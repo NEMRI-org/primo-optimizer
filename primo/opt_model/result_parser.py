@@ -58,18 +58,18 @@ class Project:
         # was not available, and the missing data was filled. Having the entire
         # DataFrame allows ease of access to flagged wells (columns containing _flag)
         self.well_data = wd._construct_sub_data(index)
-        self._col_names = self.well_data.col_names
+        self._col_names = self.well_data.column_names
         col_names = self._col_names
         self.project_id = project_id
 
         # Must display essential columns while printing a DataFrame
         self._essential_cols = [
-            self.col_names.well_id,
-            self.col_names.latitude,
-            self.col_names.longitude,
-            self.col_names.age,
-            self.col_names.depth,
-            self.col_names.priority_score,
+            self._col_names.well_id,
+            self._col_names.latitude,
+            self._col_names.longitude,
+            self._col_names.age,
+            self._col_names.depth,
+            self._col_names.priority_score,
         ]
         self._priority_score_cols = wd.get_priority_score_columns
         self._flag_cols = wd.get_flag_columns
@@ -90,7 +90,7 @@ class Project:
     def __str__(self) -> str:
         msg = (
             f"Number of wells in project {self.project_id}\t\t: {self.num_wells}\n"
-            f"Estimated Project Cost\t\t\t: ${round(self.plugging_cost)}\n"
+            f"Estimated Project Cost\t\t\t: ${round(self.plugging_cost):,}\n"
             f"Impact Score [0-100]\t\t\t: {self.impact_score:.2f}\n"
             f"Efficiency Score [0-100]\t\t: {self.efficiency_score:.2f}\n"
         )
@@ -191,7 +191,7 @@ class Project:
         return calculate_average(self.well_data.data, self._col_names.dist_to_road)
 
     @property
-    def col_names(self):
+    def column_names(self):
         """
         Returns column names associated with project data
         """
@@ -344,14 +344,14 @@ class Campaign:
             The project ID if the well exists in any project; otherwise, None.
         """
         for project_id, project in self.projects.items():
-            if well_id in project.well_data.data[self.wd.col_names.well_id].values:
+            if well_id in project.well_data.data[self.wd.column_names.well_id].values:
                 return project_id
         return None
 
     def __str__(self) -> str:
         msg = (
             f"The optimal campaign has {self.num_projects} projects.\n"
-            f"The total cost of the campaign is ${round(self.total_plugging_cost)}\n\n"
+            f"The total cost of the campaign is ${round(self.total_plugging_cost):,}\n\n"
         )
         for _, project in self.projects.items():
             msg += str(project)
@@ -448,8 +448,8 @@ class Campaign:
         ax = plt.gca()
         for _, project in self.projects.items():
             ax.scatter(
-                project.well_data[project.col_names.longitude],
-                project.well_data[project.col_names.latitude],
+                project.well_data[project.column_names.longitude],
+                project.well_data[project.column_names.latitude],
             )
         plt.title(title)
         plt.xlabel("x-coordinate of wells")
@@ -603,11 +603,11 @@ class Campaign:
             The label for the category of the campaign (e.g., "oil", "gas")
         """
         first_key = list(self.projects.keys())[0]
-        col_names = self.projects[first_key].col_names
+        col_names = self.projects[first_key].column_names
         # the priority score must have been previously computed
         assert hasattr(col_names, "priority_score")
         if columns_to_export is None:
-            columns_to_export = self.wd.col_names.values()
+            columns_to_export = self.wd.column_names.values()
 
         # add the project data
         start_row = 0
@@ -679,7 +679,9 @@ class EfficiencyCalculator:
         Computes efficiency attributes for all the projects in the campaign
         """
         for _, project in self.campaign.projects.items():
-            LOGGER.info(f"Computing efficiency scores for project {project.project_id}")
+            LOGGER.debug(
+                f"Computing efficiency scores for project {project.project_id}"
+            )
             self.compute_efficiency_attributes_for_project(project)
 
     def compute_efficiency_attributes_for_project(self, project: Project):
@@ -699,7 +701,7 @@ class EfficiencyCalculator:
                 # This is a parent metric, so no data assessment is required
                 continue
 
-            LOGGER.info(
+            LOGGER.debug(
                 f"Computing scores for metric/submetric {metric.name}/{metric.full_name}."
             )
 

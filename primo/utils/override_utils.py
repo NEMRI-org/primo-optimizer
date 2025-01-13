@@ -112,6 +112,13 @@ class AssessFeasibility:
         Returns list of owners and wells selected for each for whom the owner
         well count constraint is violated
         """
+        opt_inputs = self.opt_inputs.config
+        max_wells_per_owner = opt_inputs.max_wells_per_owner
+        if max_wells_per_owner is None:
+            # When the user does not have owner information
+            # or does not wish to prioritize
+            # this constraint becomes meaningless
+            return {}
         violated_operators = {}
         for operator, groups in self.wd.data.groupby(self.wd._col_names.operator_name):
             n_wells = len(groups)
@@ -134,14 +141,10 @@ class AssessFeasibility:
         # Assign weight for distance as 1 to ensure the distance matrix returns physical
         # distance between two well pairs
         metric_array = distance_matrix(self.wd, {"distance": 1})
-        df_to_array = {
-            df_index: array_index
-            for array_index, df_index in enumerate(self.wd.data.index)
-        }
 
         for cluster, well_list in self.new_campaign.items():
             for w1, w2 in combinations(well_list, 2):
-                well_distance = metric_array[df_to_array[w1], df_to_array[w2]]
+                well_distance = metric_array.loc[w1, w2]
                 if well_distance > distance_threshold:
                     distance_violation.setdefault("Project", []).append(cluster)
                     distance_violation.setdefault("Well 1", []).append(

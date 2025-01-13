@@ -17,8 +17,9 @@ from primo.data_parser.well_data import WellData
 from primo.data_parser.well_data_columns import WellDataColumnNames
 from primo.opt_model.model_options import OptModelInputs
 from primo.opt_model.result_parser import EfficiencyCalculator, export_data_to_excel
-from primo.utils import setup_logger
+from primo.utils import get_solver, setup_logger
 from primo.utils.config_utils import UserSelection
+from primo.utils.map_utils import VisualizeData
 from primo.utils.override_utils import OverrideCampaign
 
 RELEASE = "0.2.1"

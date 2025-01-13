@@ -13,7 +13,8 @@
 
 # Standard libs
 import logging
-from typing import Callable, Dict, Optional
+from types import SimpleNamespace
+from typing import Any, Callable, Dict, Optional
 
 # Installed libs
 import numpy as np
@@ -412,8 +413,27 @@ class SetOfMetrics:
 
         return _extended_metrics
 
+    @property
+    def get_weights(self) -> SimpleNamespace:
+        """
+        Returns effective weights of all submetrics and primary metrics
+        which do not have submetrics
+        """
+        weights = {
+            key: val.effective_weight
+            for key, val in self.items()
+            if not hasattr(val, "submetrics")
+        }
+        return SimpleNamespace(**weights)
+
     def register_new_metric(
-        self, name: str, weight: int = 0, full_name: Optional[str] = None
+        self,
+        name: str,
+        full_name: Optional[str] = None,
+        is_binary_type: bool = False,
+        has_inverse_priority: bool = False,
+        data_col_name: Optional[str] = None,
+        fill_missing_value: Any = None,
     ):
         """
         Registers a new metric
@@ -423,13 +443,29 @@ class SetOfMetrics:
         name : str
             Metric name, must be a valid python variable name
 
-        weight : int
-            weight associated with the metric
-
-        full_name : str
+        full_name : str, default = None
             Elaborate name of the metric
+
+        is_binary_type : bool, default = False
+            Is the admissible value for this metric of boolean type?
+
+        has_inverse_priority : bool, default = False
+            Is the priority associated with this metric inversely
+            proportional to the value/magnitude of the metric?
+
+        data_col_name : str, default = None
+            Name of the column containing the data corresponding to
+            this metric
+
+        fill_missing_value : Any, default = None
+            Default value for missing values corresponding to this metric
         """
-        setattr(self, name, Metric(name=name, weight=weight, full_name=full_name))
+        setattr(self, name, Metric(name=name, weight=0, full_name=full_name))
+        obj = getattr(self, name)
+        obj.is_binary_type = is_binary_type
+        obj.has_inverse_priority = has_inverse_priority
+        obj.fill_missing_value = fill_missing_value
+        obj.data_col_name = data_col_name
 
     def delete_metric(self, name: str):
         """
@@ -459,8 +495,11 @@ class SetOfMetrics:
         self,
         name: str,
         parent_metric: Metric,
-        weight: int = 0,
         full_name: Optional[str] = None,
+        is_binary_type: bool = False,
+        has_inverse_priority: bool = False,
+        data_col_name: Optional[str] = None,
+        fill_missing_value: Any = None,
     ):
         """
         Registers a new submetric
@@ -473,11 +512,22 @@ class SetOfMetrics:
         parent_name : Metric
             Parent metric object
 
-        weight : int
-            weight associated with the metric
-
-        full_name : str
+        full_name : str, default = None
             Elaborate name of the metric
+
+        is_binary_type : bool, default = False
+            Is the admissible value for this metric of boolean type?
+
+        has_inverse_priority : bool, default = False
+            Is the priority associated with this metric inversely
+            proportional to the value/magnitude of the metric?
+
+        data_col_name : str, default = None
+            Name of the column containing the data corresponding to
+            this metric
+
+        fill_missing_value : Any, default = None
+            Default value for missing values corresponding to this metric
         """
         setattr(
             self,
@@ -485,11 +535,15 @@ class SetOfMetrics:
             SubMetric(
                 name=name,
                 parent_metric=parent_metric,
-                weight=weight,
+                weight=0,
                 full_name=full_name,
             ),
         )
         obj = getattr(self, name)
+        obj.is_binary_type = is_binary_type
+        obj.has_inverse_priority = has_inverse_priority
+        obj.fill_missing_value = fill_missing_value
+        obj.data_col_name = data_col_name
 
         # Register the submetric in the parent metric object for convenience
         if hasattr(parent_metric, "submetrics"):

@@ -16,7 +16,6 @@ import logging
 
 # Installed libs
 from pyomo.contrib.appsi.base import TerminationCondition
-from pyomo.contrib.appsi.solvers import Highs
 from pyomo.environ import SolverFactory
 from pyomo.environ import check_optimal_termination as pyo_opt_term
 
@@ -24,11 +23,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_solver(
-    solver="scip",
-    stream_output=True,
-    mip_gap=0.01,
-    time_limit=10000,
-    solver_options={},
+    solver: str = None,
+    stream_output: bool = True,
+    mip_gap: float = 0.01,
+    time_limit: int = 10000,
+    solver_options: dict = None,
 ):
     """
     Returns a solver object. A few open-source solvers can be installed using conda.
@@ -65,8 +64,28 @@ def get_solver(
         If an unrecognized solver is provided as an input.
         Supported solvers include glpk, gurobi, gurobi_persistent, highs, and scip
     """
-    if solver == "highs":
-        sol_obj = Highs()
+    if solver_options is None:
+        solver_options = {}
+
+    if solver is None:
+        # Auto-detect solver in order of priority
+        for solver_name in (
+            "gurobi_persistent",
+            "gurobi",
+            "scip",
+            "glpk",
+            "appsi_highs",
+        ):
+            if SolverFactory(solver_name).available(exception_flag=False):
+                LOGGER.warning(
+                    f"Optimization solver is not specified. "
+                    f"Using {solver_name} as the optimization solver."
+                )
+                solver = solver_name
+                break
+
+    if solver in "appsi_highs":
+        sol_obj = SolverFactory("appsi_highs")
         sol_obj.config.stream_solver = stream_output
         sol_obj.config.mip_gap = mip_gap
         sol_obj.config.time_limit = time_limit
@@ -81,6 +100,7 @@ def get_solver(
         sol_obj = SolverFactory(solver, solver_io="python")
         sol_obj.options["MIPGap"] = mip_gap
         sol_obj.options["TimeLimit"] = time_limit
+        sol_obj.options["OutputFlag"] = int(stream_output)
         sol_obj.options.update(solver_options)
 
         return sol_obj
