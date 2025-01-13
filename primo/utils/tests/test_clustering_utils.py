@@ -176,8 +176,6 @@ def test_perform_agglomerative_clustering(caplog):
     assert num_clusters == 16
     assert warning_message in caplog.text
 
-    print(caplog.text)
-
 
 def test_perform_louvain_clustering(caplog):
     """

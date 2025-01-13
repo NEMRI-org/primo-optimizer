@@ -126,11 +126,11 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "cluster_formulation",
+        "cluster_method",
         ConfigValue(
             default="Agglomerative",
             domain=In(["Agglomerative", "Louvain"]),
-            doc="Formulation used for clustering the wells",
+            doc="Method used for clustering the wells",
         ),
     )
     config.declare(
@@ -146,7 +146,10 @@ def model_config() -> ConfigDict:
         ConfigValue(
             default=10,
             domain=NonNegativeInt,
-            doc="Nearest neighbors while constructing graph for Louvain clustering",
+            doc=(
+                "Number of nearest neighbors to consider adding edges to "
+                "while constructing the graph for Louvain clustering"
+            ),
         ),
     )
     config.declare(
@@ -154,7 +157,7 @@ def model_config() -> ConfigDict:
         ConfigValue(
             default=10,
             domain=NonNegativeFloat,
-            doc="Maximum resolution for Louvain clustering",
+            doc="Maximum resolution parameter value for Louvain clustering",
         ),
     )
     config.declare(
@@ -227,7 +230,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             logging.info("Clustering Data in Opt Model Inputs")
             # Construct campaign candidates
             # Step 1: Perform clustering, Should distance_threshold be a user argument?
-            if self.config.cluster_formulation == "Agglomerative":
+            if self.config.cluster_method == "Agglomerative":
                 perform_agglomerative_clustering(
                     wd, threshold_distance=self.config.threshold_distance
                 )

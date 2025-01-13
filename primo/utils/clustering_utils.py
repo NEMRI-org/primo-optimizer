@@ -181,11 +181,7 @@ def perform_agglomerative_clustering(wd: WellData, threshold_distance: float = 1
         distance_threshold=threshold_distance,
     ).fit(distance_metric)
 
-    wd.data["Clusters"] = clustered_data.labels_
-    # Uncomment the line below to convert labels to strings. Keeping them as
-    # integers for convenience.
-    # wd.data["Clusters"] = "Cluster " + wd.data["Clusters"].astype(str)
-    wd.col_names.register_new_columns({"cluster": "Clusters"})
+    wd.add_new_column_ordered("cluster", "Clusters", clustered_data.labels_)
 
     return _well_clusters(wd)
 
@@ -264,7 +260,7 @@ def perform_louvain_clustering(
                     )
 
     # Louvain clustering
-    def _get_clusters(seed: int, resolution: float):
+    def _get_clusters(resolution: float):
         communities = nx.community.louvain_communities(
             well_graph, seed=seed, resolution=resolution
         )
@@ -282,33 +278,29 @@ def perform_louvain_clustering(
         return _cluster_list, _max_cluster_size
 
     max_cluster_size = len(well_ids)  # Set a large number
-    cluster_list = None
 
     # If length of data is less than cluster_threshold, assign all wells to one cluster
     if max_cluster_size <= threshold_cluster_size:
         cluster_list = np.ones(len(wd.data))
-        LOGGER.info(
-            "The size of the data is less than the cluster threshold. "
+        LOGGER.warning(
+            "Number of wells in the dataset is less than the threshold cluster size. "
             "Assigning all wells to the same cluster."
         )
 
     elif resolution is not None:
         # Using user-specified resolution for clustering
-        cluster_list, max_cluster_size = _get_clusters(seed=seed, resolution=resolution)
+        cluster_list, max_cluster_size = _get_clusters(resolution=resolution)
 
     else:
         # Adaptively adjust resolution to control the cluster size
         resolution = 0.5  # Initial resolution
         while max_cluster_size > threshold_cluster_size:
             resolution += 0.5  # increase resolution--> starts from 1; increases in every iteration
-            cluster_list, max_cluster_size = _get_clusters(
-                seed=seed, resolution=resolution
-            )
+            cluster_list, max_cluster_size = _get_clusters(resolution=resolution)
             if resolution == max_resolution:
                 raise_exception("Could not reach desired cluster sizes", RuntimeError)
 
-    wd.col_names.register_new_columns({"cluster": "Clusters"})
-    wd.data["Clusters"] = cluster_list
+    wd.add_new_column_ordered("cluster", "Clusters", cluster_list)
 
     LOGGER.info(f"The resolution parameter is set to {resolution}.")
     LOGGER.info(
