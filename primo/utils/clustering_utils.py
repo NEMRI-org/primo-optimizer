@@ -360,7 +360,7 @@ def perform_louvain_clustering(
 
     LOGGER.info(f"The resolution parameter is set to {resolution}.")
     LOGGER.info(
-        f"There are {len(wd.data["Clusters"].unique())} clusters with "
+        f"There are {len(wd.data['Clusters'].unique())} clusters with "
         f"the largest cluster containing {max_cluster_size} wells."
     )
 
