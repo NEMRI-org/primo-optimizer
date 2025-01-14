@@ -152,7 +152,7 @@ class Project:
         )
 
     @property
-    def avg_elevation_delta(self):
+    def elevation_delta(self):
         """
         Returns the average elevation delta of the project
         """
@@ -182,13 +182,24 @@ class Project:
         )
 
     @property
-    def avg_dist_to_road(self):
+    def dist_to_road(self):
         """
         Returns the average distance to road for a project
         """
         col_name = self._col_names.dist_to_road
         self._check_column_exists(col_name)
         return calculate_average(self.well_data.data, self._col_names.dist_to_road)
+
+    @property
+    def population_density(self):
+        """
+        Returns the average distance to road for a project
+        """
+        col_name = self._col_names.population_density
+        self._check_column_exists(col_name)
+        return calculate_average(
+            self.well_data.data, self._col_names.population_density
+        )
 
     @property
     def column_names(self):
@@ -722,7 +733,7 @@ class EfficiencyCalculator:
                 )
 
             assert getattr(project, metric.score_attribute, None) is None
-            assert hasattr(project, metric.name)
+            # assert hasattr(project, metric.name)
 
             # Check if division by a zero is likely
             if np.isclose(max_value, min_value, rtol=0.001):

@@ -303,12 +303,13 @@ def efficiency_metrics_fixture():
     """
     Pytest fixture for constructing efficiency metrics.
     """
+    # pylint: disable=duplicate-code
     eff_metrics = EfficiencyMetrics()
     eff_metrics.set_weight(
         primary_metrics={
             "num_wells": 20,
             "num_unique_owners": 30,
-            "avg_elevation_delta": 20,
+            "elevation_delta": 20,
             "age_range": 10,
             "depth_range": 20,
         }

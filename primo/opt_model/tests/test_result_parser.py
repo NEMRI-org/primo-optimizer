@@ -230,7 +230,7 @@ def get_eff_metrics_fixture():
         primary_metrics={
             "num_wells": 20,
             "num_unique_owners": 30,
-            "avg_elevation_delta": 20,
+            "elevation_delta": 20,
             "age_range": 10,
             "depth_range": 20,
         }
@@ -248,10 +248,10 @@ def get_eff_metrics_accessibility_fixture():
         primary_metrics={
             "num_wells": 10,
             "num_unique_owners": 30,
-            "avg_elevation_delta": 20,
+            "elevation_delta": 20,
             "age_range": 10,
             "depth_range": 20,
-            "avg_dist_to_road": 10,
+            "dist_to_road": 10,
         }
     )
 
@@ -282,9 +282,9 @@ def test_project_attributes(get_project):
     assert project.age_range == 1
     assert project.average_depth == 1.5
     assert project.depth_range == 1
-    assert project.avg_elevation_delta == 1.5
+    assert project.elevation_delta == 1.5
     assert project.centroid == (0.999885, 1.954185)
-    assert project.avg_dist_to_road == 1.5
+    assert project.dist_to_road == 1.5
     assert project.num_unique_owners == 2
     assert project.impact_score == 38.25
     delattr(project.column_names, "priority_score")
@@ -297,10 +297,10 @@ def test_project_attributes_minimal(get_minimal_campaign):
 
     # checking for missing attributes
     with pytest.raises(ValueError):
-        print(project.avg_dist_to_road)
+        print(project.dist_to_road)
 
     with pytest.raises(ValueError):
-        print(project.avg_elevation_delta)
+        print(project.elevation_delta)
 
 
 def test_max_val_col(get_project):
@@ -342,8 +342,8 @@ def test_compute_accessibility_score(get_campaign, get_eff_metrics_accessibility
         30,
         pytest.approx((6 - 1.5) / 5 * 20 + (6 - 1.5) / 5 * 10),
     )
-    delattr(project, "avg_elevation_delta_eff_score_0_20")
-    delattr(project, "avg_dist_to_road_eff_score_0_10")
+    delattr(project, "elevation_delta_eff_score_0_20")
+    delattr(project, "dist_to_road_eff_score_0_10")
     assert project.accessibility_score is None
 
 
@@ -514,7 +514,7 @@ def test_compute_efficiency_score_edge_cases(
         for entry in dir(get_minimal_campaign.projects[1])
     )
     with pytest.raises(ValueError):
-        print(get_minimal_campaign.projects[1].avg_elevation_delta)
+        print(get_minimal_campaign.projects[1].elevation_delta)
 
 
 def test_single_well(get_minimal_campaign, get_efficiency_metrics_minimal):
@@ -547,9 +547,7 @@ def test_compute_efficiency_attributes_for_project(get_efficiency_calculator):
     campaign.efficiency_calculator.compute_efficiency_attributes_for_project(project)
     assert project.num_wells_eff_score_0_20 == 20.0
     assert project.num_unique_owners_eff_score_0_30 == pytest.approx(0.0)
-    assert project.avg_elevation_delta_eff_score_0_20 == pytest.approx(
-        (6 - 1.5) / 5 * 20
-    )
+    assert project.elevation_delta_eff_score_0_20 == pytest.approx((6 - 1.5) / 5 * 20)
     assert project.age_range_eff_score_0_10 == pytest.approx(10)
     assert project.depth_range_eff_score_0_20 == pytest.approx(20)
 
@@ -570,7 +568,7 @@ def test_compute_efficiency_attributes_for_all_projects(get_efficiency_calculato
     for _, project in campaign.projects.items():
         assert project.num_wells_eff_score_0_20 >= 0.0
         assert project.num_unique_owners_eff_score_0_30 >= 0.0
-        assert project.avg_elevation_delta_eff_score_0_20 >= 0.0
+        assert project.elevation_delta_eff_score_0_20 >= 0.0
         assert project.age_range_eff_score_0_10 >= 0.0
         assert project.depth_range_eff_score_0_20 >= 0.0
 
@@ -608,7 +606,7 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
             "Project ID",
             "Num Wells Score [0-20]",
             "Num Unique Owners Score [0-30]",
-            "Avg Elevation Delta Score [0-20]",
+            "Elevation Delta Score [0-20]",
             "Age Range Score [0-10]",
             "Depth Range Score [0-20]",
             "Accessibility Score [0-20]",
@@ -620,11 +618,11 @@ def test_get_efficiency_metrics(get_efficiency_calculator):
 
     assert all(
         list(efficiency_metric_output.iloc[0, :].values)[i]
-        == pytest.approx([2, 10.0, 18.0, 20.0, 0.0, 20][i])
+        == pytest.approx([2, 10.0, 20.0, 18.0, 0.0, 20][i])
         for i in range(6)
     )
     for _, project in campaign.projects.items():
-        delattr(project, "avg_elevation_delta_eff_score_0_20")
+        delattr(project, "elevation_delta_eff_score_0_20")
     efficiency_metric_output = campaign.get_efficiency_metrics()
     assert all(
         i

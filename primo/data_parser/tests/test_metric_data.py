@@ -456,12 +456,14 @@ def test_efficiency_metrics_class():
 
     assert hasattr(ef_wt, "num_wells")
     assert hasattr(ef_wt, "num_unique_owners")
-    assert hasattr(ef_wt, "avg_elevation_delta")
+    assert hasattr(ef_wt, "elevation_delta")
     assert hasattr(ef_wt, "age_range")
     assert hasattr(ef_wt, "depth_range")
+    assert hasattr(ef_wt, "dist_range")
+    assert hasattr(ef_wt, "population_density")
     assert hasattr(ef_wt, "record_completeness")
-    assert hasattr(ef_wt, "avg_dist_to_road")
-    assert len(ef_wt.get_primary_metrics) == 7
+    assert hasattr(ef_wt, "dist_to_road")
+    assert len(ef_wt.get_primary_metrics) == 9
 
     ef_wt.set_weight(
         {

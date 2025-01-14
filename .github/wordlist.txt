@@ -66,6 +66,7 @@ geospatial
 glpk
 gpd
 gurobi
+hasattr
 highs
 inplace
 ipynb
