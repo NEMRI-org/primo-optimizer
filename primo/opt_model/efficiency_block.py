@@ -103,59 +103,6 @@ class EfficiencyBlockData(BlockData):
                 for eff_metric_blk in blk.component_data_objects(Block)
             )
 
-    def append_sub_problem_cuts(self):
-        """
-        Fixes the first-stage/complicating variable values.
-        This method is needed for Benders Decomposition.
-        """
-        cm = self.parent_block()  # ClusterBlock Model
-        if not self._has_fixing_var_constraints:
-            self._has_fixing_var_constraints = True
-
-            # Constructing dummy constraints for now. Will be updated later
-            @self.Constraint(cm.set_wells)
-            def fixing_select_well_var(_, w):
-                return cm.select_well[w] == w
-
-            @self.Constraint(cm.num_wells_var.index_set())
-            def fixing_num_wells_var(_, w):
-                return cm.num_wells_var[w] == w
-
-            @self.Constraint()
-            def fixing_select_cluster_var(_):
-                return cm.select_cluster == 0
-
-        # Activate the constraint if it has been deactivated before
-        self.fixing_select_well_var.activate()
-        self.fixing_num_wells_var.activate()
-        self.fixing_select_cluster_var.activate()
-
-        # Update the constraint based on the current value of the
-        # first-stage/complicating variables
-        for w in cm.set_wells:
-            self.fixing_select_well_var[w].set_value(
-                cm.select_well[w] == round(cm.select_well[w].value)
-            )
-
-        for w in cm.num_wells_var:
-            self.fixing_num_wells_var[w].set_value(
-                cm.num_wells_var[w] == round(cm.num_wells_var[w].value)
-            )
-
-        self.fixing_select_cluster_var.set_value(
-            cm.select_cluster == round(cm.select_cluster.value)
-        )
-
-    def remove_sub_problem_cuts(self):
-        """
-        Deactivates constraints that fix first-stage/complicating variable
-        values, if they exist. This method is needed for Benders Decomposition.
-        """
-        if self._has_fixing_var_constraints:
-            self.fixing_select_well_var.deactivate()
-            self.fixing_num_wells_var.deactivate()
-            self.fixing_select_cluster_var.deactivate()
-
     def get_efficiency_scores(self):
         """Returns a dictionary containing efficiency scores"""
         scores = {}
