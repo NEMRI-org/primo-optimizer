@@ -31,12 +31,15 @@ START_COORDINATES = (40.44, -79.94)
 # relies on Census Tracts from 2010
 DAC_TRACT_YEAR = 2010
 
+# list of efficiency metrics accessed in the efficiency model
 WELL_BASED_METRICS = [
     "elevation_delta",
     "dist_to_road",
     "population_density",
     "record_completeness",
 ]
+
+# list of pairwise efficiency metrics accessed in the efficiency model
 WELL_PAIR_METRICS = ["age_range", "depth_range", "dist_range"]
 
 
