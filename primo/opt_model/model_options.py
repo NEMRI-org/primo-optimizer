@@ -49,6 +49,9 @@ def model_config() -> ConfigDict:
     # of the inputs of the optimization model.
     # ConfigValue automatically performs domain validation.
     config = ConfigDict()
+
+    # Essential inputs for the optimization model
+
     config.declare(
         "well_data",
         ConfigValue(
@@ -70,6 +73,60 @@ def model_config() -> ConfigDict:
             doc="Cost of plugging wells [in USD]",
         ),
     )
+
+    # Model type and model nature options
+
+    config.declare(
+        "objective_type",
+        ConfigValue(
+            default="Combined",
+            domain=In(["Impact", "Efficiency", "Combined"]),
+            doc="Objective Type",
+        ),
+    )
+    config.declare(
+        "efficiency_formulation",
+        ConfigValue(
+            default="Max Scaling",
+            domain=In(["Max Scaling", "Zone"]),
+            doc="Efficiency Formulation",
+        ),
+    )
+    config.declare(
+        "objective_weight_impact",
+        ConfigValue(
+            default=50,
+            domain=InRange(0, 100),
+            doc="Weight associated with Impact in the objective function",
+        ),
+    )
+    config.declare(
+        "num_wells_model_type",
+        ConfigValue(
+            default="multicommodity",
+            domain=In(["multicommodity", "incremental"]),
+            doc="Choice of formulation for modeling number of wells",
+        ),
+    )
+    config.declare(
+        "model_nature",
+        ConfigValue(
+            default="linear",
+            domain=In(["linear", "quadratic", "aggregated_linear"]),
+            doc="Nature of the optimization model: MILP or MIQCQP",
+        ),
+    )
+    config.declare(
+        "lazy_constraints",
+        ConfigValue(
+            default=False,
+            domain=Bool,
+            doc="If True, some constraints will be added as lazy constraints",
+        ),
+    )
+
+    # Parameters for optional constraints
+
     config.declare(
         "perc_wells_in_dac",
         ConfigValue(
@@ -100,26 +157,17 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
+        "max_num_projects",
+        ConfigValue(
+            domain=NonNegativeInt,
+            doc="Maximum number of projects admissible in a campaign",
+        ),
+    )
+    config.declare(
         "max_size_project",
         ConfigValue(
             domain=NonNegativeInt,
             doc="Maximum number of wells admissible per project",
-        ),
-    )
-    config.declare(
-        "num_wells_model_type",
-        ConfigValue(
-            default="multicommodity",
-            domain=In(["multicommodity", "incremental"]),
-            doc="Choice of formulation for modeling number of wells",
-        ),
-    )
-    config.declare(
-        "model_nature",
-        ConfigValue(
-            default="linear",
-            domain=In(["linear", "quadratic", "aggregated_linear"]),
-            doc="Nature of the optimization model: MILP or MIQCQP",
         ),
     )
     config.declare(
@@ -158,14 +206,6 @@ def model_config() -> ConfigDict:
         ),
     )
     config.declare(
-        "lazy_constraints",
-        ConfigValue(
-            default=False,
-            domain=Bool,
-            doc="If True, some constraints will be added as lazy constraints",
-        ),
-    )
-    config.declare(
         "min_budget_usage",
         ConfigValue(
             default=None,
@@ -182,6 +222,69 @@ def model_config() -> ConfigDict:
                 "If True, unused budget will be penalized in the objective function\n"
                 "with suitably chosen weight factor"
             ),
+        ),
+    )
+
+    # Parameters for computing efficiency metrics
+
+    config.declare(
+        "max_dist_to_road",
+        ConfigValue(
+            domain=NonNegativeFloat,
+            doc="Maximum distance to road allowed for selected wells",
+        ),
+    )
+    config.declare(
+        "max_elevation_delta",
+        ConfigValue(
+            domain=float,
+            doc=(
+                "Maximum elevation delta from the closest road "
+                "point allowed for selected wells"
+            ),
+        ),
+    )
+    config.declare(
+        "max_population_density",
+        ConfigValue(
+            domain=NonNegativeFloat,
+            doc="Maximum population density allowed to have near a well",
+        ),
+    )
+    config.declare(
+        "max_record_completeness",
+        ConfigValue(
+            domain=NonNegativeFloat,
+            doc="Maximum record completeness of a well",
+        ),
+    )
+    config.declare(
+        "max_num_unique_owners",
+        ConfigValue(
+            domain=NonNegativeInt,
+            doc="Maximum number of unique owners allowed in a project",
+        ),
+    )
+    config.declare(
+        "max_dist_range",
+        ConfigValue(
+            default=10.0,
+            domain=NonNegativeFloat,
+            doc="Maximum distance [in miles] allowed between wells",
+        ),
+    )
+    config.declare(
+        "max_age_range",
+        ConfigValue(
+            domain=NonNegativeFloat,
+            doc="Maximum age range allowed in a project",
+        ),
+    )
+    config.declare(
+        "max_depth_range",
+        ConfigValue(
+            domain=NonNegativeFloat,
+            doc="Maximum depth range allowed in a project",
         ),
     )
 
