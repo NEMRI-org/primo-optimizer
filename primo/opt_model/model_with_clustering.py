@@ -110,9 +110,11 @@ def build_cluster_model(model_block, cluster):
 
     # Useful expressions
     priority_score = wd["Priority Score [0-100]"]
-    model_block.cluster_priority_score = Expression(
+    wt_impact = model_block.parent_block().config.objective_weight_impact / 100
+    model_block.cluster_impact_score = Expression(
         expr=(
-            sum(
+            wt_impact
+            * sum(
                 priority_score[w] * model_block.select_well[w]
                 for w in model_block.set_wells
             )
@@ -351,6 +353,13 @@ class PluggingCampaignModel(ConcreteModel):
             doc="Total cost of plugging must be within the total budget",
         )
 
+        if model_inputs.config.objective_weight_impact < 100:
+            for c in self.set_clusters:
+                self.cluster[c].efficiency_model = EfficiencyBlock()
+                self.cluster[c].efficiency_model.build_efficiency_model(
+                    formulation_type=model_inputs.config.efficiency_formulation
+                )
+
         # Add optional constraints:
         if model_inputs.config.perc_wells_in_dac is not None:
             self.add_min_wells_in_dac()
@@ -479,13 +488,29 @@ class PluggingCampaignModel(ConcreteModel):
         """
         Appends objective function to the model
         """
+        total_impact_score = sum(
+            self.cluster[c].cluster_impact_score for c in self.set_clusters
+        )
+
+        # Compute the total cluster efficiency score (if applicable)
+        total_efficiency_score = sum(
+            (
+                self.cluster[c].efficiency_model.cluster_efficiency_score
+                if hasattr(self.cluster[c], "efficiency_model")
+                else 0
+            )
+            for c in self.set_clusters
+        )
+
+        # Define the total priority score as the objective
         self.total_priority_score = Objective(
             expr=(
-                sum(self.cluster[c].cluster_priority_score for c in self.set_clusters)
+                total_impact_score
+                + total_efficiency_score
                 - self.unused_budget_scaling * self.unused_budget
             ),
             sense=maximize,
-            doc="Total Priority score minus scaled slack variable for unutilized budget",
+            doc="Total priority score minus scaled slack variable for unutilized budget.",
         )
 
     def _unused_budget_variable_scaling(self):

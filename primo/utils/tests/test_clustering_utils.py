@@ -261,7 +261,7 @@ def test_get_pairwise_metrics():
 
     pair_metrics = get_pairwise_metrics(wd, well_list)
     assert len(pair_metrics) == 6
-    assert "distance" in pair_metrics.columns
+    assert "dist_range" in pair_metrics.columns
     assert "age_range" in pair_metrics.columns
     assert "depth_range" in pair_metrics.columns
     assert list(pair_metrics.index) == list(combinations(well_list, 2))

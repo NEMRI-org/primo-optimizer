@@ -31,6 +31,14 @@ START_COORDINATES = (40.44, -79.94)
 # relies on Census Tracts from 2010
 DAC_TRACT_YEAR = 2010
 
+WELL_BASED_METRICS = [
+    "elevation_delta",
+    "dist_to_road",
+    "population_density",
+    "record_completeness",
+]
+WELL_PAIR_METRICS = ["age_range", "depth_range", "dist_range"]
+
 
 # Set of supported impact metrics along with
 # the required data for the analysis.

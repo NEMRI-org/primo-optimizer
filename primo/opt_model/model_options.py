@@ -77,14 +77,6 @@ def model_config() -> ConfigDict:
     # Model type and model nature options
 
     config.declare(
-        "objective_type",
-        ConfigValue(
-            default="Combined",
-            domain=In(["Impact", "Efficiency", "Combined"]),
-            doc="Objective Type",
-        ),
-    )
-    config.declare(
         "efficiency_formulation",
         ConfigValue(
             default="Max Scaling",
@@ -228,6 +220,13 @@ def model_config() -> ConfigDict:
     # Parameters for computing efficiency metrics
 
     config.declare(
+        "max_num_wells",
+        ConfigValue(
+            domain=NonNegativeInt,
+            doc="Maximum number of wells selected in a project",
+        ),
+    )
+    config.declare(
         "max_dist_to_road",
         ConfigValue(
             domain=NonNegativeFloat,
@@ -237,7 +236,7 @@ def model_config() -> ConfigDict:
     config.declare(
         "max_elevation_delta",
         ConfigValue(
-            domain=float,
+            domain=NonNegativeFloat,
             doc=(
                 "Maximum elevation delta from the closest road "
                 "point allowed for selected wells"
@@ -318,7 +317,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             raise_exception(msg, ValueError)
 
         # Raise an error if priority scores are not calculated.
-        if "Priority Score [0-100]" not in wd:
+        if not hasattr(wd.column_names, "priority_score"):
             msg = (
                 "Unable to find priority scores in the WellData object. Compute the scores "
                 "using the compute_priority_scores method."

@@ -223,7 +223,7 @@ def get_pairwise_metrics(wd: WellData, list_wells: list) -> pd.DataFrame:
     pairwise_metrics = pd.DataFrame()
 
     # Compute pairwise distances
-    pairwise_metrics["distance"] = distance_matrix(
+    pairwise_metrics["dist_range"] = distance_matrix(
         wd, {"distance": 1}, list_wells
     ).stack()[well_pairs]
 

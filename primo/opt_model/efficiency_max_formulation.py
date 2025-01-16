@@ -20,7 +20,7 @@ from pyomo.core.base.block import BlockData, declare_custom_block
 from pyomo.environ import NonNegativeReals, Set, Var
 
 # User-defined libs
-from primo.opt_model.efficiency_block import WELL_BASED_METRICS, WELL_PAIR_METRICS
+from primo.data_parser.default_data import WELL_BASED_METRICS, WELL_PAIR_METRICS
 from primo.utils.clustering_utils import get_pairwise_metrics
 
 LOGGER = logging.getLogger(__name__)
@@ -160,7 +160,7 @@ class MaxFormulationBlockData(BlockData):
             )
 
 
-def build_cluster_efficiency_model(cm):
+def build_cluster_efficiency_model(eff_blk):
     """
     Builds efficiency model for each cluster
 
@@ -176,6 +176,7 @@ def build_cluster_efficiency_model(cm):
     #             |__MaxFormulationBlock
 
     # OptModelInputs's config object that contains zone information
+    cm = eff_blk.parent_block()  # cluster model block
     pm = cm.parent_block()  # Plugging campaign model/ConcreteModel
     sf = pm.model_inputs.config  # Block containing scaling factors
     wd = sf.well_data  # WellData object
@@ -183,17 +184,14 @@ def build_cluster_efficiency_model(cm):
     weights = eff_metrics.get_weights
     list_wells = list(cm.set_wells)  # List of wells in this cluster
 
-    # pylint: disable = undefined-variable
-    cm.efficiency_model = EfficiencyBlock()
-    eff_blk = cm.efficiency_model
-
-    # Asses well-based metrics
+    # Assess well-based metrics
     for metric in WELL_BASED_METRICS:
         if getattr(weights, metric, 0) == 0:
             # Metric is not selected. So, Skip
             continue
 
         # Construct Efficiency model for the metric
+        # pylint: disable = undefined-variable
         setattr(eff_blk, metric, MaxFormulationBlock())
         getattr(eff_blk, metric).compute_metric_score(
             weight=getattr(weights, metric),
@@ -209,11 +207,30 @@ def build_cluster_efficiency_model(cm):
             # Metric is not selected, so skip
             continue
 
-        setattr(eff_blk, metric, EffMetricBlock())
+        # pylint: disable = undefined-variable
+        setattr(eff_blk, metric, MaxFormulationBlock())
         getattr(eff_blk, metric).compute_metric_score(
             metric_data=cm.pairwise_metrics[metric],
             scaling_factor=getattr(sf, "max_" + metric),
             metric_type="well_pair",
         )
 
-    eff_blk.build_remaining_constraints()
+    if weights.num_wells > 0:
+        # pylint: disable = undefined-variable
+        metric = "num_wells"
+        setattr(eff_blk, metric, MaxFormulationBlock())
+        getattr(eff_blk, metric).compute_metric_score(
+            metric_data=cm.pairwise_metrics[metric],
+            scaling_factor=getattr(sf, "max_" + metric),
+            metric_type=metric,
+        )
+
+    if weights.num_wells > 0:
+        # pylint: disable = undefined-variable
+        metric = "num_unique_owners"
+        setattr(eff_blk, metric, MaxFormulationBlock())
+        getattr(eff_blk, metric).compute_metric_score(
+            metric_data=cm.pairwise_metrics[metric],
+            scaling_factor=getattr(sf, "max_" + metric),
+            metric_type=metric,
+        )

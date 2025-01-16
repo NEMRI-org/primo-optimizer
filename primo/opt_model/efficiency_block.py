@@ -29,13 +29,11 @@ import logging
 from pyomo.core.base.block import Block, BlockData, declare_custom_block
 from pyomo.environ import NonNegativeReals, Var
 
-WELL_BASED_METRICS = [
-    "elevation_delta",
-    "dist_to_road",
-    "population_density",
-    "record_completeness",
-]
-WELL_PAIR_METRICS = ["age_range", "depth_range", "dist_range"]
+# User-defined libs
+from primo.opt_model.efficiency_max_formulation import (
+    build_cluster_efficiency_model,
+    compute_efficieny_scaling_factors,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +41,8 @@ LOGGER = logging.getLogger(__name__)
 @declare_custom_block("EfficiencyBlock")
 class EfficiencyBlockData(BlockData):
     """Container for storing the efficiency calculations"""
+
+    _scaling_factors_available = False
 
     def __init__(self, component):
         super().__init__(component)
@@ -52,6 +52,19 @@ class EfficiencyBlockData(BlockData):
         self._suppress_ctypes = {}
         self._has_fixing_var_constraints = False
         self._eff_vars = None  # Efficiency variables (for max_formulation)
+
+    def build_efficiency_model(self, formulation_type):
+        """
+        Builds efficiency model
+        """
+        if formulation_type == "Max Scaling":
+            if not self._scaling_factors_available:
+                compute_efficieny_scaling_factors(self.parent_block().parent_block())
+                EfficiencyBlockData._scaling_factors_available = True
+            build_cluster_efficiency_model(self)
+        else:
+            raise NotImplementedError("Zone formulation is not supported currently")
+        self.append_cluster_eff_vars()
 
     # pylint: disable = attribute-defined-outside-init
     def append_cluster_eff_vars(self, eff_vars: list = None):
@@ -83,9 +96,16 @@ class EfficiencyBlockData(BlockData):
         def calculate_aggregated_efficiency_2(blk, n):
             return blk.aggregated_efficiency[n] <= blk.cluster_efficiency
 
+        wt_impact = (
+            self.parent_block()
+            .parent_block()
+            .model_inputs.config.objective_weight_impact
+        )
+        wt_efficiency = (100 - wt_impact) / 100
+
         @self.Expression(doc="Total Efficiency Score")
         def cluster_efficiency_score(blk):
-            return sum(
+            return wt_efficiency * sum(
                 n * blk.aggregated_efficiency[n] for n in cm.num_wells_var.index_set()
             )
 
