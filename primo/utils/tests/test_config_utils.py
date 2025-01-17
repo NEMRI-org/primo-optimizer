@@ -352,6 +352,7 @@ def get_model_fixture(get_column_names, eff_metric):
         mobilization_cost=mobilization_cost,
         threshold_distance=10,
         max_wells_per_owner=1,
+        objective_weight_impact=100,
     )
 
     opt_mdl_inputs.build_optimization_model()

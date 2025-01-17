@@ -31,7 +31,6 @@ def get_dummy_model_fixture():
     m.select_well = pyo.Var(m.set_wells, within=pyo.Binary)
     m.num_wells_var = pyo.Var(m.set_wells, within=pyo.Binary)
     m.select_cluster = pyo.Var(within=pyo.Binary)
-
     m.efficiency_model = EfficiencyBlock()
 
     return m

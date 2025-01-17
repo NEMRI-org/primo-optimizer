@@ -44,6 +44,7 @@ MAP_PATH_EXPECTED_HARDCODED_DATA_COUNT = {
     "primo/opt_model/opt_model.py": 18,
     "primo/opt_model/result_parser.py": 17,
     "primo/opt_model/tests/test_base_model.py": 13,
+    "primo/opt_model/tests/test_efficiency_block.py": 11,
     "primo/opt_model/tests/test_model_options.py": 360,
     "primo/opt_model/tests/test_opt_model.py": 22,
     "primo/opt_model/tests/test_result_parser.py": 466,

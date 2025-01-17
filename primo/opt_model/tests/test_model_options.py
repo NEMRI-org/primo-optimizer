@@ -173,6 +173,7 @@ def test_opt_model_inputs(get_column_names, cluster_method, num_projects):
         min_budget_usage=50,
         penalize_unused_budget=True,
         cluster_method=cluster_method,
+        objective_weight_impact=100,
     )
 
     # Ensure that clustering is performed internally
@@ -248,7 +249,7 @@ def test_opt_model_inputs(get_column_names, cluster_method, num_projects):
     assert opt_mdl.unused_budget.upper is not None
 
     # Check if the required expressions are defined
-    assert hasattr(opt_mdl.cluster[1], "cluster_priority_score")
+    assert hasattr(opt_mdl.cluster[1], "cluster_impact_score")
 
     # Check if the required constraints are defined
     assert hasattr(opt_mdl.cluster[1], "calculate_num_wells_chosen")
@@ -336,6 +337,7 @@ def test_incremental_formulation(get_column_names):
         threshold_distance=10,
         max_wells_per_owner=1,
         num_wells_model_type="incremental",
+        objective_weight_impact=100,
     )
 
     opt_mdl = opt_mdl_inputs.build_optimization_model()
@@ -396,6 +398,7 @@ def test_unused_budget_variable_scaling(get_column_names):
         max_wells_per_owner=1,
         min_budget_usage=50,
         penalize_unused_budget=True,
+        objective_weight_impact=100,
     )
 
     opt_mdl = opt_mdl_inputs.build_optimization_model()
@@ -439,6 +442,7 @@ def test_override_re_optimization(get_column_names):
         mobilization_cost=mobilization_cost,
         threshold_distance=10,
         max_wells_per_owner=1,
+        objective_weight_impact=100,
     )
 
     override_dict = (
@@ -535,6 +539,7 @@ def test_re_cluster(get_column_names):
         mobilization_cost=mobilization_cost,
         threshold_distance=10,
         max_wells_per_owner=1,
+        objective_weight_impact=100,
     )
 
     well_add_existing_cluster = {
@@ -592,6 +597,7 @@ def test_dictionary_instantiation(get_column_names):
         mobilization_cost=mobilization_cost,
         threshold_distance=10,
         max_wells_per_owner=1,
+        objective_weight_impact=100,
     )
 
     assert "Clusters" not in wd_gas_replica
@@ -605,6 +611,7 @@ def test_dictionary_instantiation(get_column_names):
         mobilization_cost=mobilization_cost,
         threshold_distance=10,
         max_wells_per_owner=1,
+        objective_weight_impact=100,
     )
 
     assert "Clusters" in wd_gas_replica

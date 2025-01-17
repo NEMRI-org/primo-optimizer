@@ -96,11 +96,14 @@ class EfficiencyBlockData(BlockData):
         def calculate_aggregated_efficiency_2(blk, n):
             return blk.aggregated_efficiency[n] <= blk.cluster_efficiency
 
-        wt_impact = (
-            self.parent_block()
-            .parent_block()
-            .model_inputs.config.objective_weight_impact
-        )
+        try:
+            wt_impact = (
+                self.parent_block()
+                .parent_block()
+                .model_inputs.config.objective_weight_impact
+            )
+        except AttributeError:
+            wt_impact = 0
         wt_efficiency = (100 - wt_impact) / 100
 
         @self.Expression(doc="Total Efficiency Score")

@@ -42,6 +42,7 @@ def get_model_fixture_no_max_owc(get_column_names, eff_metric):
     Pytest fixture for constructing an optimization model and obtain
     the optimization results.
     """
+    # pylint: disable=duplicate-code
     im_metrics, col_names, filename = get_column_names
     eff_metrics = eff_metric
 
@@ -70,6 +71,7 @@ def get_model_fixture_no_max_owc(get_column_names, eff_metric):
         total_budget=3210000,  # 3.25 million USD
         mobilization_cost=mobilization_cost,
         threshold_distance=10,
+        objective_weight_impact=100,
     )
 
     opt_mdl_inputs.build_optimization_model()
