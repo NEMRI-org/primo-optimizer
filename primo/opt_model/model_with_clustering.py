@@ -31,6 +31,8 @@ from pyomo.environ import (
 )
 
 # User-defined libs
+# pylint: disable=no-name-in-module
+from primo.opt_model.efficiency_block import EfficiencyBlock
 from primo.opt_model.result_parser import Campaign
 
 LOGGER = logging.getLogger(__name__)
@@ -110,7 +112,7 @@ def build_cluster_model(model_block, cluster):
 
     # Useful expressions
     priority_score = wd["Priority Score [0-100]"]
-    wt_impact = model_block.parent_block().config.objective_weight_impact / 100
+    wt_impact = params.config.objective_weight_impact / 100
     model_block.cluster_impact_score = Expression(
         expr=(
             wt_impact
@@ -352,7 +354,6 @@ class PluggingCampaignModel(ConcreteModel):
             ),
             doc="Total cost of plugging must be within the total budget",
         )
-
         if model_inputs.config.objective_weight_impact < 100:
             for c in self.set_clusters:
                 self.cluster[c].efficiency_model = EfficiencyBlock()

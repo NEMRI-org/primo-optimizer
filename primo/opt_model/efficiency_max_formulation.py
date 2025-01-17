@@ -124,7 +124,6 @@ class MaxFormulationBlockData(BlockData):
         )
         well_vars = self.cluster_model.select_well
         select_cluster = self.cluster_model.select_cluster
-
         norm_metric_data = metric_data / scaling_factor
         norm_metric_data[norm_metric_data >= 1] = 1
 
@@ -192,12 +191,12 @@ def build_cluster_efficiency_model(eff_blk):
 
         # Construct Efficiency model for the metric
         # pylint: disable = undefined-variable
+        # pylint: disable=protected-access
+        col_name = getattr(wd.col_names, getattr(eff_metrics, metric)._required_data)
         setattr(eff_blk, metric, MaxFormulationBlock())
         getattr(eff_blk, metric).compute_metric_score(
             weight=getattr(weights, metric),
-            metric_data=wd.data.loc[
-                list_wells, getattr(eff_metrics, metric).data_col_name
-            ],
+            metric_data=wd.data.loc[list_wells, col_name],
             scaling_factor=getattr(sf, "max_" + metric),
             metric_type="well_based",
         )
@@ -210,6 +209,7 @@ def build_cluster_efficiency_model(eff_blk):
         # pylint: disable = undefined-variable
         setattr(eff_blk, metric, MaxFormulationBlock())
         getattr(eff_blk, metric).compute_metric_score(
+            weight=getattr(weights, metric),
             metric_data=cm.pairwise_metrics[metric],
             scaling_factor=getattr(sf, "max_" + metric),
             metric_type="well_pair",
@@ -220,17 +220,19 @@ def build_cluster_efficiency_model(eff_blk):
         metric = "num_wells"
         setattr(eff_blk, metric, MaxFormulationBlock())
         getattr(eff_blk, metric).compute_metric_score(
-            metric_data=cm.pairwise_metrics[metric],
+            weight=getattr(weights, metric),
+            metric_data=pd.Series([0, 0]),
             scaling_factor=getattr(sf, "max_" + metric),
             metric_type=metric,
         )
 
-    if weights.num_wells > 0:
+    if weights.num_unique_owners > 0:
         # pylint: disable = undefined-variable
         metric = "num_unique_owners"
         setattr(eff_blk, metric, MaxFormulationBlock())
         getattr(eff_blk, metric).compute_metric_score(
-            metric_data=cm.pairwise_metrics[metric],
+            weight=getattr(weights, metric),
+            metric_data=pd.Series([0, 0]),
             scaling_factor=getattr(sf, "max_" + metric),
             metric_type=metric,
         )

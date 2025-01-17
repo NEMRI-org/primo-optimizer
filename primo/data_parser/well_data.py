@@ -995,6 +995,8 @@ class WellData:
                 "well_count",
                 "num_wells",
                 "num_unique_owners",
+                "dist_range",
+                "record_completeness",
             ):
                 # these have their own processing functions (or none at all)
                 continue

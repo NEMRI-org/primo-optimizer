@@ -253,6 +253,7 @@ def model_config() -> ConfigDict:
     config.declare(
         "max_record_completeness",
         ConfigValue(
+            default=1.0,
             domain=NonNegativeFloat,
             doc="Maximum record completeness of a well",
         ),
@@ -300,6 +301,7 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
 
     @document_kwargs_from_configdict(CONFIG)
     def __init__(self, cluster_mapping=None, **kwargs):
+        # pylint: disable=too-many-branches
         # Update the values of all the inputs
         # ConfigDict handles KeyError, other input errors, and domain errors
         LOGGER.info("Processing optimization model inputs.")
@@ -324,30 +326,33 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
             )
             raise_exception(msg, ValueError)
 
+        if self.config.objective_weight_impact < 100:
+            if wd.config.efficiency_metrics is None:
+                raise_exception(
+                    "Weight of efficiency is non-zero. Efficiency metrics object is not specified.",
+                    ValueError,
+                )
+            if wd.config.efficiency_metrics.record_completeness.effective_weight > 0:
+                self._compute_record_incompleteness(wd)
+
         col_names = wd.column_names
         if cluster_mapping is None:
             LOGGER.info("Clustering Data in OptModelInputs")
             # Construct campaign candidates
             # Step 1: Perform clustering, Should distance_threshold be a user argument?
+            # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}
             if self.config.cluster_method == "Agglomerative":
-                perform_agglomerative_clustering(
+                self.campaign_candidates = perform_agglomerative_clustering(
                     wd, threshold_distance=self.config.threshold_distance
                 )
             else:
-                perform_louvain_clustering(
+                self.campaign_candidates = perform_louvain_clustering(
                     wd,
                     threshold_distance=self.config.threshold_distance,
                     threshold_cluster_size=self.config.threshold_cluster_size,
                     nearest_neighbors=self.config.num_nearest_neighbors,
                     max_resolution=self.config.max_resolution,
                 )
-            # Step 2: Identify list of wells belonging to each cluster
-            # Structure: {cluster_1: [index_1, index_2,..], cluster_2: [], ...}
-            set_clusters = set(wd[col_names.cluster])
-            self.campaign_candidates = {
-                cluster: list(wd.data[wd[col_names.cluster] == cluster].index)
-                for cluster in set_clusters
-            }
 
         else:
             LOGGER.info("Skipping clustering step in OptModelInputs")
@@ -485,3 +490,20 @@ class OptModelInputs:  # pylint: disable=too-many-instance-attributes
                     self.owner_well_count[
                         wd.data.loc[well, col_names.operator_name]
                     ].append((new_cluster, well))
+
+    @staticmethod
+    def _compute_record_incompleteness(wd: WellData):
+        """
+        Computes the record incompleteness of the given data.
+        Higher the score, more of the required data is not available
+        for the well.
+        Parameters
+        ----------
+        wd : WellData
+            Object containing wells
+        """
+        data = wd.data[wd.get_flag_columns].sum(axis=1)
+        num_columns = max(1, len(wd.get_flag_columns))
+        wd.add_new_column_ordered(
+            "record_completeness", "Fraction Data Incomplete", data / num_columns
+        )
