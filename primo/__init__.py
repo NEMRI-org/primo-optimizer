@@ -22,5 +22,5 @@ from primo.utils.config_utils import UserSelection
 from primo.utils.map_utils import VisualizeData
 from primo.utils.override_utils import OverrideCampaign
 
-RELEASE = "0.2.2rc1"
+RELEASE = "0.2.2rc2"
 VERSION = "0.2.2"
