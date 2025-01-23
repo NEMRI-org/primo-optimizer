@@ -30,10 +30,7 @@ from pyomo.core.base.block import Block, BlockData, declare_custom_block
 from pyomo.environ import NonNegativeReals, Var
 
 # User-defined libs
-from primo.opt_model.efficiency_max_formulation import (
-    build_cluster_efficiency_model,
-    compute_efficieny_scaling_factors,
-)
+from primo.opt_model.efficiency_max_formulation import build_cluster_efficiency_model
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,9 +55,9 @@ class EfficiencyBlockData(BlockData):
         Builds efficiency model
         """
         if formulation_type == "Max Scaling":
-            if not self._scaling_factors_available:
-                compute_efficieny_scaling_factors(self.parent_block().parent_block())
-                EfficiencyBlockData._scaling_factors_available = True
+            # if not self._scaling_factors_available:
+            #     compute_efficieny_scaling_factors(self.parent_block().parent_block())
+            #     EfficiencyBlockData._scaling_factors_available = True
             build_cluster_efficiency_model(self)
         else:
             raise NotImplementedError("Zone formulation is not supported currently")
