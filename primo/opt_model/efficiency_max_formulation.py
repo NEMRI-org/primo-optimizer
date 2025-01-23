@@ -26,7 +26,7 @@ from primo.utils.clustering_utils import get_pairwise_metrics
 LOGGER = logging.getLogger(__name__)
 
 
-def compute_efficieny_scaling_factors(opt_model):
+def compute_efficiency_scaling_factors(opt_model):
     """
     Checks whether scaling factors for efficiency metrics are provided by
     the user or not. If not, computes the scaling factors using the entire
