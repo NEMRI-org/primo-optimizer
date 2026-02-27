@@ -218,6 +218,121 @@ def get_minimal_campaign_fixture():
     return Campaign(well_data, {1: [0, 1], 2: [2, 3], 3: [4]}, {1: 10, 2: 15, 3: 20})
 
 
+@pytest.fixture(name="get_minimal_campaign_eff_model", scope="function")
+def get_minimal_campaign_eff_model_fixture():
+    im_metrics = ImpactMetrics()
+
+    # Specify weights
+    im_metrics.set_weight(
+        primary_metrics={
+            "ch4_emissions": 35,
+            "sensitive_receptors": 20,
+            "ann_production_volume": 20,
+            "well_age": 15,
+            "well_count": 10,
+        },
+        submetrics={
+            "ch4_emissions": {
+                "leak": 40,
+                "compliance": 30,
+                "violation": 20,
+                "incident": 10,
+            },
+            "sensitive_receptors": {
+                "schools": 50,
+                "hospitals": 50,
+            },
+            "ann_production_volume": {
+                "ann_gas_production": 50,
+                "ann_oil_production": 50,
+            },
+        },
+    )
+
+    im_metrics.check_validity()
+
+    im_metrics.delete_metric(
+        "dac_impact"
+    )  # Deletes the metric as well submetrics "fed_dac" and "state_dac"
+    im_metrics.delete_metric("other_emissions")
+    im_metrics.delete_metric("five_year_production_volume")
+    im_metrics.delete_metric("well_integrity")
+    im_metrics.delete_metric("environment")
+
+    # Submetrics can also be deleted in a similar manner
+    im_metrics.delete_submetric("buildings_near")
+    im_metrics.delete_submetric("buildings_far")
+
+    col_names = WellDataColumnNames(
+        well_id="API Well Number",
+        latitude="x",
+        longitude="y",
+        operator_name="Operator Name",
+        age="Age [Years]",
+        depth="Depth [ft]",
+        leak="Leak [Yes/No]",
+        compliance="Compliance [Yes/No]",
+        violation="Violation [Yes/No]",
+        incident="Incident [Yes/No]",
+        hospitals="Number of Nearby Hospitals",
+        schools="Number of Nearby Schools",
+        ann_gas_production="Gas [Mcf/Year]",
+        ann_oil_production="Oil [bbl/Year]",
+        # These are user-specific columns
+    )
+
+    data = {
+        "API Well Number": {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6},
+        "Leak [Yes/No]": {0: "No", 1: "No", 2: "No", 3: "No", 4: "No", 5: "No"},
+        "Violation [Yes/No]": {0: "No", 1: "No", 2: "No", 3: "No", 4: "No", 5: "No"},
+        "Incident [Yes/No]": {0: "Yes", 1: "Yes", 2: "No", 3: "No", 4: "Yes", 5: "Yes"},
+        "Compliance [Yes/No]": {0: "No", 1: "Yes", 2: "No", 3: "Yes", 4: "No", 5: "No"},
+        "Oil [bbl/Year]": {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6},
+        "Gas [Mcf/Year]": {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6},
+        "Age [Years]": {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6},
+        "Depth [ft]": {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6},
+        "Operator Name": {
+            0: "Owner 56",
+            1: "Owner 136",
+            2: "Owner 137",
+            3: "Owner 190",
+            4: "Owner 196",
+            5: "Owner 196",
+        },
+        "x": {0: 0.99982, 1: 0.99995, 2: 1.51754, 3: 1.51776, 4: 1.51964, 5: 1.51931},
+        "y": {0: 1.95117, 1: 1.9572, 2: 1.9584, 3: 1.95746, 4: 1.95678, 5: 1.95674},
+        "Number of Nearby Hospitals": {0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3},
+        "Number of Nearby Schools": {0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3},
+    }
+
+    well_data = WellData(pd.DataFrame(data), col_names, impact_metrics=im_metrics)
+
+    well_data.compute_priority_scores()
+
+    return Campaign(
+        well_data,
+        {1: [0, 1], 2: [2, 3], 3: [4]},
+        {1: 10, 2: 15, 3: 20},
+        efficiency_model_scores={
+            1: {
+                "Efficiency Metric 1": 10,
+                "Efficiency Metric 2": 15,
+                "Efficiency Metric 3": 20,
+            },
+            2: {
+                "Efficiency Metric 1": 25,
+                "Efficiency Metric 2": 30,
+                "Efficiency Metric 3": 35,
+            },
+            3: {
+                "Efficiency Metric 1": 40,
+                "Efficiency Metric 2": 45,
+                "Efficiency Metric 3": 50,
+            },
+        },
+    )
+
+
 @pytest.fixture(name="get_project", scope="function")
 def get_project_fixture(get_campaign):
     return get_campaign.projects[2]
@@ -654,3 +769,11 @@ def test_export_data_to_excel(get_campaign):
 def test_plot_campaign(get_campaign):
     get_campaign.plot_campaign("Just some toy data")
     plt.close()
+
+
+def test_efficiency_scores_dict_eff_model(get_minimal_campaign_eff_model):
+    campaign = get_minimal_campaign_eff_model
+    campaign.efficiency_calculator.compute_efficiency_scores()
+    assert campaign.projects[1].efficiency_score == 45
+    assert campaign.projects[2].efficiency_score == 90
+    assert campaign.projects[3].efficiency_score == 135

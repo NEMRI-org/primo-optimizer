@@ -494,7 +494,7 @@ class PluggingCampaignModel(ConcreteModel):
             1 - self.model_inputs.config.min_budget_usage / 100
         ) * self.total_budget
 
-        # Define upper bound for unutilized budget
+        # Define upper bound for the budget amount that is not utilized
         # pylint: disable=no-member
         self.unused_budget.setub(max_unused_budget)
 
@@ -564,6 +564,7 @@ class PluggingCampaignModel(ConcreteModel):
         """
         optimal_campaign = {}
         plugging_cost = {}
+        efficiency_scores_projects = {}
 
         for c in self.set_clusters:
             blk = self.cluster[c]
@@ -579,8 +580,13 @@ class PluggingCampaignModel(ConcreteModel):
                     # Well w is chosen, so store it in the dict
                     optimal_campaign[c].append(w)
 
+            if hasattr(blk, "efficiency_model"):
+                efficiency_scores_projects[c] = (
+                    blk.efficiency_model.get_efficiency_scores()
+                )
+
         wd = self.model_inputs.config.well_data
-        return Campaign(wd, optimal_campaign, plugging_cost)
+        return Campaign(wd, optimal_campaign, plugging_cost, efficiency_scores_projects)
 
     def get_solution_pool(self, solver):
         """
